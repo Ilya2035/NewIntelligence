@@ -66,3 +66,106 @@ cw_escort_military_stance = {
 	# main army is already fighting, do not start them alone
 	confront_factor = 0.5
 }
+
+# =====================================================================================================
+# v0.3 - the four player orders for subjects (user feedback 2026-11-04). Set in the vanilla subject window
+# (Diplomacy -> subjects -> military stance); the Military panel "Headquarters" tab explains them.
+#   1. cw_escort_military_stance       - concentrate on the overlord's main army (above)
+#   2. cw_harass_military_stance       - harass: avoid big battles, hunt small detachments, raid and siege nearby enemy land
+#   3. cw_own_theater_military_stance  - act on its own: fights and sieges in its own theatre around its borders
+#   4. cw_defend_home_military_stance  - defend its own land only
+# Same field set as the vanilla stances (00_default.txt); 0-10 priorities, confront_factor as in siege_raider.
+# =====================================================================================================
+
+cw_harass_military_stance = {
+	chase_unit_own_location_priority = 6
+	chase_unit_overlord_location_priority = 6
+	chase_unit_subject_location_priority = 6
+	chase_unit_friendly_location_priority = 4
+	chase_unit_neutral_location_priority = 4
+	chase_unit_enemy_location_priority = 6			# picks off stragglers in enemy land
+	chase_navy_priority = 2
+	hunt_army_priority = 6							# small enemy stacks; confront_factor keeps it off the main army
+	hunt_navy_priority = 2
+	defend_own_territory_priority = 4
+	defend_ally_territory_priority = 1
+	merge_units_priority = 10
+	hunt_pirates_priority = 0
+	repatriate_ships_priority = 10
+	repatriate_troops_priority = 10
+	support_armies_priority = 0
+	support_sieges_priority = 2
+	maintain_military_levels_priority = 4
+	carpet_siege_own_locations_attacking_priority = 2
+	carpet_siege_own_locations_defending_priority = 2
+	carpet_siege_enemy_locations_priority = 8		# raids and takes the enemy land next to it
+	blockade_port_priority = 2
+	blockade_strait_priority = 2
+	suppress_rebel_priority = 1
+	army_logistics_priority = 2
+	navy_logistics_priority = 2
+	friendly_naval_transport_priority = 1
+	confront_factor = 0.2							# rarely seeks a field battle (siege_raider 0.0)
+}
+
+cw_own_theater_military_stance = {
+	chase_unit_own_location_priority = 10
+	chase_unit_overlord_location_priority = 6
+	chase_unit_subject_location_priority = 8
+	chase_unit_friendly_location_priority = 6
+	chase_unit_neutral_location_priority = 6
+	chase_unit_enemy_location_priority = 6
+	chase_navy_priority = 4
+	hunt_army_priority = 7
+	hunt_navy_priority = 5
+	defend_own_territory_priority = 10
+	defend_ally_territory_priority = 3
+	merge_units_priority = 10
+	hunt_pirates_priority = 0
+	repatriate_ships_priority = 10
+	repatriate_troops_priority = 10
+	support_armies_priority = 2
+	support_sieges_priority = 2
+	maintain_military_levels_priority = 4
+	carpet_siege_own_locations_attacking_priority = 3
+	carpet_siege_own_locations_defending_priority = 4
+	carpet_siege_enemy_locations_priority = 5
+	blockade_port_priority = 2
+	blockade_strait_priority = 3
+	suppress_rebel_priority = 1
+	army_logistics_priority = 2
+	navy_logistics_priority = 2
+	friendly_naval_transport_priority = 1
+	confront_factor = 1.0
+}
+
+cw_defend_home_military_stance = {
+	chase_unit_own_location_priority = 10
+	chase_unit_overlord_location_priority = 4
+	chase_unit_subject_location_priority = 6
+	chase_unit_friendly_location_priority = 2
+	chase_unit_neutral_location_priority = 0
+	chase_unit_enemy_location_priority = 0
+	chase_navy_priority = 3
+	hunt_army_priority = 2
+	hunt_navy_priority = 2
+	defend_own_territory_priority = 10
+	defend_ally_territory_priority = 2
+	merge_units_priority = 10
+	hunt_pirates_priority = 0
+	repatriate_ships_priority = 10
+	repatriate_troops_priority = 10
+	support_armies_priority = 0
+	support_sieges_priority = 0
+	maintain_military_levels_priority = 4
+	carpet_siege_own_locations_attacking_priority = 0
+	carpet_siege_own_locations_defending_priority = 4	# retakes its own occupied land
+	carpet_siege_enemy_locations_priority = 0
+	blockade_port_priority = 0
+	blockade_strait_priority = 2
+	suppress_rebel_priority = 2
+	army_logistics_priority = 2
+	navy_logistics_priority = 2
+	friendly_naval_transport_priority = 1
+	confront_factor = 0.5
+}

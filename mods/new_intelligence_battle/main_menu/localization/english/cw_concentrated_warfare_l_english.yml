@@ -133,7 +133,7 @@
  game_concept_cw_war_stance_desc: "The current posture of an AI country at war: $CW_STANCE_1$, $CW_STANCE_2$, $CW_STANCE_3$, $CW_STANCE_4$ or $CW_STANCE_0$. The stance is recalculated monthly from the strength ratio against the main enemy, the traits of the ruler and the commander and the course of the war, and changes at most once every two months. The plate under the alert bar shows the stance of our main enemy; for a month after a change our intelligence reports $CW_STANCE_0$."
 
  ### Subject military stance (in_game/common/subject_military_stances/cw_stances.txt; pattern military_l_english.yml:15-37)
- cw_escort_military_stance: "Escort"
+ cw_escort_military_stance: "Order: Stay with the Main Army"
  cw_escort_military_stance_desc: "The [subject|e] will shadow our main army and cover our sieges instead of operating on its own."
  cw_escort_military_stance_desc_all: "All our [subjects|e] will shadow our main army and cover our sieges instead of operating on their own."
 
@@ -233,3 +233,25 @@
  CW_HQ_COLONIAL_READY: "A colonial headquarters is formed: choose an army overseas and press $CW_HQ_ADD_COLONIAL$"
  CW_HQ_FORMING_TT: "Headquarters are never recruited and cost nothing. When a headquarters slot is free (an army with a headquarters was destroyed, a new age began or the country grew), a new headquarters forms within 3 months."
  CW_HQ_READY_TT: "Where the headquarters goes is our choice: open the army it should lead. Computer-controlled countries place it themselves, in their largest army. The decision $cw_toggle_auto_hq.title$ turns on the same automatic placement for us."
+
+ # --- v0.3: Headquarters tab in the Military panel, orders to subjects, obedience ---
+ CW_MIL_TAB_HQ: "Headquarters"
+ CW_MIL_TAB_HQ_TT: "Army headquarters: limits, formation, placement and orders to subjects."
+ CW_MIL_HQ_READY: "A headquarters is formed: press $CW_HQ_ADD_SHORT$ on the row of the army you want"
+ CW_MIL_ARMIES_HEADER: "Our Armies"
+ CW_HQ_ADD_SHORT: "Place HQ"
+ CW_MIL_ORDERS_HEADER: "Orders to Subjects"
+ CW_MIL_ORDERS_TEXT: "Orders are given in the subject window (Diplomacy -> subjects -> military stance). Four orders:\n#T $cw_escort_military_stance$#! - stay with our main army and cover its sieges.\n#T $cw_harass_military_stance$#! - avoid big battles, hit small detachments and take nearby enemy land.\n#T $cw_own_theater_military_stance$#! - fight on its own sector near its borders.\n#T $cw_defend_home_military_stance$#! - defend its own land only.\nObedience depends on the subject's loyalty: below 33 it barely fights, 33-65 it follows its own judgement, 66 and above it obeys."
+ cw_harass_military_stance: "Order: Harass the Enemy"
+ cw_harass_military_stance_desc: "The [subject|e] avoids big battles: it hits small detachments and takes nearby enemy land."
+ cw_harass_military_stance_desc_all: "All our [subjects|e] avoid big battles: they hit small detachments and take nearby enemy land."
+ cw_own_theater_military_stance: "Order: Own Sector"
+ cw_own_theater_military_stance_desc: "The [subject|e] fights on its own sector near its borders, battling and besieging where it sees fit."
+ cw_own_theater_military_stance_desc_all: "All our [subjects|e] fight on their own sectors near their borders."
+ cw_defend_home_military_stance: "Order: Defend Own Land"
+ cw_defend_home_military_stance_desc: "The [subject|e] only defends its own land and retakes its occupied locations."
+ cw_defend_home_military_stance_desc_all: "All our [subjects|e] only defend their own land."
+ STATIC_MODIFIER_NAME_cw_subject_reluctant: "Disloyal Subject: Barely Fights"
+ STATIC_MODIFIER_DESC_cw_subject_reluctant: "Loyalty to the overlord below 33: the subject avoids offensives and big battles and spares its army."
+ STATIC_MODIFIER_NAME_cw_subject_obedient: "Loyal Subject: Obeys Orders"
+ STATIC_MODIFIER_DESC_cw_subject_obedient: "Loyalty to the overlord 66 or more: the subject fights the overlord's war in earnest and follows its orders."

@@ -330,3 +330,53 @@ cw_record_player_enemy_stance = {
 		set_variable = { name = cw_enemy_stance value = 0 }
 	}
 }
+
+# country scope (AI). v0.3 - obedience of subjects by subject_loyalty (0-100, vanilla trigger, casus_belli/disloyal_subject.txt:16).
+#   < 33   cw_subject_reluctant : AI temperament that avoids battles and offensives - "barely fights"
+#   33-65  no modifier          : acts on its own judgement (vanilla behaviour + the stance its overlord set)
+#   >= 66  cw_subject_obedient  : commits to the overlord's war and follows the stance (order) the overlord set
+# Applied only while the subject is at war; removed otherwise. months = 2 + mode = replace, refreshed monthly.
+cw_subject_obedience_update = {
+	if = {
+		limit = {
+			is_subject = yes
+			at_war = yes
+		}
+		if = {
+			limit = { subject_loyalty < 33 }
+			add_country_modifier = { modifier = cw_subject_reluctant months = 2 mode = replace }
+			if = {
+				limit = { has_country_modifier = cw_subject_obedient }
+				remove_country_modifier = cw_subject_obedient
+			}
+		}
+		else_if = {
+			limit = { subject_loyalty >= 66 }
+			add_country_modifier = { modifier = cw_subject_obedient months = 2 mode = replace }
+			if = {
+				limit = { has_country_modifier = cw_subject_reluctant }
+				remove_country_modifier = cw_subject_reluctant
+			}
+		}
+		else = {
+			if = {
+				limit = { has_country_modifier = cw_subject_reluctant }
+				remove_country_modifier = cw_subject_reluctant
+			}
+			if = {
+				limit = { has_country_modifier = cw_subject_obedient }
+				remove_country_modifier = cw_subject_obedient
+			}
+		}
+	}
+	else = {
+		if = {
+			limit = { has_country_modifier = cw_subject_reluctant }
+			remove_country_modifier = cw_subject_reluctant
+		}
+		if = {
+			limit = { has_country_modifier = cw_subject_obedient }
+			remove_country_modifier = cw_subject_obedient
+		}
+	}
+}

@@ -236,6 +236,18 @@ types CW_HQOverviewTypes
 			}
 
 			expand = {}
+
+			# v0.3: place a formed headquarters into this army (or the largest HQ-less own army at its location) right from
+			# the list - the same scripted GUI as the army window button, with this row's army location as scope:loc.
+			# Shown only while a formed headquarters waits (cw_hq_ready), enabled by is_valid of cw_sgui_loc_add_hq.
+			button_regular = {
+				size = { 120 28 }
+				visible = "[GetPlayer.MakeScope.GetVariable('cw_hq_ready').IsSet]"
+				text = "CW_HQ_ADD_SHORT"
+				tooltip = "CW_HQ_ADD_TT"
+				enabled = "[GetScriptedGui('cw_sgui_loc_add_hq').IsValid(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('loc', Unit.GetLocation.MakeScope).End)]"
+				onclick = "[GetScriptedGui('cw_sgui_loc_add_hq').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('loc', Unit.GetLocation.MakeScope).End)]"
+			}
 		}
 	}
 

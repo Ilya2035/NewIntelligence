@@ -9,7 +9,7 @@
 # =====================================================================================================
 
 monthly_country_pulse = {
-	on_actions = { cw_stance_monthly }
+	on_actions = { cw_stance_monthly cw_subject_obedience_monthly }
 }
 
 on_war_declared = {
@@ -68,4 +68,14 @@ cw_stance_on_war_end = {
 		at_war = no
 	}
 	effect = { cw_clear_stance = yes }
+}
+
+# v0.3 - obedience of AI subjects by their loyalty to the overlord (user feedback 2026-11-04):
+# low loyalty -> the subject barely fights, medium -> acts on its own, high -> follows the overlord's orders.
+cw_subject_obedience_monthly = {
+	trigger = {
+		is_real_country = yes
+		is_ai = yes
+	}
+	effect = { cw_subject_obedience_update = yes }
 }

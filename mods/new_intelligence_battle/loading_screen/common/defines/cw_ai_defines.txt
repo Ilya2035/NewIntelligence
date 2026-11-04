@@ -21,7 +21,7 @@
 # (see their comments) and therefore STAY in the list.
 #
 #   key                                              mod      vanilla  line
-#   RATIO_OVER_SUPPLY_TARGET_TO_SPLIT                1.5      1.3      1026
+#   RATIO_OVER_SUPPLY_TARGET_TO_SPLIT                1.2      1.3      1026
 #   AI_LAND_ARMY_MERGE_THRESHOLD                     0.95     0.80     1137
 #   HUNT_ARMIES_WIN_CHANCE_SPLIT                     1.0      0.99     997
 #   HUNT_ARMIES_MAX_SPLINTERS                        2        6        998
@@ -50,7 +50,9 @@
 
 NAI = {
 	# --- stack size, splitting, merging (research 06 §2.1) - the concentration group, unchanged by the balance review ---
-	RATIO_OVER_SUPPLY_TARGET_TO_SPLIT = 1.5				# 1.3  (l.1026): tolerate larger stacks before splitting in half (no "split at 130%" churn).
+	RATIO_OVER_SUPPLY_TARGET_TO_SPLIT = 1.2				# 1.3  (l.1026): v0.3 - split a stack sooner when it outgrows the supply limit (user: the AI must minimise attrition; v0.2 had 1.5) (no "split at 130%" churn).
+	AI_AVOID_ATTRITION_MAX_PATH_FIND_DISTANCE = 9			# 7    (l.1051): v0.3 - look further for a location without attrition (small performance cost)
+	AI_LAND_UNIT_ATTRITION_UTILITY = -3					# -2   (l.1466): v0.3 - the AI values modifiers that reduce land attrition more (policies, privileges)
 														#                1.8 in the first draft: stacks at 180% of the supply target bleed attrition in
 														#                mountains / deserts (supply_limit 15, max_attrition 10 - review 15 §5), hence 1.5
 	AI_LAND_ARMY_MERGE_THRESHOLD = 0.95					# 0.80 (l.1137): idle armies below 95% frontage fill merge with co-located armies

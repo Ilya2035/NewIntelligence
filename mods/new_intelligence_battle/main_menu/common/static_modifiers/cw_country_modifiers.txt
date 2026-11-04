@@ -74,3 +74,25 @@ cw_stance_harassing = {
 # cw_rule_native_penalty, ended by Pike and Shot or decision cw_reform_war_host). The reserved static twin cw_isolated_tradition
 # that used to sit here was never applied by any script and was deleted in the balance review (research 15 sections 6 / 7, P3);
 # a future scripted variant must define its own key rather than resurrect a second copy of the same values.
+
+# v0.3 - subject obedience by loyalty (cw_subject_obedience_update, cw_stance_effects.txt). AI-only types (ai = yes).
+# Low loyalty: the subject "barely fights" - it avoids offensives and field battles and guards its own land.
+cw_subject_reluctant = {
+	game_data = {
+		category = country
+	}
+	aggressiveness_modifier = -0.5
+	carefulness_modifier = 0.5
+	win_war_chance_threshold = 0.15
+	defence_importance_modifier = 0.3
+}
+
+# High loyalty: the subject commits to the overlord's war (and follows the order / stance the overlord set).
+cw_subject_obedient = {
+	game_data = {
+		category = country
+	}
+	aggressiveness_modifier = 0.1
+	carefulness_modifier = -0.1
+	expected_warscore_modifier = 0.1
+}
