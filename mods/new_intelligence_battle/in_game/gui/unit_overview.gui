@@ -362,6 +362,17 @@ lateralview = {
 					expand = {}
 				}
 
+				# ---- v0.4: form the formed headquarters as a separate unit in the capital ----
+				button_regular = {
+					visible = "[GetPlayer.MakeScope.GetVariable('cw_hq_ready').IsSet]"
+					layoutpolicy_horizontal = expanding
+					size = { -1 30 }
+					text = "CW_HQ_FORM_AT_CAPITAL"
+					tooltip = "CW_HQ_FORM_AT_CAPITAL_TT"
+					enabled = "[GetScriptedGui('cw_sgui_form_hq_at_capital').IsValid(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+					onclick = "[GetScriptedGui('cw_sgui_form_hq_at_capital').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+				}
+
 				# ---- automation toggle ----
 				hbox = {
 					layoutpolicy_horizontal = expanding

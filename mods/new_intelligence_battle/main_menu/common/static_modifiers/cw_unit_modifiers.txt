@@ -6,16 +6,18 @@
 
 # Army without a headquarters regiment: cannot really besiege, fights at roughly half effectiveness.
 # Balance (research 15 section 1.2, DESIGN.md 2.2): the fighting value of an HQ-less regiment relative to an
+# v0.4 (user feedback 2026-11-04): an army without a headquarters is cut in half (-50 % discipline and morale: "attack 2 becomes attack 1")
+# and cannot take ANY location (siege and assault -100 %); the AI moves such stacks but should not fight or siege with them.
 # organised one is E = (1 + d) * (1 + m) / (1 + |d|); -25 % discipline / -30 % morale give E = 0.42 (v0.2, user feedback: "a bit stronger"; v0.1 had -20/-25 = 0.50). A thousand unorganised men still beat 250
 # organised ones comfortably and lose to a thousand. The siege half is unchanged pending T1.3 (research 15 1.4).
 cw_no_hq = {
 	game_data = {
 		category = unit
 	}
-	siege_ability = -0.9			# sieges ~10x slower -> no practical occupation
-	assault_ability = -0.5			# storming forts almost useless
-	discipline = -0.25				# unorganised troops deal less damage (and take more)
-	land_morale_modifier = -0.3	# ...and break sooner
+	siege_ability = -1.0			# no siege progress at all: an army without a headquarters takes nothing
+	assault_ability = -1.0			# cannot storm forts either
+	discipline = -0.5				# unorganised troops deal less damage (and take more)
+	land_morale_modifier = -0.5	# ...and break sooner
 }
 
 # Army with a COLONIAL headquarters operating on an overseas continent (not the capital's continent).
@@ -37,19 +39,19 @@ cw_no_hq_mild = {
 		category = unit
 	}
 	siege_ability = -0.9
-	assault_ability = -0.5
-	discipline = -0.15
-	land_morale_modifier = -0.15
+	assault_ability = -0.75
+	discipline = -0.3
+	land_morale_modifier = -0.3
 }
 
 cw_no_hq_harsh = {
 	game_data = {
 		category = unit
 	}
-	siege_ability = -0.9
-	assault_ability = -0.5
-	discipline = -0.35
-	land_morale_modifier = -0.4
+	siege_ability = -1.0
+	assault_ability = -1.0
+	discipline = -0.6
+	land_morale_modifier = -0.6
 }
 
 # Army whose ONLY headquarters is a colonial one and which stands on non-overseas ground (home continent or a
@@ -60,8 +62,8 @@ cw_no_hq_siege_only = {
 	game_data = {
 		category = unit
 	}
-	siege_ability = -0.9
-	assault_ability = -0.5
+	siege_ability = -1.0
+	assault_ability = -1.0
 }
 
 # Rebel armies (is_rebel_country = yes): the combat half of the standard penalty and NO siege malus, refreshed by the
@@ -72,6 +74,6 @@ cw_rebel_disorder = {
 	game_data = {
 		category = unit
 	}
-	discipline = -0.25
-	land_morale_modifier = -0.3
+	discipline = -0.5
+	land_morale_modifier = -0.5
 }

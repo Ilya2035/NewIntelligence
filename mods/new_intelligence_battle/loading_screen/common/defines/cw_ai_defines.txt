@@ -24,9 +24,9 @@
 #   RATIO_OVER_SUPPLY_TARGET_TO_SPLIT                1.2      1.3      1026
 #   AI_LAND_ARMY_MERGE_THRESHOLD                     0.95     0.80     1137
 #   HUNT_ARMIES_WIN_CHANCE_SPLIT                     1.0      0.99     997
-#   HUNT_ARMIES_MAX_SPLINTERS                        2        6        998
+#   HUNT_ARMIES_MAX_SPLINTERS                        1        6        998
 #   HUNT_ARMIES_AI_MAX_NUM_OBJECTIVES                3        5        1004
-#   CARPET_SIEGE_MAX_ARMIES                          4        10       1021
+#   CARPET_SIEGE_MAX_ARMIES                          2        10       1021
 #   AI_CARPET_SIEGE_MAX_ARMIES_FACTOR                0.05     0.1      1593
 #   MAX_RECRUIT_DISTANCE                             6        10       1037
 #   AI_REASSIGN_UNIT_THRESHOLD                       1.6      1.33     1403
@@ -57,9 +57,9 @@ NAI = {
 														#                mountains / deserts (supply_limit 15, max_attrition 10 - review 15 §5), hence 1.5
 	AI_LAND_ARMY_MERGE_THRESHOLD = 0.95					# 0.80 (l.1137): idle armies below 95% frontage fill merge with co-located armies
 	HUNT_ARMIES_WIN_CHANCE_SPLIT = 1.0					# 0.99 (l.997) : never split a hunting army just because the win chance is high
-	HUNT_ARMIES_MAX_SPLINTERS = 2						# 6    (l.998) : belt and braces with the above
+	HUNT_ARMIES_MAX_SPLINTERS = 1						# 6    (l.998) : v0.4 - never splinter a hunting army (fragments have no headquarters and fight at half strength)
 	HUNT_ARMIES_AI_MAX_NUM_OBJECTIVES = 3				# 5    (l.1004): at most 3 hunting groups at once
-	CARPET_SIEGE_MAX_ARMIES = 4							# 10   (l.1021): at most 4 siege detachments (1 main army + up to 4 extra HQs)
+	CARPET_SIEGE_MAX_ARMIES = 2							# 10   (l.1021): v0.4 - at most 2 siege groups: only armies with a headquarters can siege at all
 	AI_CARPET_SIEGE_MAX_ARMIES_FACTOR = 0.05			# 0.1  (l.1593): fewer siege detachments per location to siege
 	MAX_RECRUIT_DISTANCE = 6							# 10   (l.1037): reinforcements appear next to the main army and merge sooner
 

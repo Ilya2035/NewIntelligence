@@ -34,81 +34,48 @@
 # and verify that the army-builder limit tooltip still resolves limit = cw_hq_limit.
 ###################################
 
-# Extra home HQ slots granted by the age (DESIGN.md 2.3, balance knob):
-#   Traditions 0, Renaissance 0, Discovery 1, Reformation 2, Absolutism 3, Revolutions 4.
-# Branch pattern: holy_war_values.txt:1-22 (current_age = age_x inside if/else_if).
-# Zero while the country lives under the "isolated military tradition" (native penalty, SPEC section 9):
-# trailing, order-independent override (see the header).
+# v0.4 (user feedback 2026-11-04): headquarters do NOT grow with ages any more, only:
+#   * one bonus headquarters from the Age of Reformation ("the age of religious wars") for a country that has
+#     embraced the military institution Pike and Shot (institution/age_3_discovery_institutions.txt:100) - so even
+#     a small country can field two staffs then; no further age bonus later;
+#   * territory: one headquarters per 150 own locations (lands of subjects do not count);
+#   * colonies: the separate colonial pool (cw_colonial_hq_limit below).
+# The native-penalty rule needs no branch here any more: an American country without Pike and Shot gets no age bonus anyway.
 cw_age_hq_slots = {
 	value = 0
 	if = {
-		limit = { current_age = age_3_discovery }
-		value = 1
-	}
-	else_if = {
-		limit = { current_age = age_4_reformation }
-		value = 2
-	}
-	else_if = {
-		limit = { current_age = age_5_absolutism }
-		value = 3
-	}
-	else_if = {
-		limit = { current_age = age_6_revolutions }
-		value = 4
-	}
-	# isolated military tradition => no extra slots (mirrors cw_has_isolated_tradition, keep in sync)
-	if = {
 		limit = {
-			has_game_rule = cw_native_penalty_on								# main_menu/common/game_rules/cw_game_rules.txt (setting key)
-			is_real_country = yes
-			capital ?= { continent = continent:america }						# achievements/standard_achievements.txt:289
-			OR = {																# not the subject of a non-American overlord: colonial nations / conquistador hosts fight with the overlord's tradition (mirrors cw_is_american_native)
-				is_subject = no													# advances/country_son.txt:37
-				overlord ?= { capital ?= { continent = continent:america } }	# customizable_localization/country_ranks.txt:26 form; a tributary of an American overlord still counts
+			OR = {
+				current_age = age_4_reformation
+				current_age = age_5_absolutism
+				current_age = age_6_revolutions
 			}
-			NOT = { has_embraced_institution = institution:pike_and_shot }	# institution/age_3_discovery_institutions.txt:100
-			NOT = { has_variable = cw_reformed_host }							# decision cw_reform_war_host (module warscore_rules)
+			has_embraced_institution = institution:pike_and_shot
 		}
-		value = 0
+		value = 1
 	}
 }
 
-# Extra home HQ slots granted by size: one per 75 owned locations (balance knob: the divisor; research 14 R2 /
-# 15 section 2.2, maintainer decision: with 100 only 13 regular countries of 1337 owned a single size slot, France
-# stayed at 2 HQs for the whole game and a 5th HQ needed 400 locations; with 75 France reaches 3, Castile 4,
-# the Yuan / Delhi / Japan / the Horde 5, while 2323 of 2351 countries still live with one army).
-# num_locations = the country's own locations (value + trigger, advances/0_age_of_discovery.txt:588); subject
-# land does NOT count here (every subject gets its own HQ, research 14 R4).
+# one headquarters per 150 own locations (v0.4; v0.3 had 75 and capped it by the age slots)
 cw_size_hq_slots = {
 	value = num_locations
-	divide = 75
+	divide = 150
 	floor = yes
 }
 
-# Home HQ limit = 1 (always) + imperial slot + min(age slots, size slots), capped at 5, never below 1 (DESIGN.md 2.3).
-#   imperial slot: +1 at >= 300 own locations in EVERY age (the Yuan, the Horde, Delhi, Japan at the 1337 start),
-#   so continental empires can police revolts on two fronts before the Age of Discovery (research 15 section 2.2);
-#   num_locations >= N as a trigger: decisions/flavor_decisions_lat.txt:105. It is deliberately NOT zeroed by the
-#   isolated military tradition (cw_age_hq_slots): no American polity can own 300 locations before the reform.
-#   cap 5: a script-value max = { value desc } block, diplomatic_values.txt:310-313 (the colonial cap uses the same).
-# => small countries live with one army all game; a great power reaches 5 in the Age of Revolutions.
+# home headquarters limit = 1 + age bonus + territory, cap 5
 cw_hq_limit = {
 	add = {
 		value = 1
 		desc = "SUBUNIT_LIMIT_BASE"
 	}
-	if = {
-		limit = { num_locations >= 300 }
-		add = {
-			value = 1
-			desc = "CW_HQ_LIMIT_IMPERIAL"
-		}
-	}
 	add = {
 		value = cw_age_hq_slots
-		max = cw_size_hq_slots			# min(age, size)
-		desc = "CW_HQ_LIMIT_AGE_AND_SIZE"
+		desc = "CW_HQ_LIMIT_AGE"
+	}
+	add = {
+		value = cw_size_hq_slots
+		desc = "CW_HQ_LIMIT_SIZE"
 	}
 	max = {
 		value = 5
@@ -179,7 +146,7 @@ cw_colonial_hq_limit = {
 			}
 			if = {
 				limit = {
-					OR = { current_age = age_4_reformation current_age = age_5_absolutism current_age = age_6_revolutions }
+					always = yes	# v0.4: a big colony (25+ locations) gives its 2nd colonial headquarters in any age
 					OR = {
 						# our own overseas land on the continent ...
 						any_owned_location = {
@@ -203,7 +170,7 @@ cw_colonial_hq_limit = {
 				}
 				if = {
 					limit = {
-						OR = { current_age = age_5_absolutism current_age = age_6_revolutions }
+						always = no	# v0.4: no 3rd colonial headquarters per theatre (small colony 1, big colony 2)
 						OR = {
 							# our own overseas land on the continent ...
 							any_owned_location = {
@@ -254,7 +221,7 @@ cw_colonial_hq_limit = {
 			}
 			if = {
 				limit = {
-					OR = { current_age = age_4_reformation current_age = age_5_absolutism current_age = age_6_revolutions }
+					always = yes	# v0.4: a big colony (25+ locations) gives its 2nd colonial headquarters in any age
 					OR = {
 						# our own overseas land on the continent ...
 						any_owned_location = {
@@ -278,7 +245,7 @@ cw_colonial_hq_limit = {
 				}
 				if = {
 					limit = {
-						OR = { current_age = age_5_absolutism current_age = age_6_revolutions }
+						always = no	# v0.4: no 3rd colonial headquarters per theatre (small colony 1, big colony 2)
 						OR = {
 							# our own overseas land on the continent ...
 							any_owned_location = {
@@ -329,7 +296,7 @@ cw_colonial_hq_limit = {
 			}
 			if = {
 				limit = {
-					OR = { current_age = age_4_reformation current_age = age_5_absolutism current_age = age_6_revolutions }
+					always = yes	# v0.4: a big colony (25+ locations) gives its 2nd colonial headquarters in any age
 					OR = {
 						# our own overseas land on the continent ...
 						any_owned_location = {
@@ -353,7 +320,7 @@ cw_colonial_hq_limit = {
 				}
 				if = {
 					limit = {
-						OR = { current_age = age_5_absolutism current_age = age_6_revolutions }
+						always = no	# v0.4: no 3rd colonial headquarters per theatre (small colony 1, big colony 2)
 						OR = {
 							# our own overseas land on the continent ...
 							any_owned_location = {
@@ -404,7 +371,7 @@ cw_colonial_hq_limit = {
 			}
 			if = {
 				limit = {
-					OR = { current_age = age_4_reformation current_age = age_5_absolutism current_age = age_6_revolutions }
+					always = yes	# v0.4: a big colony (25+ locations) gives its 2nd colonial headquarters in any age
 					OR = {
 						# our own overseas land on the continent ...
 						any_owned_location = {
@@ -428,7 +395,7 @@ cw_colonial_hq_limit = {
 				}
 				if = {
 					limit = {
-						OR = { current_age = age_5_absolutism current_age = age_6_revolutions }
+						always = no	# v0.4: no 3rd colonial headquarters per theatre (small colony 1, big colony 2)
 						OR = {
 							# our own overseas land on the continent ...
 							any_owned_location = {
@@ -479,7 +446,7 @@ cw_colonial_hq_limit = {
 			}
 			if = {
 				limit = {
-					OR = { current_age = age_4_reformation current_age = age_5_absolutism current_age = age_6_revolutions }
+					always = yes	# v0.4: a big colony (25+ locations) gives its 2nd colonial headquarters in any age
 					OR = {
 						# our own overseas land on the continent ...
 						any_owned_location = {
@@ -503,7 +470,7 @@ cw_colonial_hq_limit = {
 				}
 				if = {
 					limit = {
-						OR = { current_age = age_5_absolutism current_age = age_6_revolutions }
+						always = no	# v0.4: no 3rd colonial headquarters per theatre (small colony 1, big colony 2)
 						OR = {
 							# our own overseas land on the continent ...
 							any_owned_location = {

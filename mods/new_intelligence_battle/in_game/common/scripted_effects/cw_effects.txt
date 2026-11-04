@@ -1211,3 +1211,27 @@ cw_war_end_country = {
 		cw_cache_limits = yes
 	}
 }
+
+# country scope (player, scripted GUI cw_sgui_form_hq_at_capital). v0.4 (user feedback 2026-11-04): a formed headquarters
+# can also be placed ON ITS OWN - a new 100-man staff appears in the capital as a separate unit, and the player builds the
+# army around it (merges other armies into it). Same conditions as the army button: a formed HQ (cw_hq_ready) and a free slot.
+# create_sub_unit_with_owner = { type owner origin } in location scope: events/colonization/conquistador.txt:76-81.
+# CW TODO verify: the new regiment forms its own unit (vanilla conquistador events spawn new units this way).
+cw_form_hq_at_capital = {
+	if = {
+		limit = {
+			has_variable = cw_hq_ready
+			cw_has_free_hq_slot = yes
+			exists = capital
+		}
+		capital = {
+			create_sub_unit_with_owner = {
+				type = cw_hq
+				owner = root
+				origin = this
+			}
+		}
+		cw_cache_limits = yes
+		cw_update_hq_readiness = yes
+	}
+}

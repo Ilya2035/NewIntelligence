@@ -36,9 +36,9 @@
  STATIC_MODIFIER_NAME_cw_no_hq: "Army without Headquarters"
  STATIC_MODIFIER_DESC_cw_no_hq: "This army has no [cw_headquarters|e]: it cannot conduct a proper [siege|e] and fights without coordination. Place a headquarters or merge it into an army that already has one."
  STATIC_MODIFIER_NAME_cw_no_hq_mild: "Army without Headquarters"
- STATIC_MODIFIER_DESC_cw_no_hq_mild: "$STATIC_MODIFIER_DESC_cw_no_hq$\nMild variant of the penalty: discipline −15%, morale −15% (game rule $rule_cw_rule_hq_penalty$, setting $setting_cw_hq_penalty_mild$)."
+ STATIC_MODIFIER_DESC_cw_no_hq_mild: "$STATIC_MODIFIER_DESC_cw_no_hq$\nMild variant of the penalty: discipline −30%, morale −30% (game rule $rule_cw_rule_hq_penalty$, setting $setting_cw_hq_penalty_mild$)."
  STATIC_MODIFIER_NAME_cw_no_hq_harsh: "Army without Headquarters"
- STATIC_MODIFIER_DESC_cw_no_hq_harsh: "$STATIC_MODIFIER_DESC_cw_no_hq$\nHarsh variant of the penalty: discipline −35%, morale −40% (game rule $rule_cw_rule_hq_penalty$, setting $setting_cw_hq_penalty_harsh$)."
+ STATIC_MODIFIER_DESC_cw_no_hq_harsh: "$STATIC_MODIFIER_DESC_cw_no_hq$\nHarsh variant of the penalty: discipline −60%, morale −60% (game rule $rule_cw_rule_hq_penalty$, setting $setting_cw_hq_penalty_harsh$)."
  # The siege-only tier and the rebel modifier carry DIFFERENT names on purpose: the GUI's penalty marker recognizes the no-HQ penalty by its exact name.
  STATIC_MODIFIER_NAME_cw_no_hq_siege_only: "Army without Headquarters (sieges only)"
  STATIC_MODIFIER_DESC_cw_no_hq_siege_only: "Only a [cw_colonial_headquarters|e] leads this army at home, and a colonial headquarters organizes an army only in an [overseas|e] theater. The army fights normally but cannot conduct a proper [siege|e] here. Place a regular headquarters or take the army back overseas."
@@ -101,11 +101,11 @@
  ### Game rules (main_menu/common/game_rules/cw_game_rules.txt): rule_<rule>, setting_<setting>, setting_<setting>_desc
  rule_cw_rule_hq_penalty: "Headquarters Penalty"
  setting_cw_hq_penalty_standard: "Standard"
- setting_cw_hq_penalty_standard_desc: "Armies without a headquarters get the standard penalty: siege ability −90%, assault ability −50%, discipline −25%, morale −30%."
+ setting_cw_hq_penalty_standard_desc: "Armies without a headquarters fight at half strength and cannot take anything: siege and assault ability −100%, discipline −50%, morale −50%."
  setting_cw_hq_penalty_mild: "Mild"
- setting_cw_hq_penalty_mild_desc: "Armies without a headquarters get a milder penalty: siege ability −90%, assault ability −50%, discipline −15%, morale −15%."
+ setting_cw_hq_penalty_mild_desc: "Armies without a headquarters get a milder penalty: siege ability −90%, assault ability −75%, discipline −30%, morale −30%."
  setting_cw_hq_penalty_harsh: "Harsh"
- setting_cw_hq_penalty_harsh_desc: "Armies without a headquarters get a harsher penalty: siege ability −90%, assault ability −50%, discipline −35%, morale −40%."
+ setting_cw_hq_penalty_harsh_desc: "Armies without a headquarters get a harsher penalty: siege and assault ability −100%, discipline −60%, morale −60%."
  rule_cw_rule_warscore: "Warscore Rework"
  setting_cw_warscore_on: "On"
  setting_cw_warscore_on_desc: "Occupation warscore and peace cost come mostly from cities and the capital; villages are worth almost nothing. Taking the enemy capital grants a one-off bonus to warscore."
@@ -124,7 +124,7 @@
 
  ### Game concepts (main_menu/common/game_concepts/cw_concepts.txt); alias keys cw_colonial_hq / cw_war_stances
  game_concept_cw_headquarters: "Headquarters"
- game_concept_cw_headquarters_desc: "A 100-man officer corps regiment. Only an [army|e] with a headquarters and at least two more regiments is organized: it can [siege|e], occupy [locations|e] at full speed and fight at full strength. There is no bonus for having one, only the $STATIC_MODIFIER_NAME_cw_no_hq$ penalty for lacking it. The number of headquarters is limited by [age|e] and by the number of own locations: one always, an imperial one at 300 or more own locations, plus by age (Discovery 1, Reformation 2, Absolutism 3, Revolutions 4) but never more than one per 75 own locations; five in total at most."
+ game_concept_cw_headquarters_desc: "A 100-man officer corps regiment, a troop type of its own. Only an [army|e] with a headquarters and at least two more regiments can take land and fights at full strength; an army without one fights at half strength and takes nothing. Headquarters are free: a slot freed by the destruction of an army with a headquarters is filled again within 3 months. How many you may keep: always one; one more from the Age of Reformation with the Pike and Shot institution; one more per 150 own [locations|e]; at most five. Overseas there are separate colonial headquarters: a small colony gives one, a big one (25+ locations) two."
  game_concept_cw_colonial_headquarters: "Colonial Headquarters"
  game_concept_cw_colonial_hq: "Colonial Headquarters"
  game_concept_cw_colonial_headquarters_desc: "A separate [cw_headquarters|e] pool granted per [overseas|e] continent (theater): from the Age of Discovery one per theater where we own at least 5 locations or keep an army of 3+ regiments, one more at 25 locations there, ours or our subjects' (Age of Reformation), and at 60 (Age of Absolutism), four in total at most. A colonial headquarters organizes an army only while it is overseas, where it also grants the small $STATIC_MODIFIER_NAME_cw_expeditionary$ bonus; at home such an army fights normally but cannot besiege ($STATIC_MODIFIER_NAME_cw_no_hq_siege_only$) until it receives a regular headquarters."
@@ -160,9 +160,9 @@
  # CW_HQ_SLOTS / CW_HQ_COLONIAL_SLOTS are used both here (label above the counter) and on the army tab, where the GUI
  # prints the "used/limit" numbers right after the label - the labels themselves must not contain numbers.
  CW_OVERVIEW_TITLE: "Headquarters"
- CW_OVERVIEW_HINT: "A [cw_headquarters|E] is a 100-man officer corps regiment. Only an army with a headquarters and at least two more regiments is organized: it besieges and fights at full strength; an army without one suffers the $STATIC_MODIFIER_NAME_cw_no_hq$ penalty.\nPlace a headquarters from the #W $CW_HQ_TAB$#! tab of the army window or recruit a $cw_hq$ regiment in the army builder; merged armies simply add up their headquarters. There is always at least one headquarters, an imperial one at 300 or more own locations, and more by [age|e], but never more than one per 75 own locations; five in total at most. [cw_colonial_headquarters|E] are granted separately for each overseas theater and organize an army only overseas: at home an army with a colonial headquarters fights normally but cannot besiege."
+ CW_OVERVIEW_HINT: "A [cw_headquarters|E] is a 100-man officer corps regiment. Only an army with a headquarters and at least two more regiments is organized and can take land; an army without one fights at half strength and takes nothing. A headquarters forms by itself 3 months after a slot frees up; place it into an army or form it as a separate unit in the capital."
  CW_HQ_SLOTS: "Headquarters:"
- CW_HQ_SLOTS_TT: "#T Headquarters Limit#!\nOne headquarters always, an imperial one at 300 or more own [locations|e], plus additional ones - the lower of two numbers:\n@arrow_bonus_tier_2! by [age|e]: Discovery 1, Reformation 2, Absolutism 3, Revolutions 4;\n@arrow_bonus_tier_2! by size: 1 per 75 own locations.\nFive in total at most. While $AUTO_MODIFIER_NAME_cw_isolated_tradition_auto$ is active there are no additional slots. The full breakdown is in the limit tooltip of the $cw_hq$ regiment in the army builder."
+ CW_HQ_SLOTS_TT: "#T Headquarters Limit#!\nAlways one; one more from the Age of Reformation if the Pike and Shot institution is embraced; one more per 150 own [locations|e]. At most five."
  CW_HQ_COLONIAL_SLOTS: "Colonial headquarters:"
  CW_HQ_COLONIAL_SLOTS_TT: "#T Colonial Headquarters Limit#!\nAvailable from the Age of Discovery. One per [overseas|e] continent (theater) where we own at least 5 locations or keep an army of 3+ regiments; one more at 25 locations there, ours or our subjects' (Age of Reformation), and at 60 (Age of Absolutism). Four in total at most."
  CW_AUTO_HQ_ON: "Headquarters placement: entrusted to the General Staff"
@@ -204,7 +204,7 @@
  CW_HQ_ABSENT_LOC: "No headquarters army at this location: this army is not organized"
  CW_HQ_EXEMPT: "Exiled army: the headquarters rules do not apply"
  CW_HQ_AT_SEA: "Embarked army: a headquarters can be placed or disbanded after landing"
- CW_HQ_PENALTY_INFO: "An army without a [cw_headquarters|e] gets the $STATIC_MODIFIER_NAME_cw_no_hq$ modifier; the exact numbers depend on the game rule $rule_cw_rule_hq_penalty$ (hover to see all three variants; the modifier icon on the army shows the values in force): standard - siege ability −90%, assault ability −50%, discipline −25%, morale −30%; mild - discipline −15%, morale −15%; harsh - discipline −35%, morale −40% (siege and assault as in standard). A regular headquarters lifts the penalty anywhere, a colonial one only overseas (at home such an army fights normally but cannot besiege), and the army must contain at least two more regiments: a headquarters without other regiments, or with a single regiment, occupies nothing."
+ CW_HQ_PENALTY_INFO: "An army without a [cw_headquarters|e] gets the $STATIC_MODIFIER_NAME_cw_no_hq$ modifier; the exact numbers depend on the game rule $rule_cw_rule_hq_penalty$ (hover to see all three variants; the modifier icon on the army shows the values in force): standard - siege ability −90%, assault ability −50%, discipline −50%, morale −50%; mild - discipline −30%, morale −30%; harsh - discipline −60%, morale −60% (siege and assault as in standard). A regular headquarters lifts the penalty anywhere, a colonial one only overseas (at home such an army fights normally but cannot besiege), and the army must contain at least two more regiments: a headquarters without other regiments, or with a single regiment, occupies nothing."
  CW_HQ_SLOTS_TAB_TT: "$CW_HQ_SLOTS_TT$\n\nThe counter is refreshed by the monthly organization check, by the buttons of this tab and when a war starts or ends; a headquarters recruited in the army builder or lost in battle shows up at the next check."
  CW_HQ_COLONIAL_SLOTS_TAB_TT: "$CW_HQ_COLONIAL_SLOTS_TT$\n\nThe counter is refreshed by the monthly organization check, by the buttons of this tab and when a war starts or ends. Headquarters above the limit (a theater was lost) are kept, but no new one can be placed."
  CW_HQ_ADD_RULES_TT: "$CW_HQ_ADD_TT$.\nExiled and prisoner-only stacks are exempt from the headquarters rules and cannot receive one."
@@ -255,3 +255,9 @@
  STATIC_MODIFIER_DESC_cw_subject_reluctant: "Loyalty to the overlord below 33: the subject avoids offensives and big battles and spares its army."
  STATIC_MODIFIER_NAME_cw_subject_obedient: "Loyal Subject: Obeys Orders"
  STATIC_MODIFIER_DESC_cw_subject_obedient: "Loyalty to the overlord 66 or more: the subject fights the overlord's war in earnest and follows its orders."
+
+ # --- v0.4 ---
+ CW_HQ_FORM_AT_CAPITAL: "Form Headquarters in the Capital"
+ CW_HQ_FORM_AT_CAPITAL_TT: "The formed headquarters appears in the capital as a separate 100-man unit. Build an army around it by merging other armies into it. Without a headquarters an army fights at half strength and cannot take anything."
+ CW_HQ_LIMIT_AGE: "Age of Reformation and the Pike and Shot institution"
+ CW_HQ_LIMIT_SIZE: "Territory: one per 150 own locations"

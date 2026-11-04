@@ -361,3 +361,21 @@ cw_sgui_auto_hq_on = {
 		has_variable = cw_auto_hq
 	}
 }
+
+# v0.4: form the formed headquarters as a separate 100-man unit in the capital (Military panel, Headquarters tab).
+cw_sgui_form_hq_at_capital = {
+	scope = country
+	is_shown = {
+		always = yes
+	}
+	is_valid = {
+		has_variable = cw_hq_ready
+		cw_has_free_hq_slot = yes
+		exists = capital
+	}
+	effect = {
+		root = {
+			cw_form_hq_at_capital = yes
+		}
+	}
+}
