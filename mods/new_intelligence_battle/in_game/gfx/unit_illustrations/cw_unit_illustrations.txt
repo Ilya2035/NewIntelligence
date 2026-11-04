@@ -1,0 +1,30 @@
+﻿# New Intelligence: Battle - 2D art of the "Headquarters" troop type (category army_headquarters).
+# Format: in_game/gfx/unit_illustrations/readme.txt and 00_unit_illustrations.txt (army_infantry entries :1579-1758).
+# Until dedicated officer art exists, the headquarters uses the infantry illustrations of its age instead of the
+# supply-cart picture of the auxiliaries. Priorities sit just above the vanilla infantry entries of the same age.
+
+cw_army_headquarters_3 = {
+	texture = "gfx/interface/illustrations/units/army_infantry_3.dds"
+	priority = 130500
+	trigger = {
+		unit_category = army_headquarters
+		min_age = age_3_discovery
+	}
+}
+
+cw_army_headquarters_2 = {
+	texture = "gfx/interface/illustrations/units/army_infantry_2.dds"
+	priority = 120500
+	trigger = {
+		unit_category = army_headquarters
+		min_age = age_2_renaissance
+	}
+}
+
+cw_army_headquarters = {
+	texture = "gfx/interface/illustrations/units/army_infantry.dds"
+	priority = 100500
+	trigger = {
+		unit_category = army_headquarters
+	}
+}

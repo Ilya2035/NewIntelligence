@@ -1,47 +1,19 @@
-﻿###################################
-# Concentrated Warfare - per-unit price overrides for the headquarters regiments (module hq_core)
-#
-# Prices are ADDITIVE per unit type on top of the category price (prices/02_units.txt:86-98):
-#   army_auxiliary_build       = { gold = 100  manpower = 1 }
-#   army_auxiliary_reinforce   = { gold = 5    manpower = 1 }
-#   army_auxiliary_maintenance = { gold = 1    manpower = 0.02 }
-# Vanilla pattern: a_clan_retainers_build = { gold = -30 #Base 50 - 30 = 20 } (02_units.txt:184-197).
-# The key MUST be <unit_type_key>_build / _reinforce / _maintenance.
-#
-# Balance knob: the HQ is meant to be "practically free" (DESIGN.md 2.1) but never 0 or negative,
-# because a zero/negative total is unverified (research 01 section 4.2). Result: 5 gold to raise,
-# 0.5 gold to reinforce, 0.1 gold/month, and 10% of the normal manpower per man.
-# CW TODO verify: recruit tooltip shows ~5 gold / tiny manpower; if a total of 5 misbehaves, use -90.
-###################################
+﻿# New Intelligence: Battle - prices of the "Headquarters" troop type (category army_headquarters).
+# Format: in_game/common/prices/02_units.txt (army_auxiliary_build / _reinforce / _maintenance).
+# Headquarters are a game convention: free to keep and to reinforce. They are never recruited (cw_hq is not
+# buildable); they are formed by script 3 months after a slot opens (cw_update_hq_readiness, cw_effects.txt).
 
-# --- cw_hq ----------------------------------------------------------------
-cw_hq_build = {
-	gold = -95				# base 100 - 95 = 5
-	manpower = -0.9			# base 1 - 0.9 = 0.1 (manpower scales with max_strength, so ~10 men for a 100-man regiment)
+army_headquarters_build = {
+	gold = 0
+	manpower = 0
 }
 
-cw_hq_reinforce = {
-	gold = -4.5				# base 5 - 4.5 = 0.5
-	manpower = -0.9			# base 1 - 0.9 = 0.1
+army_headquarters_reinforce = {
+	gold = 0
+	manpower = 0
 }
 
-cw_hq_maintenance = {
-	gold = -0.9				# base 1 - 0.9 = 0.1 per month
-	manpower = -0.018		# base 0.02 - 0.018 = 0.002
-}
-
-# --- cw_hq_colonial (identical) ---------------------------------------------
-cw_hq_colonial_build = {
-	gold = -95
-	manpower = -0.9
-}
-
-cw_hq_colonial_reinforce = {
-	gold = -4.5
-	manpower = -0.9
-}
-
-cw_hq_colonial_maintenance = {
-	gold = -0.9
-	manpower = -0.018
+army_headquarters_maintenance = {
+	gold = 0
+	manpower = 0
 }

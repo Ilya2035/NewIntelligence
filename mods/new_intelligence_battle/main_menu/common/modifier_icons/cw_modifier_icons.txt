@@ -1,22 +1,15 @@
-﻿# New Intelligence: Battle - icons for the price modifier types in modifier_type_definitions/cw_modifier_types.txt
-# (vanilla pattern: a_clan_retainers_* reuse an existing texture, 00_modifier_icons.txt:5968-5976). Without an entry the
-# game logs "Missing Icon for Modifier" (error.log 2026-11-04).
+﻿# New Intelligence: Battle - icons for the category modifier types in modifier_type_definitions/cw_modifier_types.txt
+# (vanilla pattern 00_modifier_icons.txt:1452-1554; textures reused from the infantry / auxiliary sets).
 
-cw_hq_build_cost_modifier= {
-	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
+army_headquarters_power= {
+	positive = "gfx/interface/icons/modifier_types/army_auxiliary_power.dds"
 }
-cw_hq_reinforce_cost_modifier= {
-	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
+army_headquarters_build_cost_modifier= {
+	positive = "gfx/interface/icons/modifier_types/army_auxiliary_build_cost_modifier.dds"
 }
-cw_hq_maintenance_cost_modifier= {
-	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
+army_headquarters_reinforce_cost_modifier= {
+	positive = "gfx/interface/icons/modifier_types/army_auxiliary_reinforce_cost_modifier.dds"
 }
-cw_hq_colonial_build_cost_modifier= {
-	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
-}
-cw_hq_colonial_reinforce_cost_modifier= {
-	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
-}
-cw_hq_colonial_maintenance_cost_modifier= {
+army_headquarters_maintenance_cost_modifier= {
 	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
 }

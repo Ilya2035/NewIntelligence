@@ -2,3 +2,4 @@
 # format: <relative path>  <md5 of vanilla file>  <lines>
 game/in_game/gui/single_unit_window.gui  0e6eb35ea9298cf60e44ed2e3e757ee1  5301
 game/in_game/common/location_ranks/00_default.txt  eac46655d8a16252ac3f316c0bc1ec5d  212
+game/in_game/common/unit_formation_preference/army.txt  26bfa8d99082af5957ded22cb07316f1  68

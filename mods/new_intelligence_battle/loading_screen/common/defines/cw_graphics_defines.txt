@@ -1,0 +1,19 @@
+﻿# New Intelligence: Battle - graphics define override (vanilla list in loading_screen/common/defines/graphic/00_graphics.txt:718).
+# The Headquarters troop type is drawn in the rear of 3D battle formations, like the auxiliaries and artillery.
+
+NUnitGraphics = {
+	FORMATION_PREFERENCE_BY_TAG_REAR = {
+		army_auxiliary
+		army_headquarters
+		army_artillery
+		UnitWeapon_bow
+		UnitWeapon_arquebus
+		UnitWeapon_matchlock
+		UnitWeapon_pistol
+		UnitWeapon_dualpistol
+		UnitWeapon_crossbow
+		UnitWeapon_musket
+		UnitWeapon_rifle
+		UnitWeapon_handgonne
+	}
+}

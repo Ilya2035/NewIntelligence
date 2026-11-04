@@ -1,10 +1,15 @@
-﻿# New Intelligence: Battle - modifier types required by the per-unit price overrides in
-# in_game/common/prices/cw_prices.txt. The price database expects <unit>_build/_reinforce/_maintenance_cost_modifier
-# for every unit type that has its own price entry (vanilla: a_clan_retainers_*, n_panokseon_*,
-# 00_modifier_types.txt:12222-12270); without them the game logs "Missing modifier type for price" (error.log 2026-11-04).
-# Loc: MODIFIER_TYPE_NAME_<key> / MODIFIER_TYPE_DESC_<key>.
+﻿# New Intelligence: Battle - modifier types that the engine expects for every unit category
+# (vanilla: army_auxiliary_power, army_auxiliary_*_cost_modifier, 00_modifier_types.txt:88 and :3561).
+# Without them the price database logs "Missing modifier type for price". Loc: MODIFIER_TYPE_NAME_/DESC_<key>.
 
-cw_hq_build_cost_modifier={
+army_headquarters_power={
+	percent=yes
+	game_data={
+		category=unit
+	}
+}
+
+army_headquarters_build_cost_modifier={
 	color=bad
 	percent=yes
 	game_data={
@@ -12,7 +17,7 @@ cw_hq_build_cost_modifier={
 	}
 }
 
-cw_hq_reinforce_cost_modifier={
+army_headquarters_reinforce_cost_modifier={
 	color=bad
 	percent=yes
 	game_data={
@@ -20,31 +25,7 @@ cw_hq_reinforce_cost_modifier={
 	}
 }
 
-cw_hq_maintenance_cost_modifier={
-	color=bad
-	percent=yes
-	game_data={
-		category=country
-	}
-}
-
-cw_hq_colonial_build_cost_modifier={
-	color=bad
-	percent=yes
-	game_data={
-		category=country
-	}
-}
-
-cw_hq_colonial_reinforce_cost_modifier={
-	color=bad
-	percent=yes
-	game_data={
-		category=country
-	}
-}
-
-cw_hq_colonial_maintenance_cost_modifier={
+army_headquarters_maintenance_cost_modifier={
 	color=bad
 	percent=yes
 	game_data={

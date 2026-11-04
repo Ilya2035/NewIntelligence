@@ -1,30 +1,33 @@
 ﻿###################################
-# Concentrated Warfare - headquarters regiments (module hq_core)
+# New Intelligence: Battle - headquarters regiments (v0.2)
 #
 # Design rule (DESIGN.md 2.1): an HQ gives NO bonus; only the ABSENCE of an HQ is penalised
 # (unit modifiers cw_no_hq / cw_no_hq_mild / cw_no_hq_harsh, applied by cw_effects.txt); an army led only by a
 # colonial HQ on non-overseas ground keeps its combat strength but gets the siege half (cw_no_hq_siege_only).
 #
-# Every stat line on a unit type is ADDITIVE on top of its category (unit_types/readme.txt,
-# levies/readme.txt:46-50). army_auxiliary has max_strength = 0 (05_army_auxiliary.txt), so
-# "max_strength = 0.1" here is exactly 100 men (NUnit.REGIMENT_SIZE = 1000).
-# No copy_from on purpose: copying an auxiliary template would add its 50-300 men on top.
+# v0.2 (user feedback 2026-11-04):
+#   * its own troop type: category army_headquarters (in_game/common/unit_categories/cw_army_headquarters.txt) with its
+#     own icon, infantry art and a soldier model instead of the auxiliaries' donkey cart; it stands in the reserves and is
+#     hit last (damage_taken 0.25), so it only dies with the whole army;
+#   * free: the category prices are 0 (in_game/common/prices/cw_prices.txt);
+#   * never recruited: buildable = no. A headquarters is FORMED by script 3 months after a slot opens (game start:
+#     at once) - cw_update_hq_readiness in cw_effects.txt. The AI places it into its largest army at once; a player
+#     places it into any army they choose with the "Place headquarters" button of the army window (or lets the automation decision do it).
 #
-# Why category = army_auxiliary (research 01 section 8): reserves placement in both battle
-# formations, exclude_from_combined_arms = yes, donkey-cart model, auxiliary 2D art, icons,
-# prices and GUI breakdown rows all come for free. A new category would need ~10 companion files.
+# Every stat line on a unit type is ADDITIVE on top of its category (unit_types/readme.txt, levies/readme.txt:46-50).
+# army_headquarters has max_strength = 0, so "max_strength = 0.1" here is exactly 100 men (NUnit.REGIMENT_SIZE = 1000).
 ###################################
 
 # Army headquarters: the officer corps of a field army. Available to every country from day one.
 cw_hq = {
-	category = army_auxiliary			# reserves, never takes frontage; exclude_from_combined_arms comes from the category
-	age = "age_1_traditions"			# age icon / template selection only; no upgrades_to => the same regiment all game
-	is_special = yes					# gold "special regiment" frame in the army builder (vanilla: 1_uniques_*.txt)
-	buildable = yes						# always written explicitly (buildable is not reliably inherited, research 01 section 6)
-	levy = no							# a buildable unit must never be a levy (levies/readme.txt:75-77)
+	category = army_headquarters
+	age = "age_1_traditions"			# age icon only; no upgrades_to => the same regiment all game
+	is_special = yes					# gold "special regiment" frame
+	buildable = no						# formed by script only (cw_effects.txt); CW TODO verify: add_subunit accepts a non-buildable type
+	levy = no
 
 	max_strength = 0.1					# 100 men
-	combat_power = 0.25					# same as vanilla auxiliaries (00_age_templates_land.txt) => ~0.025 total power, negligible
+	combat_power = 0.5					# a fighting escort, not a cart; still negligible (~0.05 total power)
 
 	construction_demand = cw_hq_construction_demand		# near-zero goods (in_game/common/goods_demand/cw_demands.txt)
 	maintenance_demand = cw_hq_maintenance_demand
@@ -32,46 +35,31 @@ cw_hq = {
 	country_potential = {
 		always = yes
 	}
-	# no location_potential / location_trigger => recruitable in every owned location
-	# no mercenaries_per_location         => no mercenary HQs
-	# no upgrades_to                      => never obsolete
 
 	limit = cw_hq_limit					# 1 + imperial slot (>= 300 locations) + min(age slots, owned locations / 75), cap 5; main_menu/common/script_values/cw_limit_values.txt
 
-	gfx_tags = { medium_tag }			# vanilla auxiliaries use medium_tag (2_unlocked_through_tech.txt)
+	gfx_tags = { medium_tag }
 }
 
 # Colonial (expeditionary) headquarters: separate pool per overseas theatre (DESIGN.md 2.4).
 # Organizes an army ONLY while it stands on an overseas continent (cw_unit_is_organized, cw_triggers.txt), where
 # it also carries the small cw_expeditionary bonus; on non-overseas ground the army fights normally but cannot
-# besiege (cw_no_hq_siege_only), so colonial HQs cannot be shipped home as extra siege armies (research 15 2.4).
-# Defined in full: inheritance of limit / potentials through copy_from is unverified (research 01 section 13.9).
+# besiege (cw_no_hq_siege_only). Formed by script like the home headquarters (3 months after a theatre slot opens).
 cw_hq_colonial = {
-	category = army_auxiliary
-	age = "age_3_discovery"				# icon only; availability is gated below
+	category = army_headquarters
+	age = "age_3_discovery"				# icon only; availability is gated by the colonial limit
 	is_special = yes
-	buildable = yes
+	buildable = no
 	levy = no
 
 	max_strength = 0.1					# 100 men
-	combat_power = 0.25
+	combat_power = 0.5
 
 	construction_demand = cw_hq_construction_demand
 	maintenance_demand = cw_hq_maintenance_demand
 
 	country_potential = {
-		current_age_or_later = { age = age_3_discovery }	# Age of Discovery onwards (syntax: 1_uniques_for_age_3_discovery.txt:114)
-		cw_has_overseas_theatre = yes						# owns overseas land or has an expedition overseas (cw_triggers.txt)
-	}
-	# CW TODO verify (review finding): location_potential runs with root = the LOCATION (0_knights.txt:202), and
-	# is_overseas_for_owner is relative to the location OWNER, not the recruiting country (research 10 section 1.3).
-	# An overlord may recruit in subject land (research 10 section 2.3), so inside a colonial subject the unit is
-	# offered / withheld from the SUBJECT point of view. Test: as an overlord, open the army builder in a colonial
-	# subject location overseas and confirm cw_hq_colonial is offered; if not, drop this block and rely on
-	# country_potential (cw_has_overseas_theatre) plus the script placement. No vanilla location_potential links
-	# back to the recruiting country, so there is no verified alternative.
-	location_potential = {
-		is_overseas_for_owner = yes		# players recruit it only in overseas locations; the AI gets it by script (cw_ai_assign_hqs)
+		always = yes					# the colonial limit (0 without an overseas theatre) gates it; formed by script only
 	}
 
 	limit = cw_colonial_hq_limit		# per-theatre slots, cap 4; main_menu/common/script_values/cw_limit_values.txt

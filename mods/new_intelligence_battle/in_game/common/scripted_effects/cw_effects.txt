@@ -62,6 +62,98 @@ cw_cache_limits = {
 	}
 }
 
+# country scope, every monthly pulse (v0.2, user feedback 2026-11-04). Headquarters are free and never recruited
+# (cw_hq / cw_hq_colonial are not buildable): when a slot is free - an HQ was destroyed with its army, a new age or
+# more land opened a slot - a new headquarters is FORMED over 3 months. Variables (country):
+#   cw_hq_forming_started (flag)      a formation is under way
+#   cw_hq_forming (expires, 3 months) the formation clock; when it is gone while the flag is set, the HQ is ready
+#   cw_hq_ready (flag)                a formed HQ waits to be placed: the AI (and the automation decision) place it at
+#                                     once (cw_ai_assign_hqs); a player places it with the army-window button whenever
+#                                     they like (placement is optional for players, mandatory for the AI)
+# The colonial pool has the same three variables with the cw_colonial_hq_ prefix. Game start and new countries get
+# their first home HQ at once (cw_initial_hq_grant), not after 3 months. Granularity: one month (monthly pulse).
+cw_update_hq_readiness = {
+	if = {
+		limit = { cw_has_free_hq_slot = yes }
+		if = {
+			limit = {
+				NOT = { has_variable = cw_hq_ready }
+				NOT = { has_variable = cw_hq_forming_started }
+			}
+			set_variable = cw_hq_forming_started
+			set_variable = {
+				name = cw_hq_forming
+				months = 3
+			}
+		}
+		else_if = {
+			limit = {
+				has_variable = cw_hq_forming_started
+				NOT = { has_variable = cw_hq_forming }
+			}
+			remove_variable = cw_hq_forming_started
+			set_variable = cw_hq_ready
+			if = {
+				limit = {
+					is_ai = no
+					NOT = { has_variable = cw_auto_hq }
+				}
+				trigger_event_non_silently = { id = cw_events.1 }
+			}
+		}
+	}
+	else = {
+		if = {
+			limit = { has_variable = cw_hq_ready }
+			remove_variable = cw_hq_ready
+		}
+		if = {
+			limit = { has_variable = cw_hq_forming_started }
+			remove_variable = cw_hq_forming_started
+		}
+		if = {
+			limit = { has_variable = cw_hq_forming }
+			remove_variable = cw_hq_forming
+		}
+	}
+	if = {
+		limit = { cw_has_free_colonial_hq_slot = yes }
+		if = {
+			limit = {
+				NOT = { has_variable = cw_colonial_hq_ready }
+				NOT = { has_variable = cw_colonial_hq_forming_started }
+			}
+			set_variable = cw_colonial_hq_forming_started
+			set_variable = {
+				name = cw_colonial_hq_forming
+				months = 3
+			}
+		}
+		else_if = {
+			limit = {
+				has_variable = cw_colonial_hq_forming_started
+				NOT = { has_variable = cw_colonial_hq_forming }
+			}
+			remove_variable = cw_colonial_hq_forming_started
+			set_variable = cw_colonial_hq_ready
+		}
+	}
+	else = {
+		if = {
+			limit = { has_variable = cw_colonial_hq_ready }
+			remove_variable = cw_colonial_hq_ready
+		}
+		if = {
+			limit = { has_variable = cw_colonial_hq_forming_started }
+			remove_variable = cw_colonial_hq_forming_started
+		}
+		if = {
+			limit = { has_variable = cw_colonial_hq_forming }
+			remove_variable = cw_colonial_hq_forming
+		}
+	}
+}
+
 # =============================================================================================
 # 2. Organization: the "no headquarters" penalty and the expeditionary bonus
 # =============================================================================================
@@ -614,12 +706,19 @@ cw_ai_assign_colonial_hq_on = {
 #   2. Colonial: per overseas theatre with a pass-local free-slot counter (see cw_ai_assign_colonial_hq_on).
 # Whether add_subunit honours the unit limit is unverified; the max / counter guards make it irrelevant.
 cw_ai_assign_hqs = {
+	# v0.2: only a FORMED headquarters is placed (cw_update_hq_readiness: 3 months after the slot opened)
 	if = {
-		limit = { total_sub_unit_type_count:cw_hq = 0 }
+		limit = {
+			has_variable = cw_hq_ready
+			total_sub_unit_type_count:cw_hq = 0
+		}
 		cw_initial_hq_grant = yes
 	}
 	else_if = {
-		limit = { cw_has_free_hq_slot = yes }
+		limit = {
+			has_variable = cw_hq_ready
+			cw_has_free_hq_slot = yes
+		}
 		ordered_army = {
 			limit = { cw_eligible_for_home_hq = yes }
 			order_by = {
@@ -642,6 +741,7 @@ cw_ai_assign_hqs = {
 	if = {
 		limit = {
 			current_age_or_later = { age = age_3_discovery }
+			has_variable = cw_colonial_hq_ready
 			cw_has_free_colonial_hq_slot = yes
 		}
 		set_local_variable = {
@@ -832,6 +932,7 @@ cw_loc_add_hq = {
 		limit = {
 			exists = scope:loc
 			scope:loc = { is_land = yes }
+			has_variable = cw_hq_ready			# v0.2: only a formed headquarters can be placed
 			cw_has_free_hq_slot = yes
 		}
 		ordered_army = {
@@ -863,6 +964,7 @@ cw_loc_add_colonial_hq = {
 				is_land = yes
 				would_be_overseas_for = root
 			}
+			has_variable = cw_colonial_hq_ready	# v0.2: only a formed colonial headquarters can be placed
 			cw_has_free_colonial_hq_slot = yes
 		}
 		ordered_army = {
@@ -948,12 +1050,13 @@ cw_player_notifications = {
 		}
 	}
 	else_if = {
+		# v0.2: the player is told when the headquarters is FORMED (cw_update_hq_readiness fires cw_events.1),
+		# not when the slot opens
 		limit = { var:cw_hq_limit_seen < cw_hq_limit }
 		set_variable = {
 			name = cw_hq_limit_seen
 			value = cw_hq_limit
 		}
-		trigger_event_non_silently = { id = cw_events.1 }
 	}
 	else_if = {
 		limit = { var:cw_hq_limit_seen > cw_hq_limit }
@@ -989,10 +1092,25 @@ cw_monthly_pulse_effect = {
 		set_variable = cw_initialized
 		cw_initial_hq_grant = yes
 	}
+	# v0.2: formation clock of free slots (3 months), every month at war and at peace
+	cw_update_hq_readiness = yes
 	if = {
 		limit = { at_war = yes }
 		cw_run_hq_pass = yes
 		cw_start_war_ticker = yes
+	}
+	else_if = {
+		# v0.2: a formed headquarters is placed by the AI (and the automation decision) in the month it is ready,
+		# not only on the quarterly peace pass - the AI must always fight around its headquarters
+		limit = {
+			cw_hq_automation_active = yes
+			OR = {
+				has_variable = cw_hq_ready
+				has_variable = cw_colonial_hq_ready
+			}
+		}
+		cw_ai_assign_hqs = yes
+		cw_cache_limits = yes
 	}
 	else_if = {
 		limit = { NOT = { has_variable = cw_peace_cooldown } }

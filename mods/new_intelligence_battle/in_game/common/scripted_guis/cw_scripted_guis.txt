@@ -121,6 +121,7 @@ cw_sgui_loc_add_hq = {
 	}
 	is_valid = {
 		exists = scope:loc
+		has_variable = cw_hq_ready				# v0.2: a headquarters is formed 3 months after a slot opens (cw_update_hq_readiness)
 		cw_has_free_hq_slot = yes
 		scope:loc = {
 			is_land = yes
@@ -169,6 +170,7 @@ cw_sgui_loc_add_colonial_hq = {
 	}
 	is_valid = {
 		exists = scope:loc
+		has_variable = cw_colonial_hq_ready		# v0.2: formed 3 months after a theatre slot opens
 		cw_has_free_colonial_hq_slot = yes
 		scope:loc = {
 			is_land = yes

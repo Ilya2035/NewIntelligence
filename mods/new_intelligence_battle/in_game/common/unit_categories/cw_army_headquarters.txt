@@ -1,0 +1,47 @@
+﻿# New Intelligence: Battle - the "Headquarters" troop type (v0.2).
+# A category of its own (user request 2026-11-04: "a completely separate troop type, not a cargo cart").
+# Field list: unit_categories/readme.txt. Values start from 05_army_auxiliary.txt and differ where the HQ must differ:
+#   * it stands in the reserves (unit_formation_preference/army.txt, overridden by the mod) and is hit last:
+#     damage_taken 0.25 (auxiliaries 1.25, infantry 1.0) - it is only destroyed when the whole army is;
+#   * it carries no supplies (infantry food values instead of the auxiliary 3000);
+#   * the AI never recruits it on its own (ai_weight 0) and nobody starts with one from the category (startup_amount 0):
+#     headquarters are handed out by script only (cw_effects.txt);
+#   * it never counts for combined arms;
+#   * it costs nothing (prices: in_game/common/prices/cw_prices.txt).
+# Companion data required by the engine for every category: prices <cat>_build/_reinforce/_maintenance,
+# modifier types <cat>_power and <cat>_*_cost_modifier with icons and loc, icons in
+# main_menu/gfx/interface/icons/{unit_category,unit_battle_category,text_icons}/army_headquarters.dds,
+# a 2D illustration (in_game/gfx/unit_illustrations/cw_unit_illustrations.txt) and a 3D model
+# (main_menu/gfx/unit_graphics/units/cw_army.txt).
+
+army_headquarters = {
+	is_army = yes
+
+	auxiliary = yes					# non-combat support regiment (reserves); never a frontline unit
+
+	movement_speed = 2.5			# marches with the infantry (auxiliaries 2.0)
+	build_time = standard_aux_recruitment_time
+
+	max_strength = 0				# the unit types set the size (cw_hq: 0.1 = 100 men)
+
+	supply_weight = 0.2
+
+	food_storage_per_strength = 5
+	food_consumption_per_strength = 0.2
+
+	damage_taken = 0.25				# hit last: the staff is protected by the army around it
+
+	frontage = 1
+	initiative = 1
+	combat_speed = 0.1
+	flanking_ability = 1.0
+	secure_flanks_defense = 0
+
+	maintenance_demand = cw_hq_maintenance_demand
+	construction_demand = cw_hq_construction_demand
+
+	startup_amount = 0
+	ai_weight = 0
+
+	exclude_from_combined_arms = yes
+}

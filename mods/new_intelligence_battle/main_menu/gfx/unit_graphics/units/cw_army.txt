@@ -1,0 +1,22 @@
+﻿#############################
+# New Intelligence: Battle - 3D model of the "Headquarters" troop type (category army_headquarters).
+# Format: main_menu/gfx/unit_graphics/units/00_units.info and 01_army.txt (army_heavy_infantry constructor, :4-19).
+# Until a dedicated officer model exists (docs/research/12_unit_3d_models_pipeline.md), the headquarters is drawn as a
+# culturally dressed infantryman with a one-handed sword instead of the auxiliaries' donkey cart. All parts come from the
+# vanilla attachment lists, so every culture and age gets its own look and the country colours apply automatically.
+#############################
+
+army_headquarters = {
+	schematic_name = unit_skeleton_schematic
+
+	attach = { 100 = heads use_uniformity = no }
+	attach = { 100 = torsos }
+	attach = { 100 = legs }
+	attach = { 100 = headgear }
+	attach = { 100 = hairstyles }
+	attach = { 100 = beards }
+	attach = { 100 = weapons }
+	attach = { 100 = back }
+
+	animation_state_machine_name = unit_skeleton_state_machine_one_handed_sword
+}
