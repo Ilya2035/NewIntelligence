@@ -20,8 +20,8 @@
 | `in_game/common/casus_belli/gp_casus_belli.txt` | `gp_cb_contain_threat` (superiority, `cut_down_in_size_cb`) |
 | `in_game/common/formable_countries/gp_formables.txt` | 11 новых формируемых стран (теги GAE AMC AGV WND BGD ILY DAC GVO NVR JRS KHO) |
 | `main_menu/common/coat_of_arms/coat_of_arms/gp_formable_coa.txt`, `named_colors/gp_colors.txt` | гербы и цвета новых тегов |
-| `main_menu/common/game_rules/gp_game_rules.txt` | правила «Геополитика ИИ» (standard / strong / off) и «Defines геополитики» (on / vanilla) |
-| `loading_screen/common/defines/gp_defines.txt` | 16 ключей `NAI` + 6 ключей `NDiplomacy` |
+| `main_menu/common/game_rules/gp_game_rules.txt` | правило «Геополитика ИИ» (standard / strong / off); правила с блоком `defines = {}` нет — парсер 1.4.7 его отвергает (первый запуск Battle) |
+| `loading_screen/common/defines/gp_defines.txt` | 16 ключей `NAI` + 6 ключей `NDiplomacy`, действуют всегда |
 | `in_game/common/decisions/gp_decisions.txt`, `main_menu/common/game_concepts/gp_concepts.txt` | решение «Геополитический обзор», понятия «Геополитика» и «Угроза региону» |
 | `main_menu/localization/{english,russian}/gp_geopolicy_l_*.yml` | все ключи RU/EN |
 
@@ -48,7 +48,7 @@
 | 7 | `set_variable = { value = "scope:x.relative_strength(root)" }` — функция в значении переменной | `gp_update_threat` | роль «осаждённая» появляется у малых соседей гигантов (Новгород при сильной Литве / Орде) |
 | 8 | Ежегодные мнения не копятся (remove + add одной и той же метки) | `gp_effects.txt` | через 5 лет мнение об угрозе всё ещё −40, а не −200 |
 | 9 | `multiplier = { add = -0.4 }` в expansion_score трактуется как ×0.6 | `gp_expansion_scores.txt` | подсказка планирования войны ИИ (`-debug_mode`) показывает множитель |
-| 10 | `defines = { }` внутри правила игры (как в Battle) | `gp_game_rules.txt` | тот же тест, что у Battle; при провале значения мода просто остаются |
+| 10 | RESOLVED до запуска: `defines = { }` внутри правила игры отвергается парсером 1.4.7 («Unexpected token: defines», первый запуск Battle 2026-11-04) — правило «Defines геополитики» удалено, переопределения действуют всегда | `gp_game_rules.txt`, `gp_defines.txt` | — |
 | 11 | `capital.area = area:east_novgorod_area` в `allow` формируемой страны | `gp_novgorod_rus_f` | Новгород видит кнопку формирования со своей столицей |
 | 12 | Производительность: годовой обход локаций регионов и `every_present_country` для ~900 стран | `gp_yearly_update` | `performance_degradation.log`: нет скачка в январе каждого года более ~0.2 с |
 | 13 | `clear_saved_scope` без существующего scope не пишет в `error.log` | `gp_update_threat` | grep `clear_saved_scope` в `error.log` |
@@ -65,7 +65,8 @@
 - Не заменяет ни одного ванильного файла; все вклады — свои файлы с префиксом `gp_`. Под ванильными ключами `on_action` — только `on_actions = { gp_x }` (слияние одноимённых on_action).
 - С Battle (`cw_`) ключи не пересекаются; оба мода вешают разные страновые модификаторы с `ai = yes`, они складываются.
 - Новые теги не объявлены в `setup/countries` (как ванильные NSE / CEL / HEN): цвет и имя приходят из формируемой страны, герб — по ключу тега.
-- При патче: пересверить номера строк в `gp_defines.txt` и ванильные значения в `gp_game_rules.txt`; `bash tools/validate.sh new_intelligence_geopolicy` и `bash tools/check_geopolicy_refs.sh`.
+- При патче: пересверить номера строк и ванильные значения в `gp_defines.txt`; `bash tools/validate.sh new_intelligence_geopolicy` и `bash tools/check_geopolicy_refs.sh`.
+- Урок первого запуска Battle, учтённый здесь: на стадии `main_menu` неизвестны внутриигровые триггеры (`current_age_or_later`) — все файлы мода в `main_menu/` (правила, модификаторы, понятия, цвета, гербы) триггеров не содержат.
 
 ## 6. Что сознательно не сделано в v0.1
 

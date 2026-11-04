@@ -3,9 +3,12 @@
 # * every setting carries flag = general_rule (otherwise invisible in the game-rules UI) and a flag named like itself,
 #   so script can test has_game_rule = <setting key> either way.
 # * Loc keys: rule_<rule key>, setting_<setting key>, setting_<setting key>_desc.
+# * NO "defines = { }" block inside a setting: documented in _game_rules.info, but the 1.4.7 parser rejects it
+#   ("Unexpected token: defines", Battle first launch 2026-11-04). The define overrides of
+#   loading_screen/common/defines/gp_defines.txt are therefore always active.
 
-# 1. Geopolicy AI: standard / strong / off. Read by gp_is_active / gp_is_strong_mode (scripted_triggers/gp_triggers.txt).
-#    Off keeps the defines and the formable countries but applies no roles, stages, threat reactions or war scoring.
+# Geopolicy AI: standard / strong / off. Read by gp_is_active / gp_is_strong_mode (scripted_triggers/gp_triggers.txt).
+# Off keeps the defines and the formable countries but applies no roles, stages, threat reactions or war scoring.
 gp_rule_mode = {
 	default = gp_mode_standard
 
@@ -20,50 +23,5 @@ gp_rule_mode = {
 	gp_mode_off = {
 		flag = gp_mode_off
 		flag = general_rule
-	}
-}
-
-# 2. Geopolicy defines: on / vanilla. "vanilla" restores the vanilla 1.4.7 value of EXACTLY the keys that
-#    loading_screen/common/defines/gp_defines.txt overrides (same order; keep the two files in sync).
-#    GP TODO verify: defines = { } inside a game-rule setting is documented in _game_rules.info but used nowhere in
-#    vanilla (same open point as the Battle mod). If the block is ignored the setting is harmless: the mod values stay.
-gp_rule_defines = {
-	default = gp_defines_on
-
-	gp_defines_on = {
-		flag = gp_defines_on
-		flag = general_rule
-	}
-	gp_defines_vanilla = {
-		flag = gp_defines_vanilla
-		flag = general_rule
-		defines = {
-			NAI = {
-				CONQUER_DESIRE_AREA_COMPLETE_BONUS = 40
-				CONQUER_DESIRE_AREA_RAMP_START = 0.6
-				CONQUER_DESIRE_REGION_BONUS = 30
-				CONQUER_DESIRE_REGION_RAMP_START = 0.5
-				CONQUER_DESIRE_CAPITAL_REGION_BONUS = 5
-				CONQUER_DESIRE_EXCLAVED_BONUS = 50
-				CONQUER_DESIRE_SAME_CULTURE_BONUS = 1
-				CONQUER_DESIRE_ACCEPTED_CULTURE_BONUS = 5
-				CONQUER_DESIRE_COMMON_LANGUAGE_BONUS = 5
-				CONQUER_DESIRE_HEATHEN_BONUS = 20
-				AI_CONQUER_DESIRE_DISTANCE_MULTIPLIER = -0.1
-				AI_CONQUER_DESIRE_CAPITAL_DISTANCE = 100
-				DISTANT_WAR_CONQUEST_FACTOR = 0.1
-				AI_UNINTEGRATED_LAND_EXPANSION_PENALTY = 2
-				SAFE_AMOUNT_OF_ANTAGONISM = 30
-				POTENTIAL_COALITION_MAX_SAFE_RELATIVE_STRENGTH = 0.75
-			}
-			NDiplomacy = {
-				ANTAGONISM_ADDITIONAL_MODIFIER_SAME_RELIGION = 0.35
-				ANTAGONISM_ADDITIONAL_MODIFIER_DIFFERENT_RELIGION = -0.35
-				ANTAGONISM_ADDITIONAL_MODIFIER_INFIDEL_CONQUEST = 0.4
-				ANTAGONISM_ADDITIONAL_MODIFIER_SAME_CULTURE_GROUP = 0.2
-				ANTAGONISM_STATIC_DIFFERENT_RELIGION = 10
-				ANTAGONISM_STATIC_SAME_CULTURE = -2
-			}
-		}
 	}
 }

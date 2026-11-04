@@ -57,12 +57,7 @@
  setting_gp_mode_strong: "Strong"
  setting_gp_mode_strong_desc: "As standard, and the expanding roles (consolidators, regional powers, empires) keep a faster tempo between wars and tolerate coalitions a little more."
  setting_gp_mode_off: "Off"
- setting_gp_mode_off_desc: "No roles, stages, threat reactions or scripted war scoring. The define changes (rule $rule_gp_rule_defines$) and the new formable countries remain."
- rule_gp_rule_defines: "Geopolicy defines"
- setting_gp_defines_on: "Geopolicy"
- setting_gp_defines_on_desc: "Whole areas and regions are worth more than scattered locations, exclaves are closed, far land is unattractive, co-religionists are outraged by conquests of co-religionists, and the AI digests before the next bite."
- setting_gp_defines_vanilla: "Vanilla"
- setting_gp_defines_vanilla_desc: "Restores the vanilla values of every define the mod overrides."
+ setting_gp_mode_off_desc: "No roles, stages, threat reactions or scripted war scoring. The define changes (whole areas and regions over scattered locations, closed exclaves, unattractive far land, faith-aware outrage) and the new formable countries remain."
 
  ### Decision (in_game/common/decisions/gp_decisions.txt)
  gp_geopolitical_overview.title: "Geopolitical Overview"

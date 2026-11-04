@@ -1,8 +1,8 @@
 ﻿# New Intelligence: Geopolicy - define overrides (prefix gp_; DESIGN sections 6 and 7)
 # Partial per-key override of the NAI / NDiplomacy blocks from a mod define file: standard Jomini behaviour, used the
 # same way by the Battle mod (cw_ai_defines.txt). Vanilla 1.4.7 values and line numbers from
-# game/loading_screen/common/defines/00_defines.txt in the comments. The game rule "Geopolicy defines: vanilla"
-# (main_menu/common/game_rules/gp_game_rules.txt) lists the same keys in the same order with their vanilla values.
+# game/loading_screen/common/defines/00_defines.txt in the comments. Always active: a game rule restoring the vanilla
+# values is impossible, because the 1.4.7 parser rejects "defines = { }" inside a game-rule setting (Battle first launch).
 
 NAI = {
 	# --- beautiful borders: finish the area, finish the region, close the exclaves ---
