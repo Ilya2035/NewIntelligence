@@ -4,10 +4,11 @@
 
 ## 0. Подключение
 
-1. Junction `Documents\Paradox Interactive\Europa Universalis V\mod\new_intelligence_geopolicy` → `mods\new_intelligence_geopolicy` (создаётся командой из README).
-2. Лаунчер → плейсет «New Intelligence: Geopolicy (test)» только с этим модом (без Battle — сначала порознь, потом вместе).
-3. Новая партия 1337 (мод меняет стартовые данные через `on_game_started_after_lobby`).
-4. Сразу после загрузки: `grep -i "gp_" Documents/.../logs/error.log` — должно быть пусто (строки с `gp_` = ошибки мода). Отдельно проверить `switch`, `ordered_present_country`, `religion.group`, `clear_saved_scope`, `influence_nation` (реестр в `docs/GEOPOLICY_IMPLEMENTATION.md` §3).
+1. Junction `Documents\Paradox Interactive\Europa Universalis V\mod\new_intelligence_geopolicy` → `mods\new_intelligence_geopolicy` — создан 2026-11-04.
+2. Плейсет «New Intelligence: Geopolicy (test)» только с этим модом — создан в `playsets.json` 2026-11-04 и сделан активным (копия прежнего файла: `playsets.json.bak_20261104_212839_before_geopolicy`). Сначала тестируем порознь с Battle, потом вместе.
+3. Новая партия 1337 (мод настраивает страны в `on_game_started_after_lobby`), промотать 2–3 месяца, выйти в рабочий стол.
+4. Разбор логов делает Claude: `error.log` (строки с `gp_` = ошибки мода; отдельно `switch`, `ordered_present_country`, `religion.group`, `clear_saved_scope`, `influence_nation`, `debug_log` — реестр в `docs/GEOPOLICY_IMPLEMENTATION.md` §3) и `debug.log`.
+5. **Диагностика в `debug.log`** (временная, `gp_debug_report`): строки `GP_REPORT …` при старте партии и каждый январь для 18 стран (Бранденбург, Венгрия, османы, Франция, Англия, Польша, Москва, Кастилия, Византия, Сербия, Богемия, Австрия, Литва, Дания, Мамлюки, Шотландия, Новгород, Венеция): доля домашнего региона, угроза и отношение сил, профиль зон (исторический / общий), роль. Если строк нет — не сработал хук старта; «profile generic» у Бранденбурга — не сработал `switch` по тегу.
 
 ## 1. Дымовой тест (5 минут, игрок = Бранденбург)
 

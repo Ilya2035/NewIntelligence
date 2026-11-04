@@ -11,10 +11,12 @@
 
 # global scope (on_game_started_after_lobby)
 gp_on_game_start_effect = {
+	debug_log = "GP_REPORT game start: setting up every real country"
 	every_country = {
 		limit = { gp_is_real_country = yes }
 		gp_setup_country = yes
 	}
+	debug_log = "GP_REPORT game start: setup finished"
 }
 
 # root = country (game start, newly formed country, released country)
@@ -40,6 +42,44 @@ gp_yearly_update = {
 	}
 	else = {
 		gp_clear_ai_modifiers = yes
+	}
+	gp_debug_report = yes
+}
+
+# ---- diagnostics (test builds) --------------------------------------------------------------------
+
+# One block of "GP_REPORT <country>: ..." lines in debug.log per marquee country (gp_is_debug_country) at game start
+# and every year. debug_log takes a localization string (eu5.exe effect docs: "ROOT, SCOPE and PREV available");
+# the country is passed as a saved scope because the game-start loop has no country ROOT. Variable display syntax:
+# vanilla loc [COUNTRY.MakeScope.GetVariable('x').GetValue|2] and [...GetVariable('x').GetCountry.GetName].
+# GP TODO remove the call in gp_yearly_update before a public release.
+gp_debug_report = {
+	if = {
+		limit = { gp_is_debug_country = yes }
+		save_scope_as = gp_dbg
+		debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: region share [SCOPE.sCountry('gp_dbg').MakeScope.GetVariable('gp_region_share').GetValue|2]"
+		if = {
+			limit = { has_variable = gp_threat }
+			debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: threat [SCOPE.sCountry('gp_dbg').MakeScope.GetVariable('gp_threat').GetCountry.GetName], ratio [SCOPE.sCountry('gp_dbg').MakeScope.GetVariable('gp_threat_ratio').GetValue|2]"
+		}
+		else = {
+			debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: no regional threat"
+		}
+		if = {
+			limit = { has_variable = gp_has_profile }
+			debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: zone profile historical"
+		}
+		else = {
+			debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: zone profile generic"
+		}
+		if = { limit = { has_country_modifier = gp_role_consolidator } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role consolidator" }
+		if = { limit = { has_country_modifier = gp_role_regional } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role regional power" }
+		if = { limit = { has_country_modifier = gp_role_hegemon } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role hegemon" }
+		if = { limit = { has_country_modifier = gp_role_empire } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role empire" }
+		if = { limit = { has_country_modifier = gp_role_besieged } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role besieged" }
+		if = { limit = { has_country_modifier = gp_role_status_quo } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role status quo" }
+		if = { limit = { is_ai = no } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: player country, no AI role" }
+		clear_saved_scope = gp_dbg
 	}
 }
 

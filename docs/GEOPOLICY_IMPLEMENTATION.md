@@ -53,6 +53,7 @@
 | 12 | Производительность: годовой обход локаций регионов и `every_present_country` для ~900 стран | `gp_yearly_update` | `performance_degradation.log`: нет скачка в январе каждого года более ~0.2 с |
 | 13 | `clear_saved_scope` без существующего scope не пишет в `error.log` | `gp_update_threat` | grep `clear_saved_scope` в `error.log` |
 | 14 | `influence_nation` принимается в `country_interactions` цели | `gp_obj_sphere_minor` | нет ошибки загрузки цели |
+| 15 | `debug_log = "…"` с локализацией `[SCOPE.sCountry('gp_dbg').MakeScope.GetVariable('x').GetValue|2]` пишет в `debug.log` (эффект описан в `eu5.exe`, в ванили не используется) | `gp_debug_report` | в `debug.log` есть строки `GP_REPORT` с именами стран и числами; убрать вызов перед публичным релизом |
 
 ## 4. Производительность
 

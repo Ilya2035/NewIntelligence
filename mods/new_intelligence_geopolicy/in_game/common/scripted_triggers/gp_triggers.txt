@@ -121,6 +121,33 @@ gp_shares_threat_with = {
 	var:gp_threat ?= $COUNTRY$.var:gp_threat
 }
 
+# ---- diagnostics (test builds) ----------------------------------------------------------------------
+
+# Countries whose yearly state is written to debug.log by gp_debug_report (gp_effects.txt). Remove the call before a
+# public release; the list only bounds the log volume (~90 lines a year).
+gp_is_debug_country = {
+	OR = {
+		tag = BRA
+		tag = HUN
+		tag = TUR
+		tag = FRA
+		tag = ENG
+		tag = POL
+		tag = MOS
+		tag = CAS
+		tag = BYZ
+		tag = SER
+		tag = BOH
+		tag = HAB
+		tag = LIT
+		tag = DAN
+		tag = MAM
+		tag = SCO
+		tag = NOV
+		tag = VEN
+	}
+}
+
 # ---- roles (read by expansion scores / objectives) ----------------------------------------------
 
 gp_has_any_role = {
