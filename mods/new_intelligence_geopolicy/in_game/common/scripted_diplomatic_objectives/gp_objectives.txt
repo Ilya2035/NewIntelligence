@@ -33,6 +33,10 @@ gp_obj_common_front = {
 	recipient_priority = {
 		add = 60
 		add = "scope:recipient.opinion(scope:actor)"
+		if = {
+			limit = { scope:recipient = { gp_shares_culture_group_with = { COUNTRY = scope:actor } } }
+			add = 40
+		}
 		divide = 4
 	}
 
@@ -54,7 +58,9 @@ gp_obj_common_front = {
 }
 
 # 2. Seek a protector: a small or threatened country courts the strongest co-religionist of its region that is not
-#    its own threat.
+#    its own threat. v0.2 (author: "a small state between two big ones picks a side and keeps its independence"):
+#    the threat's rival, kin of our culture group, the country our ruler likes and old friends come first; the country
+#    our ruler dislikes and old enemies never. The alliance keeps it free - nobody here asks to become a vassal.
 gp_obj_seek_protector = {
 	days_between_checks = 365
 
@@ -69,6 +75,7 @@ gp_obj_seek_protector = {
 			has_variable = gp_role_status_quo
 			has_variable = gp_role_besieged
 			has_variable = gp_posture_defense
+			has_variable = gp_threat
 		}
 	}
 
@@ -90,12 +97,30 @@ gp_obj_seek_protector = {
 				target = scope:actor
 				value >= 0.67		# at least 2x our strength (relative_strength share)
 			}
+			NOT = { this ?= scope:actor.var:gp_ruler_dislike }
+			NOT = { gp_is_old_enemy_of = { COUNTRY = scope:actor } }
 		}
 	}
 
 	recipient_priority = {
 		add = 40
 		add = "scope:recipient.opinion(scope:actor)"
+		if = {
+			limit = { scope:actor.var:gp_threat ?= { is_rival_of = scope:recipient } }
+			add = 60
+		}
+		if = {
+			limit = { scope:recipient = { gp_shares_culture_group_with = { COUNTRY = scope:actor } } }
+			add = 40
+		}
+		if = {
+			limit = { scope:recipient ?= scope:actor.var:gp_ruler_like }
+			add = 60
+		}
+		if = {
+			limit = { scope:recipient = { gp_is_old_friend_of = { COUNTRY = scope:actor } } }
+			add = 30
+		}
 		divide = 4
 	}
 
@@ -154,10 +179,58 @@ gp_obj_sphere_minor = {
 
 	improve_relation = yes
 	improve_relation_limit = 100
+	# v0.2: the patron also stands up for its small clients (readme: "Should the actor try to defend the recipient").
+	defensive_support = yes
 	country_interactions = {
 		influence_nation = yes
 	}
 	max_allowed = 3
+}
+
+# 3a. Kin gathering (author: "Novgorod, Pskov and Beloozero unite more easily"): a country courts the weaker states of
+#     its own culture group in its home region next door - warm relations make a later union or vassalage easier.
+gp_obj_kin_gathering = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+		is_subject = no
+		exists = capital
+		country_rank_level >= 2
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			gp_is_real_country = yes
+			is_subject = no
+			exists = capital
+			capital.region = scope:actor.capital.region
+			is_neighbor_of = scope:actor
+			gp_shares_culture_group_with = { COUNTRY = scope:actor }
+			NOT = { is_rival_of = scope:actor }
+			NOT = { is_at_war_with = scope:actor }
+			NOT = { this ?= scope:actor.var:gp_ruler_dislike }
+			relative_strength = {
+				target = scope:actor
+				value < 0.35		# weaker than ~0.55x our strength (share)
+			}
+		}
+	}
+
+	recipient_priority = {
+		add = 35
+		add = "scope:recipient.opinion(scope:actor)"
+		divide = 4
+	}
+
+	pause_trigger = {
+		scope:actor = { at_war = yes }
+	}
+
+	improve_relation = yes
+	improve_relation_limit = 150
+	max_allowed = 2
 }
 
 # 4. The intruder is antagonised, never courted.

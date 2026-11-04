@@ -94,6 +94,10 @@ gp_brief_situation = {
 		trigger = { has_variable = gp_recent_defeat }
 	}
 	text = {
+		localization_key = gp_brief_situation_turmoil
+		trigger = { has_variable = gp_region_turmoil }
+	}
+	text = {
 		localization_key = gp_brief_situation_front
 		trigger = { has_variable = gp_has_front_partner }
 	}

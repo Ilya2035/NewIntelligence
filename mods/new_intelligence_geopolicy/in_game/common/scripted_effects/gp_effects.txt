@@ -15,10 +15,12 @@
 # global scope (on_game_started_after_lobby)
 gp_on_game_start_effect = {
 	debug_log = "GP_REPORT game start: setting up every real country"
+	gp_history_relations = yes
 	every_country = {
 		limit = { gp_is_real_country = yes }
 		gp_setup_country = yes
 	}
+	gp_history_postures = yes
 	gp_apply_terrain = yes
 	debug_log = "GP_REPORT game start: setup finished"
 }
@@ -35,8 +37,14 @@ gp_yearly_update = {
 	gp_compute_region_share = yes
 	gp_update_momentum = yes
 	gp_update_threat = yes
+	gp_update_calm = yes
 	gp_update_region_relations = yes
 	gp_age_defeat = yes
+	# v0.2 relations between nations and rulers (gp_relations_effects.txt)
+	gp_form_young_royals = yes
+	gp_update_ruler_affinity = yes
+	gp_update_foreign_overlord = yes
+	gp_ensure_colonial_profile = yes
 	if = {
 		limit = { gp_is_active = yes }
 		gp_update_role = yes
@@ -59,6 +67,7 @@ gp_yearly_update = {
 
 # country scope (on_ending_war, fired once per side): a lost war sends the AI into recovery at once.
 gp_on_war_end_effect = {
+	gp_war_memory = yes
 	if = {
 		limit = { scope:loser ?= root }
 		set_variable = gp_recent_defeat
@@ -78,16 +87,19 @@ gp_on_war_end_effect = {
 
 # country scope (on_new_ruler): a new ruler re-draws the course of the country ("the ruler changes the posture").
 gp_on_new_ruler_effect = {
+	save_scope_as = gp_c
+	# v0.2: the new ruler brings their own likes and dislikes at once (gp_relations_effects.txt)
+	gp_form_young_royals = yes
+	gp_update_ruler_affinity = yes
 	if = {
 		limit = {
 			is_ai = yes
 			gp_is_active = yes
 			has_variable = gp_region_share
 		}
-		save_scope_as = gp_c
 		gp_choose_posture = yes
-		clear_saved_scope = gp_c
 	}
+	clear_saved_scope = gp_c
 }
 
 # ---- home region share ---------------------------------------------------------------------------
@@ -231,6 +243,35 @@ gp_update_region_relations = {
 						remove_opinion = { target = prev modifier = gp_opinion_common_enemy }
 						add_opinion = { target = prev modifier = gp_opinion_common_enemy }
 						set_variable = gp_has_front_partner
+					}
+				}
+				# v0.2 kin next door (gp_relations_effects.txt header)
+				if = {
+					limit = {
+						is_neighbor_of = scope:gp_c
+						gp_shares_culture_group_with = { COUNTRY = scope:gp_c }
+					}
+					scope:gp_c = {
+						remove_opinion = { target = prev modifier = gp_opinion_kin }
+						add_opinion = { target = prev modifier = gp_opinion_kin }
+					}
+				}
+				# v0.2 the shock that opens a time of troubles: a great power of our region (our threat, a regional
+				# power, hegemon or empire) has just lost a war (gp_defeat_years is 6 in the year of the defeat).
+				if = {
+					limit = {
+						has_variable = gp_defeat_years
+						var:gp_defeat_years >= 5
+						OR = {
+							this ?= scope:gp_c.var:gp_threat
+							has_variable = gp_role_regional
+							has_variable = gp_role_hegemon
+							has_variable = gp_role_empire
+						}
+					}
+					scope:gp_c = {
+						set_variable = gp_region_turmoil
+						set_variable = { name = gp_turmoil_years value = 5 }
 					}
 				}
 			}
@@ -632,6 +673,12 @@ gp_debug_report = {
 		if = { limit = { has_variable = gp_has_intruder } debug_log = "GP_REPORT    foreign intruder in the home region" }
 		if = { limit = { has_variable = gp_has_front_partner } debug_log = "GP_REPORT    has common-front partners" }
 		if = { limit = { has_variable = gp_recent_defeat } debug_log = "GP_REPORT    lost a war recently" }
+		if = { limit = { has_variable = gp_region_turmoil } debug_log = "GP_REPORT    time of troubles in the region" }
+		if = { limit = { var:gp_calm_years < 1 } debug_log = "GP_REPORT    at war this year" }
+		else_if = { limit = { var:gp_calm_years >= 20 } debug_log = "GP_REPORT    long peace, 20+ years" }
+		else_if = { limit = { var:gp_calm_years >= 10 } debug_log = "GP_REPORT    peace 10 - 20 years" }
+		if = { limit = { has_variable = gp_ruler_dislike } debug_log = "GP_REPORT    ruler dislikes a country" }
+		if = { limit = { has_variable = gp_ruler_like } debug_log = "GP_REPORT    ruler likes a country" }
 		if = { limit = { has_variable = gp_has_profile } debug_log = "GP_REPORT    zone profile historical" }
 		else = { debug_log = "GP_REPORT    zone profile generic" }
 		if = { limit = { has_variable = gp_role_consolidator } debug_log = "GP_REPORT    role consolidator" }

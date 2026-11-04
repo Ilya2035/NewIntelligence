@@ -188,11 +188,19 @@ gp_is_threat_candidate = {
 				value >= gp_threat_share_min
 			}
 			OR = {
-				is_threat_to = scope:gp_c
 				is_neighbor_of = scope:gp_c
 				any_owned_location = {
 					count >= 5
 					region = scope:gp_c.capital.region
+				}
+				# Across the sea the worry is halved (author: "the sea between England and France halves the unease"):
+				# without a land border or a foothold in our region the engine's threat must be 3x as strong (share 0.75).
+				AND = {
+					is_threat_to = scope:gp_c
+					relative_strength = {
+						target = scope:gp_c
+						value >= 0.75
+					}
 				}
 			}
 		}
@@ -269,6 +277,53 @@ gp_threat_is_pressing = {
 	OR = {
 		var:gp_threat ?= { has_variable = gp_is_expanding }
 		var:gp_threat ?= { gp_is_intruder_of = { COUNTRY = root } }
+	}
+}
+
+# ---- kinship and memory ------------------------------------------------------------------------------
+
+# this shares a culture group with $COUNTRY$ (vanilla: culture ?= { has_shared_culture_group = scope:recipient.culture }).
+gp_shares_culture_group_with = {
+	culture ?= { has_shared_culture_group = $COUNTRY$.culture }
+}
+
+# $COUNTRY$ remembers this country as an enemy (accumulated wars or the history before 1337).
+gp_is_old_enemy_of = {
+	$COUNTRY$ = {
+		OR = {
+			has_opinion = { modifier = gp_opinion_old_enemy target = prev }
+			has_opinion = { modifier = gp_opinion_ancient_enmity target = prev }
+		}
+	}
+}
+
+# $COUNTRY$ remembers this country as a friend.
+gp_is_old_friend_of = {
+	$COUNTRY$ = {
+		OR = {
+			has_opinion = { modifier = gp_opinion_old_friend target = prev }
+			has_opinion = { modifier = gp_opinion_ancient_friendship target = prev }
+		}
+	}
+}
+
+# An island home: whoever wants this country's capital has to cross the sea (Britain, Ireland, Japan, Iceland).
+gp_is_island_home = {
+	exists = capital
+	OR = {
+		capital.region = region:great_britain_region
+		capital.region = region:ireland_region
+		capital.region = region:japan_region
+		capital.region = region:north_atlantic_islands_region
+	}
+}
+
+# Two powers of standing that can hold each other in check (status quo between peers): a kingdom or more, or a great
+# power.
+gp_is_power_of_standing = {
+	OR = {
+		is_great_power = yes
+		country_rank_level >= 3
 	}
 }
 

@@ -234,6 +234,7 @@ gp_score_early_restraint = {
 	target_trigger = {
 		NOT = { any_owned_location = { region = scope:attacker.capital.region } }
 		NOT = { gp_is_tiny_target_of_attacker = yes }
+		NOT = { this ?= scope:attacker.var:gp_war_target }	# the historical openings (gp_history_postures) are not held back
 	}
 	multiplier = {
 		add = -0.5
@@ -552,5 +553,209 @@ gp_score_temper_islamic = {
 	}
 	multiplier = {
 		add = 0.2
+	}
+}
+
+# ================================================================================================
+# v0.2 Memory between nations and the ruler's likes and dislikes (gp_relations_effects.txt)
+# ================================================================================================
+
+# Old enemies (accumulated wars, the history before 1337) are the first to be remembered when a war is looked for.
+gp_score_old_enemy = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		NOT = { gp_is_calm_posture = yes }
+	}
+	target_trigger = {
+		gp_is_old_enemy_of = { COUNTRY = scope:attacker }
+	}
+	multiplier = {
+		add = 0.25
+	}
+}
+
+# Old friends - comrades of past wars, the Auld Alliance - are spared.
+gp_score_old_friend = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+	}
+	target_trigger = {
+		gp_is_old_friend_of = { COUNTRY = scope:attacker }
+		NOT = { gp_is_old_enemy_of = { COUNTRY = scope:attacker } }
+	}
+	multiplier = {
+		add = -0.4
+	}
+}
+
+# The country the ruler has disliked since childhood.
+gp_score_ruler_dislike = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_ruler_dislike
+		NOT = { gp_is_calm_posture = yes }
+	}
+	target_trigger = {
+		this ?= scope:attacker.var:gp_ruler_dislike
+	}
+	score = {
+		add = 5
+	}
+	multiplier = {
+		add = 0.2
+	}
+}
+
+# The country the ruler likes is left alone during the reign.
+gp_score_ruler_like = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_ruler_like
+	}
+	target_trigger = {
+		this ?= scope:attacker.var:gp_ruler_like
+	}
+	multiplier = {
+		add = -0.6
+	}
+}
+
+# ================================================================================================
+# v0.2 Status quo between peers (author: "two strong powers at peace for a long time keep the status quo, unless one
+# of them is weakened")
+# ================================================================================================
+
+# Two powers of standing of comparable strength (0.67x..1.5x, shares 0.4..0.6) with no fresh war between them (the
+# memory of a war, gp_opinion_old_enemy, fades in ~15 years per war) hold each other in check. A defeat, a regency, a
+# war elsewhere or a time of troubles in the region breaks it.
+gp_score_status_quo_peers = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		at_war = no
+		gp_is_power_of_standing = yes
+		NOT = { has_variable = gp_region_turmoil }
+	}
+	target_trigger = {
+		gp_is_power_of_standing = yes
+		relative_strength = {
+			target = scope:attacker
+			value >= 0.4
+		}
+		relative_strength = {
+			target = scope:attacker
+			value <= 0.6
+		}
+		at_war = no
+		has_regent = no
+		NOT = { has_variable = gp_recent_defeat }
+		NOT = { gp_is_old_enemy_of = { COUNTRY = scope:attacker } }
+		NOT = { this ?= scope:attacker.var:gp_ruler_dislike }
+		NOT = { this ?= scope:attacker.var:gp_war_target }
+	}
+	multiplier = {
+		add = -0.5
+	}
+}
+
+# ================================================================================================
+# v0.2 The sea between (author: "France tries with its navy; England with a stronger navy presses France")
+# ================================================================================================
+
+# Invading an island home: only with at least as many ships as the islander (navy_size, vanilla flavor_dan.txt).
+gp_score_naval_balance_island = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+	}
+	target_trigger = {
+		gp_is_island_home = yes
+		NOT = { capital.region = scope:attacker.capital.region }
+	}
+	multiplier = {
+		add = 0
+		if = {
+			limit = { scope:target = { navy_size > scope:attacker.navy_size } }
+			add = -0.5
+		}
+		else = {
+			add = 0.1
+		}
+	}
+}
+
+# The islander presses the mainland harder while it rules the sea, and thinks twice when it does not.
+gp_score_naval_balance_mainland = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		gp_is_island_home = yes
+	}
+	target_trigger = {
+		exists = capital
+		NOT = { capital.region = scope:attacker.capital.region }
+	}
+	multiplier = {
+		add = 0
+		if = {
+			limit = { scope:attacker = { navy_size > scope:target.navy_size } }
+			add = 0.2
+		}
+		else = {
+			add = -0.2
+		}
+	}
+}
+
+# ================================================================================================
+# v0.2 Kin, colonies
+# ================================================================================================
+
+# Gathering the kin (author: "Novgorod, Pskov and Beloozero unite more easily"): a much weaker neighbour of our culture
+# group in our home region.
+gp_score_kin_gathering = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		NOT = { gp_is_calm_posture = yes }
+	}
+	target_trigger = {
+		is_neighbor_of = scope:attacker
+		exists = capital
+		capital.region = scope:attacker.capital.region
+		gp_shares_culture_group_with = { COUNTRY = scope:attacker }
+		relative_strength = {
+			target = scope:attacker
+			value < 0.35
+		}
+		NOT = { gp_is_old_friend_of = { COUNTRY = scope:attacker } }
+	}
+	score = {
+		add = 4
+	}
+	multiplier = {
+		add = 0.15
+	}
+}
+
+# A colonial nation fills its own colonial region and claims nothing beyond it (clean colonial borders).
+gp_score_colonial_borders = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		is_subject_type = colonial_nation
+		exists = capital
+	}
+	target_trigger = {
+		NOT = { any_owned_location = { region = scope:attacker.capital.region } }
+	}
+	multiplier = {
+		add = -0.85
 	}
 }

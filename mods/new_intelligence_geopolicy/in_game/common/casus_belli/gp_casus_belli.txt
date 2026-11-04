@@ -39,3 +39,39 @@ gp_cb_contain_threat = {
 		}
 	}
 }
+
+# v0.2 Establish dominion (author: "the home region is annexed, the regions beyond it become vassals - France puppets
+# Benelux"): an AI-only casus belli against a much weaker neighbour whose capital lies outside our home region. The war
+# goal is vassalage (wargoal take_capital_subjugation, vanilla cb_subjugation), so the land stays the subject's own.
+gp_cb_establish_dominion = {
+	years = 10
+
+	create_visible = {
+		is_ai = yes
+		exists = capital
+		scope:target ?= {
+			exists = capital
+			is_subject = no
+			NOT = { capital.region = root.capital.region }
+			relative_strength = {
+				target = root
+				value < 0.3
+			}
+		}
+	}
+	create_enabled = {
+		NOT = { has_truce_with = scope:target }
+	}
+
+	war_goal_type = take_capital_subjugation
+
+	ai_subjugation_desire = 1000
+	ai_cede_location_desire = -1000
+
+	ai_will_do = {
+		add = {
+			desc = "BASE"
+			value = 20
+		}
+	}
+}

@@ -191,6 +191,8 @@ gp_ps_expansion = {
 	if = { limit = { gp_is_steppe = yes } add = 10 }
 	add = { value = gp_rp_expansion multiply = gp_ruler_weight }
 	add = { value = gp_nobles_power multiply = 25 }
+	add = gp_calm_pressure
+	if = { limit = { has_variable = gp_region_turmoil } add = 10 }
 	if = { limit = { has_variable = gp_posture_expansion } add = 15 }
 	if = { limit = { var:gp_noise = 1 } add = gp_noise_amount }
 }
@@ -206,6 +208,7 @@ gp_ps_preparation = {
 	if = { limit = { gp_is_early_game = yes } add = -15 }
 	add = { value = gp_rp_preparation multiply = gp_ruler_weight }
 	add = { value = gp_nobles_power multiply = 15 }
+	add = gp_calm_pressure
 	if = { limit = { has_variable = gp_posture_preparation } add = 15 }
 	if = { limit = { var:gp_noise = 2 } add = gp_noise_amount }
 }
@@ -218,6 +221,8 @@ gp_ps_opportunism = {
 	if = { limit = { has_variable = gp_role_empire } add = 10 }
 	add = { value = gp_rp_opportunism multiply = gp_ruler_weight }
 	add = { value = gp_burghers_power multiply = 15 }
+	add = { value = gp_calm_pressure multiply = 0.5 }
+	if = { limit = { has_variable = gp_region_turmoil } add = 25 }
 	if = { limit = { has_variable = gp_posture_opportunism } add = 15 }
 	if = { limit = { var:gp_noise = 3 } add = gp_noise_amount }
 }
@@ -233,6 +238,7 @@ gp_ps_consolidation = {
 	if = { limit = { gp_is_early_game = yes } add = 10 }
 	add = { value = gp_rp_consolidation multiply = gp_ruler_weight }
 	add = { value = gp_burghers_power multiply = 10 }
+	if = { limit = { has_variable = gp_region_turmoil } add = -10 }
 	if = { limit = { has_variable = gp_posture_consolidation } add = 15 }
 	if = { limit = { var:gp_noise = 4 } add = gp_noise_amount }
 }
@@ -308,6 +314,8 @@ gp_ps_peace = {
 	add = { value = gp_rp_peace multiply = gp_ruler_weight }
 	add = { value = gp_burghers_power multiply = 15 }
 	add = { value = gp_peasants_power multiply = 15 }
+	subtract = gp_calm_pressure
+	if = { limit = { has_variable = gp_region_turmoil } add = -15 }
 	if = { limit = { has_variable = gp_posture_peace } add = 15 }
 	if = { limit = { var:gp_noise = 8 } add = gp_noise_amount }
 }
@@ -324,4 +332,28 @@ gp_ps_isolation = {
 		if = { limit = { has_variable = gp_posture_isolation } add = 15 }
 		if = { limit = { var:gp_noise = 9 } add = gp_noise_amount }
 	}
+}
+
+# ---- v0.2: the passions of a region, memory, ages ------------------------------------------------
+
+# Years of unbroken peace (var:gp_calm_years, counted in gp_update_calm), capped at 30: ambitions grow while the
+# status quo lasts and break it sooner or later (author: "the status quo must break from time to time").
+gp_calm_pressure = {
+	value = 0
+	if = {
+		limit = { has_variable = gp_calm_years }
+		add = var:gp_calm_years
+		max = 30
+		multiply = 0.6
+	}
+}
+
+# The current age, 1..6 (the subject of another culture group resents its overlord more with every age).
+gp_age_scale = {
+	value = 1
+	if = { limit = { current_age = age_2_renaissance } add = 1 }
+	else_if = { limit = { current_age = age_3_discovery } add = 2 }
+	else_if = { limit = { current_age = age_4_reformation } add = 3 }
+	else_if = { limit = { current_age = age_5_absolutism } add = 4 }
+	else_if = { limit = { current_age = age_6_revolutions } add = 5 }
 }

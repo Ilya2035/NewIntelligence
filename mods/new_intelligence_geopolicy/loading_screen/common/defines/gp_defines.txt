@@ -28,6 +28,31 @@ NAI = {
 	# --- calmer overall: a war target must be clearly worth it (author, first long test: "too much activity") ---
 	EXPANSION_TARGET_SCORE_NEEDED_TO_PICK = 25				# l.1329  20
 	EXPANSION_TARGET_SCORE_NEEDED_TO_KEEP = 18				# l.1328  15
+	# --- v0.2: the home region is annexed, foreign lands beyond it become subjects (author: "France puppets Benelux") ---
+	PEACE_MAKE_SUBJECT_BASE_FACTOR = 0.9						# l.1152  0.8
+	PEACE_MAKE_SUBJECT_OTHER_DOMINANT_CULTURE = 1.6				# l.1153  1.2
+	PEACE_MAKE_SUBJECT_OTHER_DOMINANT_RELIGION = 1.4			# l.1154  1.2
+	PEACE_MAKE_SUBJECT_TOO_MUCH_TO_INTEGRATE = 1.8				# l.1155  1.5
+	# --- v0.2: allies get what they were promised ---
+	PEACE_OFFER_ALLY_DEFAULT_FAIRNESS = 0.55					# l.1246  0.40
+	PEACE_CEDE_PROVINCE_ALLY_DESIRE_BASE = 0.85				# l.1248  0.70
+	# --- v0.2: forts face the enemy (border locations weigh more against the interior) ---
+	FORT_PROTECTION_BORDER_MULT = 30							# l.1065  20
+	# --- v0.2: the important provinces first (cities and rich land) ---
+	CONQUER_DESIRE_CITY_BONUS = 12							# l.1181  5
+	CONQUER_DESIRE_TAX_BASE_FACTOR = 0.25					# l.1179  0.2
+	# --- v0.2: one faith, one tongue - the AI works harder at converting and assimilating its land ---
+	LOCATION_RELIGION_PERCENTAGE_FACTOR = 10					# l.591   7.5
+	AI_GLOBAL_CONVERSION_SPEED_UTILITY = 7						# l.593   5
+	AI_CULTURE_CONVERSION_UTIL = 0.8							# l.606   0.5
+	AI_CULTURE_CONVERSION_CORE_FACTOR = 7.0						# l.607   5.0
+	AI_CULTURE_CONVERSION_DOMINANT_CULTURE_FACTOR = 0.8			# l.608   0.5
+	AI_GLOBAL_ASSIMILATION_SPEED_UTIL = 0.4						# l.609   0.25
+	# --- v0.2: colonizers fill their own coast instead of crowding each other (Portugal Hispaniola, Spain Cuba) ---
+	COLONY_OWNED_AREA_UTILITY_MODIFIER = -150					# l.623   -100
+	AI_COLONY_COMPETING_CHARTER_UTILITY_PENALTY = 0.35			# l.630   0.25
+	COLONY_NEIGHBORING_UTILITY_BONUS = 15.0						# l.634   10.0
+	COLONY_REGION_COMPLETION_UTILITY_BONUS = 8.0				# l.636   5.0
 }
 
 NDiplomacy = {

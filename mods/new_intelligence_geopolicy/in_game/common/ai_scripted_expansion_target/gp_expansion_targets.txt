@@ -191,3 +191,52 @@ gp_target_horde_tribute = {
 		add = scope:target.country_tax_base
 	}
 }
+
+# 6. v0.2 Outer dominion: a power that holds its home region makes the weak neighbours beyond it its vassals instead of
+#    annexing them (gp_cb_establish_dominion). Same faith group only - the infidel next door is conquered as before.
+gp_target_outer_dominion = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		gp_is_expansion_role = yes
+		at_war = no
+		months_since_war >= 36
+		OR = {
+			has_variable = gp_posture_expansion
+			has_variable = gp_posture_opportunism
+		}
+	}
+	candidate_list = {
+		every_neighbor_country = {
+			limit = {
+				gp_is_real_country = yes
+				is_subject = no
+				exists = capital
+				NOT = { capital.region = root.capital.region }
+				religion.group = root.religion.group
+				NOT = { has_truce_with = root }
+				NOT = { is_allied_with = { target = root } }
+				NOT = { this ?= root.var:gp_ruler_like }
+				NOT = { gp_is_old_friend_of = { COUNTRY = root } }
+				relative_strength = {
+					target = root
+					value < 0.3		# weaker than ~0.43x the attacker
+				}
+			}
+			add_to_list = source
+		}
+	}
+	casus_belli = casus_belli:gp_cb_establish_dominion
+	score = {
+		add = 22
+		add = {
+			value = scope:target.country_tax_base
+			divide = 100
+		}
+	}
+	sort_value = {
+		add = 200
+		add = scope:target.country_tax_base
+	}
+}

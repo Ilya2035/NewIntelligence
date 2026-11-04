@@ -9,6 +9,7 @@
 | `in_game/common/on_action/gp_on_actions.txt` | хуки: `on_game_started_after_lobby` (разовая настройка всех стран), `yearly_country_pulse` (годовой проход), `on_new_country_formed` / `on_released_country` (новая страна получает профиль) |
 | `in_game/common/scripted_effects/gp_effects.txt` | ядро: доля домашнего региона, угроза, пришельцы, общий фронт, темперамент, стадии, роли |
 | `in_game/common/scripted_effects/gp_zone_effects.txt` | профили зон по тегу (`switch = { trigger = tag }`), три стадии, групповые сферы |
+| `in_game/common/scripted_effects/gp_relations_effects.txt` | v0.2: история до 1337 (давняя вражда и дружба, стартовые намерения), память войн, симпатии и неприязни правителя с 10 лет, чужеземный сюзерен, колониальная зона, страсти региона (годы мира, смутное время) |
 | `in_game/common/area_preferences/gp_zones.txt` | сами зоны: ~70 профилей × ядро / сфера / дальняя, общий `gp_generic_home_region`, `gp_anatolia_sphere`, `gp_persia_sphere` |
 | `in_game/common/scripted_triggers/gp_triggers.txt` | `gp_is_real_country`, правила игры, темпераменты, кандидат в угрозы, пришелец (`gp_is_intruder_of = { COUNTRY = … }`), общая угроза |
 | `in_game/common/script_values/gp_values.txt` | ручки (пороги) и `gp_region_share_value` |
@@ -69,6 +70,15 @@
 | 25 | `cb_make_tributary` в списке целей орды | `gp_target_horde_tribute` | Золотая Орда объявляет войны с поводом дани соседям вне степи |
 | 26 | `add_location_modifier = { days = -1 }` — бессрочно; `every_location_in_continent` по пяти континентам при старте | `gp_apply_terrain` | у горной локации с крепостью в подсказке «Горная твердыня», оборона крепости +100 % |
 | 27 | `spy_network_target` и `antagonise` в цели без `destroy` | `gp_obj_prepare_target` | нет ошибки загрузки цели |
+| 28 | `on_ending_war`: `scope:war = { any_attacker / every_attacker / every_defender }` после окончания войны (ваниль `d009_golden_century.txt`), `reverse_add_opinion` с накоплением `gp_opinion_old_enemy` (min −90) | `gp_war_memory` | после войны в отношениях обеих сторон «Старый враг: память о наших войнах», после второй войны — вдвое сильнее |
+| 29 | Персонаж: `set_variable = { name = gp_dislike value = scope:… }`, `every_child`, `age_in_years`, `heir ?=`; страна в переменной персонажа читается после смерти/смены страны | `gp_form_character`, `gp_update_ruler_affinity` | в отчёте строки «ruler dislikes a country» / «ruler likes a country»; в подсказке «Правитель недолюбливает X» |
+| 30 | `add_opinion = { … scale = gp_age_scale }` (ваниль: `reverse_add_opinion` со `scale`), `current_age = age_N_…` в script value | `gp_update_foreign_overlord` | у вассала чужой культурной группы «Чужеземный сюзерен» −8 в первую эпоху, −16 во вторую |
+| 31 | `navy_size > scope:attacker.navy_size` в `multiplier` оценки цели (ваниль `flavor_dan.txt`: `navy_size >= root.navy_size`) | `gp_score_naval_balance_*` | подсказка цели войны Франции против Англии: «За морем: всё решает флот» |
+| 32 | `is_great_power`, `country_rank_level` в `target_trigger` | `gp_score_status_quo_peers` | у двух равных королевств без войн — строка «Статус-кво между равными державами» |
+| 33 | Повод `gp_cb_establish_dominion` с `war_goal_type = take_capital_subjugation` и `create_visible` только для ИИ; `casus_belli = casus_belli:…` в списке целей | `gp_casus_belli.txt`, `gp_target_outer_dominion` | ИИ-война «Установить господство» заканчивается вассалитетом, а не аннексией |
+| 34 | `defensive_support = yes` в дипломатической цели (readme) | `gp_obj_sphere_minor` | гегемон вступается за малого клиента своего региона |
+| 35 | `has_area_preference` / `add_area_preference` / `remove_area_preference` для колоний (ваниль `hidden_events_for_ai_conquest.txt`) | `gp_ensure_colonial_profile` | у колониальной нации зона «Освоить свой колониальный регион» |
+| 36 | Новые ключи `NAI` (подданные в мире, доля союзникам, крепости на границе, обращение, колонии, города) принимаются парсером | `gp_defines.txt` | нет ошибок про defines в `error.log` |
 
 ## 4. Производительность
 

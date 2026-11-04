@@ -1,0 +1,407 @@
+﻿###################################
+# New Intelligence: Geopolicy - relations between nations and rulers (prefix gp_)
+#
+# Memory of wars, the history before 1337, the ruler's lifelong likes and dislikes (formed at ten), foreign overlords,
+# colonial nations. Everything acts through opinions (the game's own relations) and variables read by the AI's
+# war-target scoring - no country modifiers (author's rule 2026-11-04).
+# Country entry points run inside gp_yearly_update / gp_on_war_end_effect, where scope:gp_c is the country.
+###################################
+
+# ================================================================================================
+# History before 1337 (game start, after every country is set up)
+# ================================================================================================
+
+gp_history_enmity = {
+	c:$A$ ?= {
+		if = {
+			limit = { country_exists = c:$B$ }
+			add_opinion = { target = c:$B$ modifier = gp_opinion_ancient_enmity }
+			reverse_add_opinion = { target = c:$B$ modifier = gp_opinion_ancient_enmity }
+		}
+	}
+}
+
+gp_history_friendship = {
+	c:$A$ ?= {
+		if = {
+			limit = { country_exists = c:$B$ }
+			add_opinion = { target = c:$B$ modifier = gp_opinion_ancient_friendship }
+			reverse_add_opinion = { target = c:$B$ modifier = gp_opinion_ancient_friendship }
+		}
+	}
+}
+
+# Opening posture of a historical actor (AI only, game rule not off): YEARS before the normal yearly choice resumes.
+gp_history_posture = {
+	c:$TAG$ ?= {
+		if = {
+			limit = {
+				is_ai = yes
+				gp_is_active = yes
+			}
+			gp_set_posture = { POSTURE = $POSTURE$ }
+			set_variable = { name = gp_posture_left value = $YEARS$ }
+			if = { limit = { has_variable = gp_war_target } remove_variable = gp_war_target }
+		}
+	}
+}
+
+# Opening preparation for a war the country historically wanted (the target must exist).
+gp_history_preparation = {
+	c:$TAG$ ?= {
+		if = {
+			limit = {
+				is_ai = yes
+				gp_is_active = yes
+				country_exists = c:$TARGET$
+			}
+			gp_set_posture = { POSTURE = preparation }
+			set_variable = { name = gp_war_target value = c:$TARGET$ }
+			set_variable = { name = gp_posture_left value = $YEARS$ }
+		}
+	}
+}
+
+# Called before the countries are set up, so that the rulers formed at game start already know their old enemies.
+gp_history_relations = {
+	# ---- old enmities (both ways, -60, fade by 0.5 a year) ----
+	gp_history_enmity = { A = ENG B = FRA }		# Gascony, the Hundred Years' War breaks out in 1337
+	gp_history_enmity = { A = ENG B = SCO }		# the Wars of Scottish Independence
+	gp_history_enmity = { A = POL B = TEU }		# Pomerelia (1308), the war of 1326-1332
+	gp_history_enmity = { A = LIT B = TEU }		# the Lithuanian crusade
+	gp_history_enmity = { A = CAS B = GRA }		# the Reconquista
+	gp_history_enmity = { A = CAS B = MOR }		# the Straits, Rio Salado (1340)
+	gp_history_enmity = { A = ARA B = GEN }		# Sardinia and Corsica
+	gp_history_enmity = { A = VEN B = GEN }		# the trade wars of the Levant
+	gp_history_enmity = { A = BYZ B = TUR }		# Bithynia lost, Nicaea (1331), Nicomedia (1337)
+	gp_history_enmity = { A = BYZ B = SER }		# Dusan's march into Macedonia
+	gp_history_enmity = { A = BYZ B = BUL }		# Rusokastro (1332)
+	gp_history_enmity = { A = HUN B = SER }		# Macva and the Danube border
+	gp_history_enmity = { A = HUN B = VEN }		# Dalmatia
+	gp_history_enmity = { A = DAN B = SWE }		# Scania pledged to Sweden (1332)
+	gp_history_enmity = { A = NOV B = SWE }		# the Swedish-Novgorod wars
+	gp_history_enmity = { A = MOS B = TVE }		# the struggle for the grand-princely throne of Vladimir
+	gp_history_enmity = { A = HAB B = SYZ }		# Morgarten (1315)
+	gp_history_enmity = { A = MAM B = CIL }		# the Mamluk wars against Cilician Armenia
+	gp_history_enmity = { A = ENG B = TYR }		# the O'Neills against the English lordship of Ireland
+	gp_history_enmity = { A = ENG B = THO }		# Dysert O'Dea (1318)
+	gp_history_enmity = { A = BRA B = POL }		# the Polish-Lithuanian raid on the Mark (1326), Santok and Drezdenko
+	gp_history_enmity = { A = NAP B = SIC }		# the War of the Vespers
+	# ---- old friendships (both ways, +40, fade by 0.25 a year) ----
+	gp_history_friendship = { A = FRA B = SCO }	# the Auld Alliance (1295)
+	gp_history_friendship = { A = ENG B = POR }	# the Anglo-Portuguese friendship
+	gp_history_friendship = { A = ENG B = FLA }	# the wool trade, van Artevelde's Flanders (1337-1340)
+	gp_history_friendship = { A = ENG B = HAI }	# Philippa of Hainaut, the Low Countries alliance of 1337
+	gp_history_friendship = { A = SCO B = TYR }	# Edward Bruce's Irish war (1315-1318)
+	gp_history_friendship = { A = POL B = HUN }	# the Angevin succession, the Visegrad congress (1335)
+	gp_history_friendship = { A = HUN B = BOH }	# the Visegrad congress (1335)
+	gp_history_friendship = { A = HUN B = NAP }	# the Angevin houses of Buda and Naples
+	gp_history_friendship = { A = POL B = LIT }	# the alliance of 1325 against the Order (Aldona's marriage)
+	gp_history_friendship = { A = LIT B = TVE }	# Gediminas' daughter at Tver, the common front against Moscow
+	gp_history_friendship = { A = BRA B = UBV }	# Wittelsbach father and son: Emperor Louis IV and Louis of Brandenburg
+	gp_history_friendship = { A = BRA B = TEU }	# the Mark and the Order against Poland
+	gp_history_friendship = { A = HAB B = UBV }	# Louis IV gives Carinthia to the Habsburgs (1335)
+	gp_history_friendship = { A = SWE B = NOR }	# Magnus Eriksson's union of the two crowns
+	gp_history_friendship = { A = MOS B = GLH }	# Ivan Kalita, the Horde's tax collector
+}
+
+# Called after the countries are set up (their own yearly posture choice would otherwise overwrite these).
+gp_history_postures = {
+	# ---- opening postures (author: "give some countries a reason to fight at the start") ----
+	gp_history_preparation = { TAG = ENG TARGET = FRA YEARS = 6 }	# Edward III claims the French crown
+	gp_history_preparation = { TAG = FRA TARGET = ENG YEARS = 5 }	# Philip VI confiscates Gascony (May 1337)
+	gp_history_preparation = { TAG = POL TARGET = HAL YEARS = 6 }	# Casimir's Red Ruthenian campaigns (1340)
+	gp_history_preparation = { TAG = CAS TARGET = GRA YEARS = 6 }	# Alfonso XI and the Straits
+	gp_history_posture = { TAG = SER POSTURE = expansion YEARS = 8 }	# Dusan's empire
+	gp_history_posture = { TAG = TUR POSTURE = expansion YEARS = 8 }	# Orhan's Bithynia
+	gp_history_posture = { TAG = LIT POSTURE = expansion YEARS = 6 }	# Gediminas and the Rus' lands
+	gp_history_posture = { TAG = SCO POSTURE = defense YEARS = 5 }
+	gp_history_posture = { TAG = BYZ POSTURE = defense YEARS = 5 }
+	gp_history_posture = { TAG = DAN POSTURE = recovery YEARS = 4 }	# the interregnum (1332-1340)
+	gp_history_posture = { TAG = MOS POSTURE = consolidation YEARS = 6 }	# gathering the Rus' lands by purse, not sword
+	gp_history_posture = { TAG = HUN POSTURE = opportunism YEARS = 5 }	# Charles Robert waits for Serbia and Venice to stumble
+	gp_history_posture = { TAG = HAB POSTURE = consolidation YEARS = 5 }	# digesting Carinthia
+	gp_history_posture = { TAG = BRA POSTURE = defense YEARS = 4 }	# the Wittelsbach Mark between Poland and the Pomeranians
+	gp_history_posture = { TAG = SWE POSTURE = peace YEARS = 4 }
+	gp_history_posture = { TAG = TYR POSTURE = expansion YEARS = 5 }	# the Gaelic resurgence
+}
+
+# ================================================================================================
+# The passions of a region (author: "shock - chaos - wars - calm - wars"): years of peace build up ambition
+# (var:gp_calm_years -> gp_calm_pressure in the posture scores), the defeat of a great power of the region opens a time of
+# troubles for its neighbours (var:gp_region_turmoil, 5 years, set in gp_update_region_relations).
+# ================================================================================================
+
+gp_update_calm = {
+	if = {
+		limit = { at_war = yes }
+		set_variable = { name = gp_calm_years value = 0 }
+	}
+	else = {
+		if = {
+			limit = { NOT = { has_variable = gp_calm_years } }
+			set_variable = { name = gp_calm_years value = 0 }
+		}
+		change_variable = { name = gp_calm_years add = 1 }
+	}
+	if = {
+		limit = { has_variable = gp_turmoil_years }
+		change_variable = { name = gp_turmoil_years add = -1 }
+		if = {
+			limit = { var:gp_turmoil_years <= 0 }
+			remove_variable = gp_turmoil_years
+			if = { limit = { has_variable = gp_region_turmoil } remove_variable = gp_region_turmoil }
+		}
+	}
+}
+
+# ================================================================================================
+# The memory of wars (on_ending_war, run once from the winning side)
+# ================================================================================================
+
+# Winner and loser remember each other (old enemy, both ways, accumulating); the winner's allies who fought with it
+# remember the common victory (old friend).
+gp_war_memory = {
+	if = {
+		limit = {
+			scope:winner ?= root
+			exists = scope:loser
+		}
+		add_opinion = { target = scope:loser modifier = gp_opinion_old_enemy }
+		reverse_add_opinion = { target = scope:loser modifier = gp_opinion_old_enemy }
+		# Co-belligerents from the war itself (vanilla d009_golden_century: scope:war = { every_attacker / every_defender }).
+		scope:war ?= {
+			if = {
+				limit = { any_attacker = { this = root } }
+				every_attacker = {
+					limit = {
+						NOT = { this = root }
+						gp_is_real_country = yes
+					}
+					add_opinion = { target = root modifier = gp_opinion_old_friend }
+					reverse_add_opinion = { target = root modifier = gp_opinion_old_friend }
+				}
+			}
+			else_if = {
+				limit = { any_defender = { this = root } }
+				every_defender = {
+					limit = {
+						NOT = { this = root }
+						gp_is_real_country = yes
+					}
+					add_opinion = { target = root modifier = gp_opinion_old_friend }
+					reverse_add_opinion = { target = root modifier = gp_opinion_old_friend }
+				}
+			}
+		}
+	}
+}
+
+# ================================================================================================
+# The ruler's lifelong likes and dislikes (author: "formed at ten by the country the ruler grew up in; if they reach
+# out, the ruler can change that mind")
+# ================================================================================================
+
+# Country scope (scope:gp_c): the heir and the ruler's children form their outlook once, at ten. A ruler who was never
+# formed (every ruler at game start, a ruler from outside the dynasty) forms it on the spot from today's relations.
+gp_form_young_royals = {
+	ruler ?= { gp_form_character = yes }
+	heir ?= { gp_form_character = yes }
+	ruler ?= {
+		every_child = {
+			limit = {
+				age_in_years >= 10
+				NOT = { has_variable = gp_formed }
+			}
+			gp_form_character = yes
+		}
+	}
+}
+
+# Character scope. 60 %: dislikes the country the homeland had the worst grievance against (a rival, an old enemy or the
+# regional threat); 50 %: likes its best friend (an ally, an old friend, a royal marriage).
+gp_form_character = {
+	if = {
+		limit = {
+			age_in_years >= 10
+			NOT = { has_variable = gp_formed }
+		}
+		set_variable = gp_formed
+		random_list = {
+			60 = {
+				scope:gp_c = {
+					ordered_known_country = {
+						limit = {
+							NOT = { this = scope:gp_c }
+							gp_is_real_country = yes
+							OR = {
+								scope:gp_c = { is_rival_of = prev }
+								gp_is_old_enemy_of = { COUNTRY = scope:gp_c }
+								this ?= scope:gp_c.var:gp_threat
+							}
+						}
+						order_by = country_strength
+						max = 1
+						save_scope_as = gp_dl
+					}
+				}
+				if = {
+					limit = { exists = scope:gp_dl }
+					set_variable = { name = gp_dislike value = scope:gp_dl }
+				}
+				clear_saved_scope = gp_dl
+			}
+			40 = { }
+		}
+		random_list = {
+			50 = {
+				scope:gp_c = {
+					ordered_known_country = {
+						limit = {
+							NOT = { this = scope:gp_c }
+							gp_is_real_country = yes
+							OR = {
+								has_mutual_scripted_relation = { type = relation_type:alliance target = scope:gp_c }
+								gp_is_old_friend_of = { COUNTRY = scope:gp_c }
+								has_royal_marriage_with = scope:gp_c
+							}
+						}
+						order_by = country_strength
+						max = 1
+						save_scope_as = gp_lk
+					}
+				}
+				if = {
+					limit = { exists = scope:gp_lk }
+					set_variable = { name = gp_like value = scope:gp_lk }
+				}
+				clear_saved_scope = gp_lk
+			}
+			50 = { }
+		}
+	}
+}
+
+# Country scope (scope:gp_c), yearly: the reigning ruler's likes and dislikes become the country's (opinion +-30,
+# var:gp_ruler_like / gp_ruler_dislike for the AI and the brief). A disliked country that reaches out (alliance, royal
+# marriage, opinion of us >= 100) wins the ruler over with 25 % a year; a liked country that goes to war with us loses the ruler's favour.
+gp_update_ruler_affinity = {
+	if = {
+		limit = { has_variable = gp_ruler_dislike }
+		var:gp_ruler_dislike ?= { scope:gp_c = { remove_opinion = { target = prev modifier = gp_opinion_ruler_dislike } } }
+		remove_variable = gp_ruler_dislike
+	}
+	if = {
+		limit = { has_variable = gp_ruler_like }
+		var:gp_ruler_like ?= { scope:gp_c = { remove_opinion = { target = prev modifier = gp_opinion_ruler_like } } }
+		remove_variable = gp_ruler_like
+	}
+	ruler ?= {
+		if = {
+			limit = { has_variable = gp_dislike }
+			if = {
+				limit = {
+					var:gp_dislike ?= {
+						OR = {
+							has_mutual_scripted_relation = { type = relation_type:alliance target = scope:gp_c }
+							has_royal_marriage_with = scope:gp_c
+							"opinion(scope:gp_c)" >= 100
+						}
+					}
+				}
+				random_list = {
+					25 = { remove_variable = gp_dislike }
+					75 = { }
+				}
+			}
+		}
+		if = {
+			limit = { has_variable = gp_dislike }
+			var:gp_dislike ?= {
+				if = {
+					limit = { gp_is_real_country = yes }
+					save_scope_as = gp_rd
+				}
+			}
+		}
+		if = {
+			limit = {
+				has_variable = gp_like
+				var:gp_like ?= { is_at_war_with = scope:gp_c }
+			}
+			remove_variable = gp_like
+		}
+		if = {
+			limit = { has_variable = gp_like }
+			var:gp_like ?= {
+				if = {
+					limit = { gp_is_real_country = yes }
+					save_scope_as = gp_rl
+				}
+			}
+		}
+	}
+	if = {
+		limit = {
+			exists = scope:gp_rd
+			NOT = { scope:gp_rd = scope:gp_c }
+		}
+		set_variable = { name = gp_ruler_dislike value = scope:gp_rd }
+		add_opinion = { target = scope:gp_rd modifier = gp_opinion_ruler_dislike }
+	}
+	if = {
+		limit = {
+			exists = scope:gp_rl
+			NOT = { scope:gp_rl = scope:gp_c }
+		}
+		set_variable = { name = gp_ruler_like value = scope:gp_rl }
+		add_opinion = { target = scope:gp_rl modifier = gp_opinion_ruler_like }
+	}
+	clear_saved_scope = gp_rd
+	clear_saved_scope = gp_rl
+}
+
+# ================================================================================================
+# Subjects of another culture group (author: "a German vassal of a French overlord is hard to hold, harder every age")
+# ================================================================================================
+
+gp_update_foreign_overlord = {
+	if = {
+		limit = {
+			is_subject = yes
+			overlord ?= { gp_is_real_country = yes }
+		}
+		overlord = { save_scope_as = gp_ov }
+		remove_opinion = { target = scope:gp_ov modifier = gp_opinion_foreign_overlord }
+		if = {
+			limit = {
+				NOT = { gp_shares_culture_group_with = { COUNTRY = scope:gp_ov } }
+				NOT = { is_subject_type = colonial_nation }
+			}
+			add_opinion = { target = scope:gp_ov modifier = gp_opinion_foreign_overlord scale = gp_age_scale }
+		}
+		clear_saved_scope = gp_ov
+	}
+}
+
+# ================================================================================================
+# Colonial nations grow inside their own colonial region (author: "a colony is not a free country: it fills its own
+# region and claims nothing else - clean borders"); once free it behaves like any country.
+# ================================================================================================
+
+gp_ensure_colonial_profile = {
+	if = {
+		limit = {
+			is_subject_type = colonial_nation
+			NOT = { has_area_preference = gp_colonial_home_region }
+		}
+		add_area_preference = gp_colonial_home_region
+	}
+	else_if = {
+		limit = {
+			NOT = { is_subject_type = colonial_nation }
+			has_area_preference = gp_colonial_home_region
+		}
+		remove_area_preference = gp_colonial_home_region
+	}
+}

@@ -78,6 +78,18 @@ template AiDisposition_tooltip {
 					text = "GP_BRIEF_TARGET"
 				}
 			}
+			TooltipFlavorTextBlock = {
+				visible = "[And(Not(Country.IsLocalPlayer), Country.MakeScope.GetVariable('gp_ruler_dislike').IsSet)]"
+				blockoverride "text" {
+					text = "GP_BRIEF_RULER_DISLIKE"
+				}
+			}
+			TooltipFlavorTextBlock = {
+				visible = "[And(Not(Country.IsLocalPlayer), Country.MakeScope.GetVariable('gp_ruler_like').IsSet)]"
+				blockoverride "text" {
+					text = "GP_BRIEF_RULER_LIKE"
+				}
+			}
 		}
 	}
 }

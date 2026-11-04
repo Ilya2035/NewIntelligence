@@ -1,11 +1,12 @@
 ﻿###################################
 # New Intelligence: Geopolicy - opinion modifiers (prefix gp_)
 #
-# Format: biases/00_opinion_hardcoded.txt (value, months = removed after this time). All three are refreshed once a
-# year by gp_effects.txt with remove_opinion + add_opinion (vanilla on_papal_opinion_added does the same), so they
-# never stack; months = 14 lets them expire by themselves when the mod stops refreshing them.
+# Format: biases/00_opinion_hardcoded.txt (value, min / max, months, yearly_decay). Opinion is the normal relations
+# mechanic of the game, not a country buff (author's rule 2026-11-04).
 # Loc: <key> (vanilla: opinion_allied_our_rival: "Allied Our Rival").
 ###################################
+
+# ---- refreshed yearly (remove + add, never stacks; expire by themselves when the mod stops) -------------
 
 # Our opinion of the strongest power that threatens our home region.
 gp_opinion_regional_threat = {
@@ -13,14 +14,70 @@ gp_opinion_regional_threat = {
 	months = 14
 }
 
-# Our opinion of a power from another sub-continent / faith holding land in our home region.
+# Our opinion of a foreign or conquering power holding land in our home region.
 gp_opinion_foreign_intruder = {
 	value = -30
 	months = 14
 }
 
-# Our opinion of a co-religionist of our region that names the same threat as we do.
+# Our opinion of a co-religionist of our region that stands with us against our threat.
 gp_opinion_common_enemy = {
 	value = 20
 	months = 14
+}
+
+# Kin next door: a neighbour of our culture group in our home region (Novgorod - Pskov - Beloozero).
+gp_opinion_kin = {
+	value = 15
+	months = 14
+}
+
+# The ruler's lifelong dislike / liking of a country, formed at the age of ten (gp_form_character).
+gp_opinion_ruler_dislike = {
+	value = -30
+	months = 14
+}
+
+gp_opinion_ruler_like = {
+	value = 30
+	months = 14
+}
+
+# A subject of another culture group resents its overlord, more with every passing age (scale = gp_age_scale).
+gp_opinion_foreign_overlord = {
+	value = -8
+	min = -80
+	months = 14
+}
+
+# ---- memory between nations (author: "if the French fought the English for 500 years, 50 years will not make them
+# friends; the longer the peace, the more neutral") --------------------------------------------------------
+
+# Every war adds to it (winner and loser, both ways), a long peace wears it down by 1 a year.
+gp_opinion_old_enemy = {
+	value = -15
+	min = -90
+	yearly_decay = 1
+}
+
+# Fighting a war on the same winning side binds; it fades slowly.
+gp_opinion_old_friend = {
+	value = 15
+	max = 60
+	yearly_decay = 1
+}
+
+# History before 1337 (gp_history_start): the Hundred Years' War, the Scottish wars, the Reconquista, the Order's wars...
+# Fades over a century.
+gp_opinion_ancient_enmity = {
+	value = -60
+	min = -60
+	yearly_decay = 0.5
+}
+
+# The Auld Alliance, the Anglo-Portuguese friendship, the Visegrad congress of 1335, the Swedish-Norwegian union...
+gp_opinion_ancient_friendship = {
+	value = 40
+	max = 40
+	yearly_decay = 0.25
 }

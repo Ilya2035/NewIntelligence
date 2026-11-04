@@ -21,6 +21,13 @@ gp_generic_home_region = {
 	consider_capital_region = yes
 }
 
+# v0.2 colonial nations: their own colonial region (the capital's region) and nothing else (gp_score_colonial_borders).
+gp_colonial_home_region = {
+	preference_type = conquest
+	modifier = 15
+	consider_capital_region = yes
+}
+
 # ---- group spheres (assigned by trigger, not by tag) --------------------------------------------
 
 # Anatolian beyliks: the peninsula is the prize (vanilla gives them generic_conquer_home_region).
