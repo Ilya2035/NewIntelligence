@@ -331,7 +331,13 @@ cw_update_army_organization = {
 		remove_variable = cw_has_army_without_hq
 	}
 	every_army = {
+		# v0.5: captured / hired enemy HQs never change sides. Exclusive branch: nothing else touches a unit that
+		# may have been destroyed by the purge; its organization is refreshed next month or after its next battle.
 		if = {
+			limit = { cw_unit_holds_captured_hq = yes }
+			cw_purge_captured_hqs = yes
+		}
+		else_if = {
 			limit = { cw_unit_is_exempt = yes }
 			cw_clear_unit_modifiers = yes
 		}
@@ -933,6 +939,7 @@ cw_loc_add_hq = {
 			exists = scope:loc
 			scope:loc = { is_land = yes }
 			has_variable = cw_hq_ready			# v0.2: only a formed headquarters can be placed
+			NOT = { has_variable = cw_hq_place_lock }	# v0.5: one HQ per click (user review: repeated clicks made several)
 			cw_has_free_hq_slot = yes
 		}
 		ordered_army = {
@@ -950,6 +957,7 @@ cw_loc_add_hq = {
 			add_subunit = unit_type:cw_hq
 			cw_home_hq_added = yes
 		}
+		cw_set_hq_place_lock = yes
 		cw_cache_limits = yes
 		cw_refresh_army_without_hq_flag = yes
 	}
@@ -965,6 +973,7 @@ cw_loc_add_colonial_hq = {
 				would_be_overseas_for = root
 			}
 			has_variable = cw_colonial_hq_ready	# v0.2: only a formed colonial headquarters can be placed
+			NOT = { has_variable = cw_colonial_hq_place_lock }
 			cw_has_free_colonial_hq_slot = yes
 		}
 		ordered_army = {
@@ -980,6 +989,10 @@ cw_loc_add_colonial_hq = {
 			check_range_bounds = no
 			add_subunit = unit_type:cw_hq_colonial
 			cw_colonial_hq_added = yes
+		}
+		set_variable = {
+			name = cw_colonial_hq_place_lock
+			days = 3
 		}
 		cw_cache_limits = yes
 		cw_refresh_army_without_hq_flag = yes
@@ -1067,13 +1080,9 @@ cw_player_notifications = {
 	}
 }
 
-# country scope. Starts the hidden 15-day war ticker (cw_tick.1) unless one is already running.
-# The event re-fires itself while at_war = yes and guards itself with cw_tick_scheduled (14 days).
+# country scope. v0.5 (performance, user review 2026-11-05): the hidden 15-day war ticker is gone - the monthly pulse,
+# war start, battles and player clicks keep the HQ state current. Kept as an empty effect so old callers and saves load.
 cw_start_war_ticker = {
-	if = {
-		limit = { NOT = { has_variable = cw_tick_scheduled } }
-		trigger_event_silently = { id = cw_tick.1 }
-	}
 }
 
 # country scope. monthly_country_pulse (root = country, trigger cw_is_real_country already checked).
@@ -1097,7 +1106,6 @@ cw_monthly_pulse_effect = {
 	if = {
 		limit = { at_war = yes }
 		cw_run_hq_pass = yes
-		cw_start_war_ticker = yes
 	}
 	else_if = {
 		# v0.2: a formed headquarters is placed by the AI (and the automation decision) in the month it is ready,
@@ -1110,7 +1118,10 @@ cw_monthly_pulse_effect = {
 			}
 		}
 		cw_ai_assign_hqs = yes
-		cw_cache_limits = yes
+		if = {
+			limit = { is_ai = no }		# v0.5: only the player looks at the cached counters
+			cw_cache_limits = yes
+		}
 	}
 	else_if = {
 		limit = { NOT = { has_variable = cw_peace_cooldown } }
@@ -1195,7 +1206,6 @@ cw_war_start_country = {
 			cw_cache_limits = yes
 			cw_run_hq_pass = yes
 		}
-		cw_start_war_ticker = yes
 	}
 }
 
@@ -1221,6 +1231,7 @@ cw_form_hq_at_capital = {
 	if = {
 		limit = {
 			has_variable = cw_hq_ready
+			NOT = { has_variable = cw_hq_place_lock }
 			cw_has_free_hq_slot = yes
 			exists = capital
 		}
@@ -1231,7 +1242,112 @@ cw_form_hq_at_capital = {
 				origin = this
 			}
 		}
+		cw_set_hq_place_lock = yes
 		cw_cache_limits = yes
 		cw_update_hq_readiness = yes
+	}
+}
+
+# =============================================================================================
+# 5. v0.5 (user review 2026-11-05)
+# =============================================================================================
+
+# country scope. One HQ per click: the engine counter (total_sub_unit_type_count) only catches up on the next tick,
+# so without this lock repeated clicks on "Form headquarters" / "Place headquarters" created several HQs. The lock
+# expires by itself; while it is set the scripted GUIs are disabled (cw_scripted_guis.txt).
+cw_set_hq_place_lock = {
+	set_variable = {
+		name = cw_hq_place_lock
+		days = 3
+	}
+}
+
+# location scope, root = the new controller (on_location_occupied / on_siege_won, cw_occupation_on_actions.txt).
+# Only an army carrying an organizing HQ (cw_unit_is_organized) of root or of a war ally takes enemy land. If none
+# stands in the location, control goes straight back to the owner. Retaking own or allied land is always allowed.
+# The player is told at most once per 30 days (cw_events.3).
+cw_occupation_check = {
+	if = {
+		limit = {
+			exists = owner
+			NOT = { owner = root }
+			owner = {
+				NOT = { is_fighting_war_together_with = root }
+				is_at_war_with = root
+			}
+			NOT = {
+				any_unit_in_location = {
+					is_army = yes
+					cw_unit_is_organized = yes
+					owner = {
+						OR = {
+							this = root
+							is_fighting_war_together_with = root
+						}
+					}
+				}
+			}
+		}
+		save_scope_as = cw_lost_location
+		owner = { save_scope_as = cw_occ_owner }
+		change_location_controller = scope:cw_occ_owner
+		root = {
+			if = {
+				limit = {
+					is_ai = no
+					NOT = { has_variable = cw_capture_blocked_notice }
+				}
+				set_variable = {
+					name = cw_capture_blocked_notice
+					days = 30
+				}
+				trigger_event_non_silently = { id = cw_events.3 }
+			}
+		}
+	}
+}
+
+# unit scope. Headquarters never change sides (user review 2026-11-05): an HQ regiment that sits in this army as a
+# prisoner (its sub-unit owner is another country - the prisoner banner shows "prisoners from <owner>",
+# SubUnit.IsPrisoner / SubUnit.GetOwner in sub_unit_banner.gui) or that was hired from prisoners (is_mercenary) is
+# destroyed. The army's own HQs have owner = the army's owner and are never mercenaries, so they stay. A unit left
+# with nothing but such HQs is removed whole. The original owner's slot frees up and its HQ re-forms in 3 months
+# (cw_update_hq_readiness). Cheap guard first: only armies that carry prisoners or hired companies are scanned.
+# Called from on_overrun_imprisoned, the battle hook and the monthly organization pass.
+# CW TODO verify: the sub-unit "owner" link of a prisoner regiment is its original country.
+cw_purge_captured_hqs = {
+	if = {
+		limit = { cw_unit_holds_captured_hq = yes }
+		if = {
+			limit = {
+				any_sub_unit = {
+					count = all
+					OR = {
+						sub_unit_type = unit_type:cw_hq
+						sub_unit_type = unit_type:cw_hq_colonial
+					}
+					OR = {
+						is_mercenary = yes
+						NOT = { owner ?= prev.owner }
+					}
+				}
+			}
+			destroy_unit = yes
+		}
+		else = {
+			every_sub_unit = {
+				limit = {
+					OR = {
+						sub_unit_type = unit_type:cw_hq
+						sub_unit_type = unit_type:cw_hq_colonial
+					}
+					OR = {
+						is_mercenary = yes
+						NOT = { owner ?= prev.owner }
+					}
+				}
+				destroy_subunit = yes
+			}
+		}
 	}
 }

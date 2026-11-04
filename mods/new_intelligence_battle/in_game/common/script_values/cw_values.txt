@@ -17,10 +17,11 @@
 # NO home HQ at all gets one regardless of size (cw_initial_hq_grant).
 cw_min_subunits_for_ai_hq = 3
 
-# An army counts as "organized" only with the right HQ AND at least this many regiments, i.e. the HQ plus at
-# least two other regiments (research 15 section 2.4 / 7, DESIGN.md 2.4): a lone HQ or "HQ + one regiment" is
-# not a siege detachment and cannot occupy anything. Same floor as cw_min_subunits_for_ai_hq on purpose.
-cw_min_subunits_organized = 3
+# An army counts as "organized" with the right HQ and at least this many regiments. v0.5 (user review 2026-11-05):
+# ANY army that carries an HQ is organized, a lone 100-man HQ included - it may besiege and occupy. Only armies
+# WITHOUT an HQ are penalised and cannot take enemy land (cw_occupation_on_actions.txt). The AI still moves
+# stranded HQs into big stacks (cw_min_subunits_for_ai_hq), so concentration is unchanged.
+cw_min_subunits_organized = 1
 
 # War-stance hysteresis (module ai_stance): a stance may change at most once per this many months.
 cw_stance_lock_months = 2

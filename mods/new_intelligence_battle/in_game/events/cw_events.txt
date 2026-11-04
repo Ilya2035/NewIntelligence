@@ -82,6 +82,36 @@ cw_events.2 = {
 	}
 }
 
+# ---------------------------------------------------------------------------------------------
+# cw_events.3 - v0.5: our army without a headquarters took a location, and it went back to its owner (player only,
+# max once per 30 days). Fired by cw_occupation_check with the location saved as scope:cw_lost_location.
+# ---------------------------------------------------------------------------------------------
+cw_events.3 = {
+	type = country_event
+	title = cw_events.3.title
+	desc = {
+		first_valid = {
+			triggered_desc = {
+				trigger = { exists = scope:cw_lost_location }
+				desc = cw_events.3.desc
+			}
+			triggered_desc = {
+				desc = cw_events.3.desc_generic
+			}
+		}
+	}
+	outcome = negative
+	interface_lock = no
+
+	trigger = {
+		is_ai = no
+	}
+
+	option = {
+		name = cw_events.3.a
+	}
+}
+
 namespace = cw_tick
 
 # ---------------------------------------------------------------------------------------------
@@ -101,22 +131,8 @@ cw_tick.1 = {
 	hidden = yes
 	outcome = neutral
 
+	# v0.5 (performance): retired. A tick still queued in an old save fails this trigger, and nothing re-queues it.
 	trigger = {
-		cw_is_real_country = yes
-		at_war = yes
-		NOT = { has_variable = cw_tick_scheduled }
-	}
-
-	immediate = {
-		cw_cache_limits = yes
-		cw_run_hq_pass = yes
-		trigger_event_silently = {
-			id = cw_tick.1
-			days = 15
-		}
-		set_variable = {
-			name = cw_tick_scheduled
-			days = 14
-		}
+		always = no
 	}
 }

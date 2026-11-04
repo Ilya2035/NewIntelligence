@@ -5425,7 +5425,7 @@ lateralview = {
 
 							icon = {
 								size = { 30 30 }
-								texture = "gfx/interface/icons/unit_actions/commander.dds"
+								texture = "gfx/interface/icons/cw/cw_hq.dds"
 							}
 							text_single = {
 								autoresize = yes
@@ -5509,7 +5509,7 @@ lateralview = {
 
 						icon = {
 							size = { 24 24 }
-							texture = "gfx/interface/icons/unit_actions/commander.dds"
+							texture = "gfx/interface/icons/cw/cw_hq.dds"
 						}
 						vbox = {
 							layoutpolicy_horizontal = expanding

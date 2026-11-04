@@ -38,6 +38,10 @@ on_battle_won = {						# root = actor; scope:actor = winning unit, scope:target 
 	on_actions = { cw_on_battle }
 }
 
+on_overrun_imprisoned = {				# root = the unit holding the prisoners, scope:winner = victorious country (_hardcoded.txt:3381-3386)
+	on_actions = { cw_on_overrun }
+}
+
 # on_battle_lost is deliberately NOT hooked (deviation from SPEC section 5, review finding): it carries the
 # same two units as on_battle_won with the roles swapped (_hardcoded.txt:3328 header; its inline comments at
 # :3339-3340 even disagree about which unit is the loser), so hooking both re-checked every battle twice.
@@ -129,6 +133,16 @@ cw_on_battle = {
 	effect = {
 		scope:actor ?= { cw_battle_recheck_unit = yes }
 		scope:target ?= { cw_battle_recheck_unit = yes }
+	}
+}
+
+# v0.5: an overrun army is taken prisoner - its HQ never changes sides (cw_purge_captured_hqs).
+cw_on_overrun = {
+	effect = {
+		if = {
+			limit = { cw_unit_holds_captured_hq = yes }
+			cw_purge_captured_hqs = yes
+		}
 	}
 }
 

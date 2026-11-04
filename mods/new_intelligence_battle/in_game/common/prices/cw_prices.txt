@@ -1,7 +1,9 @@
 ﻿# New Intelligence: Battle - prices of the "Headquarters" troop type (category army_headquarters).
 # Format: in_game/common/prices/02_units.txt (army_auxiliary_build / _reinforce / _maintenance).
-# Headquarters are a game convention: free to keep and to reinforce. They are never recruited (cw_hq is not
-# buildable); they are formed by script 3 months after a slot opens (cw_update_hq_readiness, cw_effects.txt).
+# Headquarters cost no gold. They are never recruited (cw_hq is not buildable); they are formed by script 3 months
+# after a slot opens (cw_update_hq_readiness, cw_effects.txt) and appear at full strength (100 men).
+# v0.5 (user review 2026-11-05): an HQ that lost men refills them from the OWN manpower pool like every regiment
+# (reinforce manpower = 1, the vanilla rate of auxiliaries, 02_units.txt:91-94); keeping it costs no manpower.
 
 army_headquarters_build = {
 	gold = 0
@@ -10,7 +12,7 @@ army_headquarters_build = {
 
 army_headquarters_reinforce = {
 	gold = 0
-	manpower = 0
+	manpower = 1
 }
 
 army_headquarters_maintenance = {

@@ -155,8 +155,8 @@ cw_unit_is_overseas = {
 	unit_location = { would_be_overseas_for = prev.owner }
 }
 
-# "Organized" (no modifier at all; DESIGN.md 2.4, research 15 section 2.4): at least cw_min_subunits_organized
-# regiments - the HQ plus two others, so "HQ + one regiment" is no siege detachment - AND the RIGHT headquarters
+# "Organized" (no modifier at all; DESIGN.md 2.4): at least cw_min_subunits_organized regiments (v0.5: 1, so a
+# lone HQ counts) AND the RIGHT headquarters
 # for the ground the army stands on:
 #   - a home HQ (cw_hq) organizes anywhere;
 #   - a colonial HQ (cw_hq_colonial) organizes only on overseas ground.
@@ -248,4 +248,25 @@ cw_unit_has_misplaced_colonial_hq = {
 	unit_location = { is_land = yes }
 	cw_unit_is_overseas = no
 	cw_unit_has_colonial_hq = yes
+}
+
+# v0.5. The army holds an enemy HQ: a prisoner HQ regiment (its sub-unit owner is not the army's owner) or one hired
+# from prisoners (is_mercenary). The cheap unit tests run first, so ordinary armies never pay for the regiment scan.
+# Inside any_sub_unit, prev is the army. Used by cw_purge_captured_hqs (cw_effects.txt).
+cw_unit_holds_captured_hq = {
+	is_army = yes
+	OR = {
+		has_prisoners = yes
+		has_mercenaries = yes
+	}
+	any_sub_unit = {
+		OR = {
+			sub_unit_type = unit_type:cw_hq
+			sub_unit_type = unit_type:cw_hq_colonial
+		}
+		OR = {
+			is_mercenary = yes
+			NOT = { owner ?= prev.owner }
+		}
+	}
 }

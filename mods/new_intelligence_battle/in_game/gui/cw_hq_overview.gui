@@ -26,6 +26,54 @@
 @cw_ov_loc_w = 190
 @cw_ov_size_w = 70
 
+# v0.5: mercenaries of ONE army (hover on the card's mercenary count): the vanilla list of hired regiments plus, per hired
+# regiment, its company and the months left on the contract (SubUnit.GetMercenary.GetMonthsLeftOnContract, unit_cards.gui:419,
+# single_unit_window.gui:2233). The list over the regiments lives in the TOOLTIP only, so it is built on hover, never per frame.
+template cw_hq_mercenaries_tooltip {
+	ContextualTooltipType = {
+		blockoverride "title_icon" {
+			icon = {
+				using = tooltip_title_icon_size
+				texture = "[GetConceptTexture('mercenary')]"
+			}
+		}
+		blockoverride "title_text" {
+			text = "UNIT_MERCENARIES_SLICE_TOOLTIP_TITLE"
+		}
+		blockoverride "concept_link" {
+			text = "[mercenaries|e]"
+		}
+		blockoverride "tooltip_content" {
+			TooltipColumnList = {
+				blockoverride "block_title" {
+					text = "UNIT_MERCENARIES_BLOCK_TITLE_ARMY"
+				}
+				textcontext = "[Unit.GetMercenariesTooltipText]"
+			}
+			text_single = {
+				autoresize = yes
+				align = left|nobaseline
+				default_format = "#subtle_name"
+				text = "CW_MIL_CONTRACTS"
+			}
+			flowcontainer = {
+				direction = vertical
+				ignoreinvisible = yes
+				spacing = 1
+				datamodel = "[Unit.GetSubUnits]"
+				item = {
+					text_single = {
+						visible = "[SubUnit.IsMercenary]"
+						autoresize = yes
+						align = left|nobaseline
+						raw_text = "[SubUnit.GetMercenary.GetNameWithNoTooltip]: [SubUnit.GetMercenary.GetMonthsLeftOnContract|0] [Localize('CW_MIL_MONTHS')]"
+					}
+				}
+			}
+		}
+	}
+}
+
 # Number style used by the counters
 template cw_ov_number_text {
 	autoresize = yes
@@ -50,7 +98,7 @@ types CW_HQOverviewTypes
 		icon = {
 			size = { 32 32 }
 			block "cw_counter_icon" {
-				texture = "gfx/interface/icons/unit_actions/commander.dds"
+				texture = "gfx/interface/icons/cw/cw_hq.dds"
 			}
 		}
 
@@ -194,7 +242,7 @@ types CW_HQOverviewTypes
 						icon = {
 							size = { 100% 100% }
 							visible = "[EqualTo_string(SubUnit.GetDefinition.GetNameWithNoTooltip, Localize('cw_hq'))]"
-							texture = "gfx/interface/icons/unit_actions/commander.dds"
+							texture = "gfx/interface/icons/cw/cw_hq.dds"
 							tooltip = "CW_OVERVIEW_HAS_HQ_TT"
 						}
 
@@ -247,6 +295,214 @@ types CW_HQOverviewTypes
 				tooltip = "CW_HQ_ADD_TT"
 				enabled = "[GetScriptedGui('cw_sgui_loc_add_hq').IsValid(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('loc', Unit.GetLocation.MakeScope).End)]"
 				onclick = "[GetScriptedGui('cw_sgui_loc_add_hq').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('loc', Unit.GetLocation.MakeScope).End)]"
+			}
+		}
+	}
+
+	# v0.5 (user review 2026-11-05): card of ONE own army that carries a headquarters, for the "My headquarters" list of the
+	# Military panel. Datamodel item context: Unit (AccessPlayerUnits). Plain armies and navies collapse: the card is visible
+	# only while the army holds a regiment of the HQ category (GetSubUnitCategory('...').GetCount(Unit.Self) - the scalar
+	# vanilla uses for its category cards, unit_cards.gui:548; GetSubUnitCategory('<key>'): unit_overview.gui:795), so no
+	# list over the army's own regiments is needed to filter. Only the army's OWN units are counted (allies stacked in the
+	# same location are separate units).
+	# Rows: 1) name, men (hover = vanilla army tooltip), location, morale; 2) regulars / levies / mercenaries (hover = the
+	#  vanilla lists of those regiments, UnitRegulars/Levies/Mercenaries_slice_tooltip, combat_tooltips.gui:2215-2307) and food;
+	#  3) active modifiers (timed_modifier_icon, standard_types.gui:772, with the vanilla modifier tooltip).
+	# Click = select the army and pan the camera to it (unit_card_actions). Fixed heights only; no percentage sizes inside
+	# auto-sized containers, and no datamodel over the army's regiments in the card itself (crash lesson of v0.4).
+	type cw_hq_army_card = widget {
+		layoutpolicy_horizontal = expanding
+		size = { -1 96 }
+		visible = "[And(Unit.IsArmy, GreaterThan_int32(GetSubUnitCategory('army_headquarters').GetCount(Unit.Self), '(int32)0'))]"
+		using = bg_market_card
+		using = bg_cabinet_card_frame
+
+		stat_player_button = {
+			size = { 100% 100% }
+			down = "[IsUnitSelected(Unit.Self)]"
+			blockoverride "stat_button" {
+				using = unit_card_actions
+			}
+		}
+
+		vbox = {
+			size = { 100% 100% }
+			margin = { 8 5 }
+			spacing = 2
+
+			# ---- row 1: name, men, location, morale ----
+			hbox = {
+				layoutpolicy_horizontal = expanding
+				size = { -1 26 }
+				spacing = 6
+
+				icon = {
+					size = { 24 24 }
+					alwaystransparent = yes
+					texture = "gfx/interface/icons/cw/cw_hq.dds"
+				}
+
+				text_single = {
+					using = Font_Type_Headers
+					using = Font_Size_Small
+					size = { 190 24 }
+					autoresize = no
+					elide = right
+					align = left|nobaseline
+					alwaystransparent = yes
+					default_format = "#yellow_titles"
+					text = "[Unit.GetNameWithNoTooltip]"
+				}
+
+				text_single = {
+					size = { 80 24 }
+					autoresize = no
+					elide = right
+					align = left|nobaseline
+					raw_text = "[Unit.GetVisualStrength] @army_strength!"
+					tooltipwidget = { using = Unit_tooltip }
+				}
+
+				widget = {
+					size = { 150 24 }
+					datacontext = "[Unit.GetLocation]"
+
+					text_single = {
+						size = { 150 24 }
+						autoresize = no
+						elide = right
+						align = left|nobaseline
+						default_format = "#subtle_name"
+						text = "[Location.GetName]"
+					}
+				}
+
+				expand = {}
+
+				hbox = {
+					spacing = 3
+					tooltipwidget = { using = UnitMorale_tooltip }
+
+					icon = {
+						size = { 20 20 }
+						texture = "gfx/interface/icons/flat_icons/military/army_morale.dds"
+					}
+					text_single = {
+						autoresize = yes
+						align = left|nobaseline
+						raw_text = "[Unit.GetMoraleFloat|1] / [Unit.GetMaxMoraleFloat|1]"
+					}
+				}
+			}
+
+			# ---- row 2: composition (only this army's regiments) and food ----
+			hbox = {
+				layoutpolicy_horizontal = expanding
+				size = { -1 26 }
+				spacing = 12
+
+				widget = { size = { 24 1 } }
+
+				hbox = {
+					spacing = 3
+					tooltipwidget = { using = UnitRegulars_slice_tooltip }
+					icon = {
+						size = { 20 20 }
+						texture = "[GetConceptTexture('regular_regiment')]"
+					}
+					text_single = {
+						autoresize = yes
+						align = left|nobaseline
+						raw_text = "[Localize('CW_MIL_REGULARS')] [Unit.GetTotalRegularCount|0]"
+					}
+				}
+
+				hbox = {
+					spacing = 3
+					tooltipwidget = { using = UnitLevies_slice_tooltip }
+					icon = {
+						size = { 20 20 }
+						texture = "[GetConceptTexture('army_levy')]"
+					}
+					text_single = {
+						autoresize = yes
+						align = left|nobaseline
+						raw_text = "[Localize('CW_MIL_LEVIES')] [Unit.GetTotalLevyCount|0]"
+					}
+				}
+
+				hbox = {
+					spacing = 3
+					tooltipwidget = { using = cw_hq_mercenaries_tooltip }
+					icon = {
+						size = { 20 20 }
+						texture = "[GetConceptTexture('mercenary')]"
+					}
+					text_single = {
+						autoresize = yes
+						align = left|nobaseline
+						raw_text = "[Localize('CW_MIL_MERCENARIES')] [Unit.GetTotalMercenaryCount|0]"
+					}
+				}
+
+				hbox = {
+					spacing = 3
+					tooltipwidget = { using = UnitFood_tooltip }
+					icon = {
+						size = { 20 20 }
+						texture = "gfx/interface/icons/unit_view/food.dds"
+					}
+					text_single = {
+						autoresize = yes
+						align = left|nobaseline
+						raw_text = "[Unit.GetFoodPercentage|0]%"
+					}
+				}
+
+				expand = {}
+			}
+
+			# ---- row 3: active modifiers (buffs and debuffs, the "no headquarters" penalty included) ----
+			hbox = {
+				layoutpolicy_horizontal = expanding
+				size = { -1 26 }
+				spacing = 4
+
+				widget = { size = { 24 1 } }
+
+				text_single = {
+					autoresize = yes
+					align = left|nobaseline
+					default_format = "#subtle_name"
+					text = "CW_MIL_MODIFIERS"
+				}
+
+				flowcontainer = {
+					ignoreinvisible = yes
+					spacing = 2
+					datacontext = "[Unit.GetTimedModifierOwner]"
+					datamodel = "[TimedModifierOwner.GetModifiers]"
+					item = {
+						timed_modifier_icon = {
+							blockoverride "timed_modified_icon_size" {
+								size = { 22 22 }
+							}
+							tooltipwidget = {
+								using = timed_modifier_tooltip
+							}
+						}
+					}
+				}
+
+				text_single = {
+					visible = "[IsDataModelEmpty(Unit.GetTimedModifierOwner.GetModifiers)]"
+					autoresize = yes
+					align = left|nobaseline
+					default_format = "#subtle_name"
+					text = "CW_MIL_NO_MODIFIERS"
+				}
+
+				expand = {}
 			}
 		}
 	}
@@ -313,7 +569,7 @@ types CW_HQOverviewTypes
 
 						cw_hq_counter = {
 							blockoverride "cw_counter_tooltip" { tooltip = "CW_HQ_SLOTS_TT" }
-							blockoverride "cw_counter_icon" { texture = "gfx/interface/icons/unit_actions/commander.dds" }
+							blockoverride "cw_counter_icon" { texture = "gfx/interface/icons/cw/cw_hq.dds" }
 							blockoverride "cw_counter_label" { text = "CW_HQ_SLOTS" }
 							blockoverride "cw_counter_count" {
 								text_single = {

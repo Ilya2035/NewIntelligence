@@ -10,7 +10,7 @@
 
  ### Unit types (in_game/common/unit_types/cw_headquarters.txt): <key> = name, <key>_desc = description
  cw_hq: "Army Headquarters"
- cw_hq_desc: "The officer corps of a field army: a staff of one hundred officers. It grants no bonus; only an [army|e] with a headquarters (and at least two more regiments) can [siege|e] and occupy at full speed and fight at full strength, while an army without one suffers the $STATIC_MODIFIER_NAME_cw_no_hq$ penalty. The number of headquarters is limited by [age|e] and by the size of the country."
+ cw_hq_desc: "The officer corps of a field army: a staff of one hundred officers. It grants no bonus; only an [army|e] with a headquarters can [siege|e] and capture enemy land and fights at full strength, while an army without one suffers the $STATIC_MODIFIER_NAME_cw_no_hq$ penalty and captures nothing. The number of headquarters is limited by [age|e] and by the size of the country."
  cw_hq_colonial: "Colonial Headquarters"
  cw_hq_colonial_desc: "A headquarters raised for an [overseas|e] theater. It organizes an army only overseas, where it replaces a regular headquarters and grants the small $STATIC_MODIFIER_NAME_cw_expeditionary$ bonus. At home an army led only by a colonial headquarters fights normally but cannot conduct a proper siege ($STATIC_MODIFIER_NAME_cw_no_hq_siege_only$). Separate limit per overseas theater, at most four. Recruitable only in overseas possessions."
  cw_hq_construction_demand: "Headquarters Construction"
@@ -34,7 +34,7 @@
  ### Army modifiers (main_menu/common/static_modifiers/cw_unit_modifiers.txt)
  # The three penalty variants share one name: the GUI recognizes any of them by name, the strength shows in the numbers.
  STATIC_MODIFIER_NAME_cw_no_hq: "Army without Headquarters"
- STATIC_MODIFIER_DESC_cw_no_hq: "This army has no [cw_headquarters|e]: it cannot conduct a proper [siege|e] and fights without coordination. Place a headquarters or merge it into an army that already has one."
+ STATIC_MODIFIER_DESC_cw_no_hq: "This army has no [cw_headquarters|e]: it fights without coordination and cannot capture enemy land, a location it takes goes straight back to its owner. Place a headquarters or merge it into an army that already has one."
  STATIC_MODIFIER_NAME_cw_no_hq_mild: "Army without Headquarters"
  STATIC_MODIFIER_DESC_cw_no_hq_mild: "$STATIC_MODIFIER_DESC_cw_no_hq$\nMild variant of the penalty: discipline −30%, morale −30% (game rule $rule_cw_rule_hq_penalty$, setting $setting_cw_hq_penalty_mild$)."
  STATIC_MODIFIER_NAME_cw_no_hq_harsh: "Army without Headquarters"
@@ -67,9 +67,13 @@
  cw_events.1.desc: "A new [cw_headquarters|e] has been formed and awaits its assignment. Open the window of the army it should lead, go to the  and press 67 Headquarters cost nothing: a slot freed by the destruction of an army with a headquarters is filled again within 3 months."
  cw_events.1.a: "Assign the officers."
  cw_events.2.title: "An Army Has Lost Its Headquarters"
- cw_events.2.desc: "The officer corps of [cw_army.GetName] has been destroyed. Until a new [cw_headquarters|e] is assigned, the army besieges at a fraction of its speed and fights poorly."
- cw_events.2.desc_generic: "One of our armies has lost its officer corps. Until a new [cw_headquarters|e] is assigned, it besieges at a fraction of its speed and fights poorly."
+ cw_events.2.desc: "The officer corps of [cw_army.GetName] has been destroyed. Until a new [cw_headquarters|e] is assigned, the army cannot capture enemy land and fights at half strength."
+ cw_events.2.desc_generic: "One of our armies has lost its officer corps. Until a new [cw_headquarters|e] is assigned, it cannot capture enemy land and fights at half strength."
  cw_events.2.a: "Reorganize."
+ cw_events.3.title: "Capture Undone"
+ cw_events.3.desc: "Our army took [cw_lost_location.GetName], but it has no [cw_headquarters|e]. Without one the troops cannot hold what they take, and the location went back to its owner. Only armies with a headquarters can capture enemy land."
+ cw_events.3.desc_generic: "Our army took an enemy location, but it has no [cw_headquarters|e]. Without one the troops cannot hold what they take, and the location went back to its owner. Only armies with a headquarters can capture enemy land."
+ cw_events.3.a: "We need a headquarters."
  cw_stance.1.t: "Enemy War Stance Changed"
  cw_stance.1.d: "Our spies report that [cw_enemy.GetName] has changed its approach to the war."
  cw_stance.1.d.offensive: "Our spies report that [cw_enemy.GetName] has gone on the offensive and seeks a decisive battle."
@@ -95,7 +99,7 @@
  ### Hint (in_game/common/scriptable_hints/cw_hints.txt; format hints_l_english.yml:387-391)
  hint_cw_army_without_hq: "Army without Headquarters"
  hint_cw_army_without_hq_hint_text: "$hint_cw_army_without_hq_hint_text_1$\n\n$hint_cw_army_without_hq_hint_text_2$"
- hint_cw_army_without_hq_hint_text_1: "One of our [armies|e] has no [cw_headquarters|e] and suffers the $STATIC_MODIFIER_NAME_cw_no_hq$ penalty: its sieges crawl and it is markedly weaker in battle."
+ hint_cw_army_without_hq_hint_text_1: "One of our [armies|e] has no [cw_headquarters|e] and suffers the $STATIC_MODIFIER_NAME_cw_no_hq$ penalty: it cannot capture enemy land and is markedly weaker in battle."
  hint_cw_army_without_hq_hint_text_2: "#T Recommended Actions:#!\n@arrow_bonus_tier_3! Open the army window and place a headquarters from the #W $CW_HQ_TAB$#! tab, if a slot is free.\n@arrow_bonus_tier_2! Merge the army into one that already has a headquarters.\n@hint! The number of headquarters is limited by [age|e] and by the size of the country. Free slots are shown in the $CW_OVERVIEW_TITLE$ window (click the war-stance plate under the alert bar)."
 
  ### Game rules (main_menu/common/game_rules/cw_game_rules.txt): rule_<rule>, setting_<setting>, setting_<setting>_desc
@@ -124,7 +128,7 @@
 
  ### Game concepts (main_menu/common/game_concepts/cw_concepts.txt); alias keys cw_colonial_hq / cw_war_stances
  game_concept_cw_headquarters: "Headquarters"
- game_concept_cw_headquarters_desc: "A 100-man officer corps regiment, a troop type of its own. Only an [army|e] with a headquarters and at least two more regiments can take land and fights at full strength; an army without one fights at half strength and takes nothing. Headquarters are free: a slot freed by the destruction of an army with a headquarters is filled again within 3 months. How many you may keep: always one; one more from the Age of Reformation with the Pike and Shot institution; one more per 150 own [locations|e]; at most five. Overseas there are separate colonial headquarters: a small colony gives one, a big one (25+ locations) two."
+ game_concept_cw_headquarters_desc: "A 100-man officer corps regiment, a troop type of its own. Only an [army|e] with a headquarters can besiege and capture enemy land, even a headquarters standing alone. An army without one fights at half strength and captures nothing: a location it takes goes straight back to its owner. Headquarters cost no gold, losses are refilled from our own manpower, and upkeep is free. A lost headquarters forms again within 3 months and appears at once with 100 men. A captured headquarters is disbanded and never joins the enemy. How many you may keep: always one; one more from the Age of Reformation with the Pike and Shot institution; one more per 150 own [locations|e]; at most five. Overseas there are separate colonial headquarters: a small colony gives one, a big one (25+ locations) two."
  game_concept_cw_colonial_headquarters: "Colonial Headquarters"
  game_concept_cw_colonial_hq: "Colonial Headquarters"
  game_concept_cw_colonial_headquarters_desc: "A separate [cw_headquarters|e] pool granted per [overseas|e] continent (theater): from the Age of Discovery one per theater where we own at least 5 locations or keep an army of 3+ regiments, one more at 25 locations there, ours or our subjects' (Age of Reformation), and at 60 (Age of Absolutism), four in total at most. A colonial headquarters organizes an army only while it is overseas, where it also grants the small $STATIC_MODIFIER_NAME_cw_expeditionary$ bonus; at home such an army fights normally but cannot besiege ($STATIC_MODIFIER_NAME_cw_no_hq_siege_only$) until it receives a regular headquarters."
@@ -160,7 +164,7 @@
  # CW_HQ_SLOTS / CW_HQ_COLONIAL_SLOTS are used both here (label above the counter) and on the army tab, where the GUI
  # prints the "used/limit" numbers right after the label - the labels themselves must not contain numbers.
  CW_OVERVIEW_TITLE: "Headquarters"
- CW_OVERVIEW_HINT: "A [cw_headquarters|E] is a 100-man officer corps regiment. Only an army with a headquarters and at least two more regiments is organized and can take land; an army without one fights at half strength and takes nothing. A headquarters forms by itself 3 months after a slot frees up; place it into an army or form it as a separate unit in the capital."
+ CW_OVERVIEW_HINT: "A [cw_headquarters|E] is a 100-man officer corps regiment. An army with a headquarters, even a headquarters with no other regiments, can besiege and capture land. An army without one fights at half strength and captures nothing. A headquarters forms by itself 3 months after a slot frees up; place it into an army or form it as a separate unit in the capital."
  CW_HQ_SLOTS: "Headquarters:"
  CW_HQ_SLOTS_TT: "#T Headquarters Limit#!\nAlways one; one more from the Age of Reformation if the Pike and Shot institution is embraced; one more per 150 own [locations|e]. At most five."
  CW_HQ_COLONIAL_SLOTS: "Colonial headquarters:"
@@ -197,14 +201,14 @@
  ### CW_HQ_ABSENT is no longer referenced by the tab (CW_HQ_PENALTY_TEXT was removed). CW_HQ_COLONIAL_AT_HOME is a
  ### location-scoped row as well (cw_sgui_loc_has_colonial_hq_at_home).
  CW_HQ_NO_HQ: "No headquarters: the army is not organized"
- CW_HQ_LONE: "Too few regiments for the headquarters (at least two others are needed): the army is not organized, the penalty applies"
+ CW_HQ_LONE: "The headquarters stands alone: it can besiege and capture land, but without other regiments it is weak in battle"
  CW_HQ_PENALISED: "Penalty in force: $STATIC_MODIFIER_NAME_cw_no_hq$ (refreshed by the next organization check)"
  CW_HQ_COLONIAL_AT_HOME: "Colonial headquarters at home: the army fights normally but cannot besiege (place a regular headquarters)"
  CW_HQ_SIEGE_ONLY: "Siege restriction in force: $STATIC_MODIFIER_NAME_cw_no_hq_siege_only$ (refreshed by the next organization check)"
  CW_HQ_ABSENT_LOC: "No headquarters army at this location: this army is not organized"
  CW_HQ_EXEMPT: "Exiled army: the headquarters rules do not apply"
  CW_HQ_AT_SEA: "Embarked army: a headquarters can be placed or disbanded after landing"
- CW_HQ_PENALTY_INFO: "An army without a [cw_headquarters|e] gets the $STATIC_MODIFIER_NAME_cw_no_hq$ modifier; the exact numbers depend on the game rule $rule_cw_rule_hq_penalty$ (hover to see all three variants; the modifier icon on the army shows the values in force): standard - siege ability −90%, assault ability −50%, discipline −50%, morale −50%; mild - discipline −30%, morale −30%; harsh - discipline −60%, morale −60% (siege and assault as in standard). A regular headquarters lifts the penalty anywhere, a colonial one only overseas (at home such an army fights normally but cannot besiege), and the army must contain at least two more regiments: a headquarters without other regiments, or with a single regiment, occupies nothing."
+ CW_HQ_PENALTY_INFO: "An army without a [cw_headquarters|e] gets the $STATIC_MODIFIER_NAME_cw_no_hq$ modifier and cannot capture enemy land: a location it takes goes straight back to its owner. The penalty depends on the game rule $rule_cw_rule_hq_penalty$: standard - discipline −50%, morale −50%; mild - discipline −30%, morale −30%; harsh - discipline −60%, morale −60%. A regular headquarters lifts the penalty anywhere, a colonial one only overseas: at home such an army fights at full strength but captures nothing."
  CW_HQ_SLOTS_TAB_TT: "$CW_HQ_SLOTS_TT$\n\nThe counter is refreshed by the monthly organization check, by the buttons of this tab and when a war starts or ends; a headquarters recruited in the army builder or lost in battle shows up at the next check."
  CW_HQ_COLONIAL_SLOTS_TAB_TT: "$CW_HQ_COLONIAL_SLOTS_TT$\n\nThe counter is refreshed by the monthly organization check, by the buttons of this tab and when a war starts or ends. Headquarters above the limit (a theater was lost) are kept, but no new one can be placed."
  CW_HQ_ADD_RULES_TT: "$CW_HQ_ADD_TT$.\nExiled and prisoner-only stacks are exempt from the headquarters rules and cannot receive one."
@@ -239,9 +243,25 @@
  CW_MIL_TAB_HQ_TT: "Army headquarters: limits, formation, placement and orders to subjects."
  CW_MIL_HQ_READY: "A headquarters is formed: press $CW_HQ_ADD_SHORT$ on the row of the army you want"
  CW_MIL_ARMIES_HEADER: "Our Armies"
- CW_HQ_ADD_SHORT: "Place HQ"
  CW_MIL_ORDERS_HEADER: "Orders to Subjects"
- CW_MIL_ORDERS_TEXT: "Orders are given in the subject window (Diplomacy -> subjects -> military stance). Four orders:\n#T $cw_escort_military_stance$#! - stay with our main army and cover its sieges.\n#T $cw_harass_military_stance$#! - avoid big battles, hit small detachments and take nearby enemy land.\n#T $cw_own_theater_military_stance$#! - fight on its own sector near its borders.\n#T $cw_defend_home_military_stance$#! - defend its own land only.\nObedience depends on the subject's loyalty: below 33 it barely fights, 33-65 it follows its own judgement, 66 and above it obeys."
+ CW_MIL_ORDERS_TEXT: "The 'All subjects' button gives the order to every subject at once. Hover over an order to read what it does. A single subject's order is changed in the subject window."
+ CW_MIL_MY_HQS_OPEN: "My Headquarters (collapse)"
+ CW_MIL_MY_HQS_CLOSED: "My Headquarters (expand)"
+ CW_MIL_MY_HQS_TT: "Armies that carry a [cw_headquarters|e]. Only our own regiments are counted: allies nearby are not. Click an army to select it and move the camera to it."
+ CW_MIL_NO_HQ_ARMIES: "No army has a headquarters."
+ CW_MIL_REGULARS: "Regulars"
+ CW_MIL_LEVIES: "Levies"
+ CW_MIL_MERCENARIES: "Mercenaries"
+ CW_MIL_MODIFIERS: "Modifiers:"
+ CW_MIL_NO_MODIFIERS: "none"
+ CW_MIL_CONTRACTS: "Mercenary contracts:"
+ CW_MIL_MONTHS: "months"
+ CW_MIL_APPLY_TO_ALL: "All subjects"
+ CW_MIL_MANAGE_SUBJECTS: "Orders One by One"
+ CW_MIL_MANAGE_SUBJECTS_TT: "Open the subject window and pick an order for each subject."
+ CW_MIL_NO_SUBJECTS: "We have no subjects."
+ CW_MIL_ALLIES_NOTE: "The game does not let us give orders to allies that are not our subjects. Their armies keep close to large armies with a headquarters on their own."
+ CW_HQ_ADD_SHORT: "Place HQ"
  cw_harass_military_stance: "Order: Harass the Enemy"
  cw_harass_military_stance_desc: "The [subject|e] avoids big battles: it hits small detachments and takes nearby enemy land."
  cw_harass_military_stance_desc_all: "All our [subjects|e] avoid big battles: they hit small detachments and take nearby enemy land."

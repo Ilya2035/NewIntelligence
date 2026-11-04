@@ -12,6 +12,10 @@
 # Partial per-key override of a vanilla define block from a mod file is standard Jomini behaviour but only
 # INFERRED for EU5 (research 06 §2.13): docs/TESTING.md E1 - CARPET_SIEGE_MAX_ARMIES is the visible canary.
 #
+# v0.5 (user review 2026-11-05: lag, especially when several armies coordinate): the two pathfinding-heavy keys are back
+# at vanilla (AI_PERFORMANCE_ATTACH_UNIT_MAX_DISTANCE 350 -> 200, AI_AVOID_ATTRITION_MAX_PATH_FIND_DISTANCE 9 -> 7), the
+# wait / reinforce radii are smaller, and failed siege pathfinds retry half as often. Concentration keys are unchanged.
+#
 # EVERY key this file overrides - the value set here and the vanilla 1.4.7 value with its line in
 # game/loading_screen/common/defines/00_defines.txt (all 26 re-verified against that file on 2026-11-04).
 # KEEP IN SYNC with the game rule setting cw_ai_concentration_off (main_menu/common/game_rules/cw_game_rules.txt,
@@ -25,7 +29,7 @@
 #   AI_LAND_ARMY_MERGE_THRESHOLD                     0.95     0.80     1137
 #   HUNT_ARMIES_WIN_CHANCE_SPLIT                     1.0      0.99     997
 #   HUNT_ARMIES_MAX_SPLINTERS                        1        6        998
-#   HUNT_ARMIES_AI_MAX_NUM_OBJECTIVES                3        5        1004
+#   HUNT_ARMIES_AI_MAX_NUM_OBJECTIVES                2        5        1004
 #   CARPET_SIEGE_MAX_ARMIES                          2        10       1021
 #   AI_CARPET_SIEGE_MAX_ARMIES_FACTOR                0.05     0.1      1593
 #   MAX_RECRUIT_DISTANCE                             6        10       1037
@@ -33,13 +37,13 @@
 #   CARPET_SIEGE_CONFRONT_FACTOR                     0.3      0.5      1017
 #   AI_SUPPORT_ARMIES_DESIRED_STRENGTH_FACTOR        0.33     0.33     1592   (= vanilla)
 #   AI_ENEMY_STRENGTH_NO_SUPPORT_ARMIES_FACTOR       2        2        1591   (= vanilla)
-#   AI_AWAIT_REINFORCING_ARMY_DISTANCE_MAX           60       35       1131
-#   AI_AWAIT_REINFORCING_ARMY_DISTANCE_MIN           30       20       1132
+#   AI_AWAIT_REINFORCING_ARMY_DISTANCE_MAX           45       35       1131
+#   AI_AWAIT_REINFORCING_ARMY_DISTANCE_MIN           25       20       1132
 #   AI_WAIT_FOR_JOINING_UNIT_STRENGTH_THRESHOLD      0.2      0.33     1135
-#   AI_PERFORMANCE_ATTACH_UNIT_MAX_DISTANCE          350      200      838
 #   AI_ATTACH_MIN_FRONTAGE_ROOM                      0.5      1.0      1139
-#   AI_REINFORCE_ONGOING_BATTLE_DISTANCE             4        2        1133
-#   AI_REINFORCE_BATTLE_DISTANCE_LIMIT               5        3        1587
+#   AI_REINFORCE_ONGOING_BATTLE_DISTANCE             3        2        1133
+#   AI_REINFORCE_BATTLE_DISTANCE_LIMIT               4        3        1587
+#   AI_CARPET_SIEGE_FAILED_PATHFIND_RETRY_DAYS       14       7        835    (v0.5, performance)
 #   AI_REINFORCE_BATTLE_STRENGTH_TRESHOLD            0.7      0.55     1589   (vanilla spelling "TRESHOLD")
 #   AI_CALL_ALLY_STRENGTH_BALANCE_THRESHOLD          0.85     0.75     1435
 #   HEAVILY_OUTNUMBERED_RATIO                        0.45     0.40     1109
@@ -51,17 +55,17 @@
 NAI = {
 	# --- stack size, splitting, merging (research 06 §2.1) - the concentration group, unchanged by the balance review ---
 	RATIO_OVER_SUPPLY_TARGET_TO_SPLIT = 1.2				# 1.3  (l.1026): v0.3 - split a stack sooner when it outgrows the supply limit (user: the AI must minimise attrition; v0.2 had 1.5) (no "split at 130%" churn).
-	AI_AVOID_ATTRITION_MAX_PATH_FIND_DISTANCE = 9			# 7    (l.1051): v0.3 - look further for a location without attrition (small performance cost)
 	AI_LAND_UNIT_ATTRITION_UTILITY = -3					# -2   (l.1466): v0.3 - the AI values modifiers that reduce land attrition more (policies, privileges)
 														#                1.8 in the first draft: stacks at 180% of the supply target bleed attrition in
 														#                mountains / deserts (supply_limit 15, max_attrition 10 - review 15 §5), hence 1.5
 	AI_LAND_ARMY_MERGE_THRESHOLD = 0.95					# 0.80 (l.1137): idle armies below 95% frontage fill merge with co-located armies
 	HUNT_ARMIES_WIN_CHANCE_SPLIT = 1.0					# 0.99 (l.997) : never split a hunting army just because the win chance is high
 	HUNT_ARMIES_MAX_SPLINTERS = 1						# 6    (l.998) : v0.4 - never splinter a hunting army (fragments have no headquarters and fight at half strength)
-	HUNT_ARMIES_AI_MAX_NUM_OBJECTIVES = 3				# 5    (l.1004): at most 3 hunting groups at once
+	HUNT_ARMIES_AI_MAX_NUM_OBJECTIVES = 2				# 5    (l.1004): v0.5 - at most 2 hunting groups at once (maximum concentration, fewer pathfinds)
 	CARPET_SIEGE_MAX_ARMIES = 2							# 10   (l.1021): v0.4 - at most 2 siege groups: only armies with a headquarters can siege at all
 	AI_CARPET_SIEGE_MAX_ARMIES_FACTOR = 0.05			# 0.1  (l.1593): fewer siege detachments per location to siege
 	MAX_RECRUIT_DISTANCE = 6							# 10   (l.1037): reinforcements appear next to the main army and merge sooner
+	AI_CARPET_SIEGE_FAILED_PATHFIND_RETRY_DAYS = 14		# 7    (l.835) : v0.5 - a siege group whose path failed retries after 14 days, not 7 (performance)
 
 	# --- objective assignment and churn (§2.2) ---
 	AI_REASSIGN_UNIT_THRESHOLD = 1.6					# 1.33 (l.1403): a new objective needs 60% more score to steal a unit - less marching back and forth
@@ -78,13 +82,12 @@ NAI = {
 														#                slowed sieges in wars already won (the first draft used 3). Explicit for the OFF list.
 
 	# --- cooperation with allies and subjects (§2.5) ---
-	AI_AWAIT_REINFORCING_ARMY_DISTANCE_MAX = 60			# 35   (l.1131): wait for collaborating armies from further away...
-	AI_AWAIT_REINFORCING_ARMY_DISTANCE_MIN = 30			# 20   (l.1132): ...and resume moving once they are this close
+	AI_AWAIT_REINFORCING_ARMY_DISTANCE_MAX = 45			# 35   (l.1131): wait for collaborating armies from further away... (v0.5: 60 -> 45, less waiting and re-planning)
+	AI_AWAIT_REINFORCING_ARMY_DISTANCE_MIN = 25			# 20   (l.1132): ...and resume moving once they are this close
 	AI_WAIT_FOR_JOINING_UNIT_STRENGTH_THRESHOLD = 0.2	# 0.33 (l.1135): wait even for smaller joining units
-	AI_PERFORMANCE_ATTACH_UNIT_MAX_DISTANCE = 350		# 200  (l.838) : allied units travel further to attach (explicit pathfinding cost - watch performance_degradation.log)
 	AI_ATTACH_MIN_FRONTAGE_ROOM = 0.5					# 1.0  (l.1139): attach even as reserve depth
-	AI_REINFORCE_ONGOING_BATTLE_DISTANCE = 4			# 2    (l.1133): nearby armies pile into the decisive battle...
-	AI_REINFORCE_BATTLE_DISTANCE_LIMIT = 5				# 3    (l.1587): ...from up to 5 locations away
+	AI_REINFORCE_ONGOING_BATTLE_DISTANCE = 3			# 2    (l.1133) v0.5: 4 -> 3 (performance): nearby armies pile into the decisive battle...
+	AI_REINFORCE_BATTLE_DISTANCE_LIMIT = 4				# 3    (l.1587): ...from up to 4 locations away (v0.5: 5 -> 4, performance)
 	AI_REINFORCE_BATTLE_STRENGTH_TRESHOLD = 0.7			# 0.55 (l.1589): keep reinforcing until the own side holds 70% of the battle (decisive superiority)
 	AI_CALL_ALLY_STRENGTH_BALANCE_THRESHOLD = 0.85		# 0.75 (l.1435): call allies into wars more often
 

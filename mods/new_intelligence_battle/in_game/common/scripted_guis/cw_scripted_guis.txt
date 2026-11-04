@@ -122,6 +122,7 @@ cw_sgui_loc_add_hq = {
 	is_valid = {
 		exists = scope:loc
 		has_variable = cw_hq_ready				# v0.2: a headquarters is formed 3 months after a slot opens (cw_update_hq_readiness)
+		NOT = { has_variable = cw_hq_place_lock }	# v0.5: one HQ per click (the engine counter updates on the next tick)
 		cw_has_free_hq_slot = yes
 		scope:loc = {
 			is_land = yes
@@ -171,6 +172,7 @@ cw_sgui_loc_add_colonial_hq = {
 	is_valid = {
 		exists = scope:loc
 		has_variable = cw_colonial_hq_ready		# v0.2: formed 3 months after a theatre slot opens
+		NOT = { has_variable = cw_colonial_hq_place_lock }	# v0.5: one HQ per click
 		cw_has_free_colonial_hq_slot = yes
 		scope:loc = {
 			is_land = yes
@@ -323,6 +325,26 @@ cw_sgui_player_has_army = {
 	}
 }
 
+# v0.5: the player has at least one army with a headquarters ("My headquarters" placeholder, Military panel).
+cw_sgui_player_has_hq_army = {
+	scope = country
+	is_shown = {
+		any_army = {
+			cw_unit_has_hq = yes
+		}
+	}
+}
+
+# v0.5: the player has subjects (the "orders to subjects" block of the Military panel).
+cw_sgui_player_has_subjects = {
+	scope = country
+	is_shown = {
+		any_subject = {
+			count > 0
+		}
+	}
+}
+
 # Automation toggle ("entrust HQ placement to the general staff"): flips the flag variable cw_auto_hq that
 # cw_hq_automation_active (hq_core) reads to run cw_ai_assign_hqs for a human player. Same variable as the
 # decision cw_toggle_auto_hq (hq_core), so both switches stay in sync - including what switching ON does: like the
@@ -370,6 +392,7 @@ cw_sgui_form_hq_at_capital = {
 	}
 	is_valid = {
 		has_variable = cw_hq_ready
+		NOT = { has_variable = cw_hq_place_lock }	# v0.5: one HQ per click
 		cw_has_free_hq_slot = yes
 		exists = capital
 	}

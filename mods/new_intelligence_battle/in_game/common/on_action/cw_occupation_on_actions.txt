@@ -1,0 +1,33 @@
+﻿###################################
+# New Intelligence: Battle - only armies WITH a headquarters take enemy land (v0.5, user review 2026-11-05).
+#
+# A unit modifier cannot forbid a siege: -100% siege ability only slows forts, unfortified locations still fall after
+# DAYS_PER_SIEGE_PHASE_WITHOUT_FORT. So the rule is enforced after the fact: when a location changes controller by
+# occupation (on_location_occupied, no fort) or by siege (on_siege_won, fort), and no army of the new controller or of
+# a war ally carrying an organizing HQ (cw_unit_is_organized: a home HQ anywhere, a colonial HQ overseas) stands in
+# that location, the location goes straight back to its owner.
+#   root = the new controller (country), scope:target = the location (_hardcoded.txt:319-321, 492-494).
+# Untouched:
+#   - rebels, pirates, mercenary hosts and conquistador hosts (cw_is_real_country): they never get HQs;
+#   - taking back our own land or a war ally's land (liberation is not capturing enemy land).
+# Known side effect: the vanilla occupation consequences (food loss, enslavement with its 240-day cooldown) have
+# already happened when the hook fires and are not refunded.
+###################################
+
+on_location_occupied = {
+	on_actions = { cw_on_occupation }
+}
+
+on_siege_won = {
+	on_actions = { cw_on_occupation }
+}
+
+cw_on_occupation = {
+	trigger = {
+		cw_is_real_country = yes
+		exists = scope:target
+	}
+	effect = {
+		scope:target = { cw_occupation_check = yes }
+	}
+}

@@ -17,7 +17,8 @@
 army_headquarters = {
 	is_army = yes
 
-	auxiliary = yes					# non-combat support regiment (reserves); never a frontline unit
+	auxiliary = no					# v0.5: NOT an auxiliary - auxiliary-only stacks cannot besiege, and a lone HQ must be able to.
+									# It still stands in the reserves (unit_formation_preference/army.txt) and is hit last.
 
 	movement_speed = 2.5			# marches with the infantry (auxiliaries 2.0)
 	build_time = standard_aux_recruitment_time
