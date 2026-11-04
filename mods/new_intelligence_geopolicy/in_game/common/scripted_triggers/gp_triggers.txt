@@ -1,0 +1,144 @@
+﻿###################################
+# New Intelligence: Geopolicy - scripted triggers (prefix gp_)
+###################################
+
+# Real countries only: no rebels, pirates, mercenary hosts, conquistador hosts, landless tags.
+gp_is_real_country = {
+	is_real_country = yes
+	NOT = { is_subject_type = conquistador }
+	num_locations > 0
+}
+
+# Game rule "Geopolicy AI": off disables roles, stages, threat reactions and scripted war scoring (defines stay).
+gp_is_active = {
+	NOT = { has_game_rule = gp_mode_off }
+}
+
+gp_is_strong_mode = {
+	has_game_rule = gp_mode_strong
+}
+
+# ---- civilizational temperaments ---------------------------------------------------------------
+
+gp_is_steppe = {
+	government_type = government_type:steppe_horde
+}
+
+gp_is_sinic = {
+	exists = capital
+	OR = {
+		capital.region = region:north_china_region
+		capital.region = region:east_china_region
+		capital.region = region:south_china_region
+		capital.region = region:west_china_region
+	}
+}
+
+gp_is_japanese = {
+	exists = capital
+	capital.region = region:japan_region
+}
+
+gp_is_korean = {
+	exists = capital
+	capital.region = region:korea_region
+}
+
+gp_is_indian = {
+	exists = capital
+	capital.sub_continent = sub_continent:south_asia
+}
+
+gp_is_european = {
+	exists = capital
+	capital.continent = continent:europe
+}
+
+gp_is_near_east_muslim = {
+	exists = capital
+	religion.group = religion_group:muslim
+	OR = {
+		capital.sub_continent = sub_continent:middle_east
+		capital.sub_continent = sub_continent:north_africa
+		capital.sub_continent = sub_continent:central_asia
+	}
+}
+
+# ---- threat and intruders ----------------------------------------------------------------------
+
+# this = candidate country, scope:gp_self = the country looking for its regional threat (saved in gp_update_threat).
+# GP TODO verify: "relative_strength = { target = X value >= <named value> }" (named value on the RHS); fallback: literal 1.5.
+gp_is_threat_candidate = {
+	NOT = { this = scope:gp_self }
+	gp_is_real_country = yes
+	NOT = { is_subject_or_below_of = scope:gp_self }
+	NOT = { scope:gp_self = { is_subject_or_below_of = prev } }
+	NOT = { in_union_with = scope:gp_self }
+	relative_strength = {
+		target = scope:gp_self
+		value >= gp_threat_ratio_min
+	}
+	OR = {
+		is_threat_to = scope:gp_self
+		is_neighbor_of = scope:gp_self
+		any_owned_location = {
+			count >= 5
+			region = scope:gp_self.capital.region
+		}
+	}
+}
+
+# this = candidate, $COUNTRY$ = the country whose home region is intruded upon.
+# An intruder keeps >= 3 locations in $COUNTRY$'s home region while its own capital sits in another region AND
+# (another sub-continent OR another religion group). Overlord / subject / union partner never count.
+# GP TODO verify: scope-to-scope comparison "religion.group = X.religion.group" (vanilla only compares with literals).
+gp_is_intruder_of = {
+	NOT = { this = $COUNTRY$ }
+	gp_is_real_country = yes
+	exists = capital
+	$COUNTRY$ = { exists = capital }
+	NOT = { is_subject_or_below_of = $COUNTRY$ }
+	NOT = { $COUNTRY$ = { is_subject_or_below_of = prev } }
+	NOT = { in_union_with = $COUNTRY$ }
+	NOT = { capital.region = $COUNTRY$.capital.region }
+	OR = {
+		NOT = { capital.sub_continent = $COUNTRY$.capital.sub_continent }
+		NOT = { religion.group = $COUNTRY$.religion.group }
+	}
+	any_owned_location = {
+		count >= 3
+		region = $COUNTRY$.capital.region
+	}
+}
+
+gp_is_intruder = {
+	gp_is_intruder_of = { COUNTRY = root }
+}
+
+# Both countries name the same regional threat (variable comparison with ?= so a missing variable is just "no").
+gp_shares_threat_with = {
+	has_variable = gp_threat
+	var:gp_threat ?= $COUNTRY$.var:gp_threat
+}
+
+# ---- roles (read by expansion scores / objectives) ----------------------------------------------
+
+gp_has_any_role = {
+	OR = {
+		has_country_modifier = gp_role_consolidator
+		has_country_modifier = gp_role_regional
+		has_country_modifier = gp_role_hegemon
+		has_country_modifier = gp_role_empire
+		has_country_modifier = gp_role_besieged
+		has_country_modifier = gp_role_status_quo
+	}
+}
+
+gp_is_expansion_role = {
+	OR = {
+		has_country_modifier = gp_role_consolidator
+		has_country_modifier = gp_role_regional
+		has_country_modifier = gp_role_hegemon
+		has_country_modifier = gp_role_empire
+	}
+}

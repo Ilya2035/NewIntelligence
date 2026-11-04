@@ -1,0 +1,107 @@
+﻿###################################
+# New Intelligence: Geopolicy - scripted expansion targets (prefix gp_)
+#
+# Format: ai_scripted_expansion_target/readme.txt. attacker_potential and candidate_list: root = attacker;
+# score / sort_value: scope:attacker, scope:target. A target is picked when its score reaches
+# EXPANSION_TARGET_SCORE_NEEDED_TO_PICK = 20 (NAI); vanilla attack_neighbors scores tax base / distance * 10.
+###################################
+
+# 1. Contain the regional threat (uses the mod's own casus belli, which prefers cutting the target down to size).
+gp_target_contain_threat = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_threat
+		var:gp_threat_ratio <= 2.5
+		months_since_war >= 24
+		NOT = { has_country_modifier = gp_role_status_quo }
+	}
+	candidate_list = {
+		var:gp_threat ?= {
+			if = {
+				limit = {
+					gp_is_real_country = yes
+					NOT = { has_truce_with = root }
+				}
+				add_to_list = source
+			}
+		}
+	}
+	casus_belli = casus_belli:gp_cb_contain_threat
+	score = {
+		add = 22
+		add = {
+			value = scope:target.country_tax_base
+			divide = 100
+		}
+	}
+	sort_value = {
+		add = 1000
+	}
+}
+
+# 2. Expel the intruder: powers from another sub-continent / faith group holding land in our home region.
+gp_target_expel_intruder = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		months_since_war >= 12
+		NOT = { has_country_modifier = gp_role_status_quo }
+		NOT = { has_country_modifier = gp_role_besieged }
+	}
+	candidate_list = {
+		capital.region = {
+			every_present_country = {
+				limit = {
+					gp_is_intruder = yes
+					NOT = { has_truce_with = root }
+				}
+				add_to_list = source
+			}
+		}
+	}
+	score = {
+		add = 24
+	}
+	sort_value = {
+		add = 500
+	}
+}
+
+# 3. The home region beyond our borders: weaker powers present in our region that are not direct neighbours
+#    (across a strait, behind a vassal) - vanilla attack_neighbors only sees neighbours.
+gp_target_home_region = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		months_since_war >= 36
+		gp_is_expansion_role = yes
+	}
+	candidate_list = {
+		capital.region = {
+			every_present_country = {
+				limit = {
+					NOT = { this = root }
+					gp_is_real_country = yes
+					NOT = { is_neighbor_of = root }
+					NOT = { is_subject_or_below_of = root }
+					NOT = { root = { is_subject_or_below_of = prev } }
+					NOT = { in_union_with = root }
+					NOT = { has_truce_with = root }
+					relative_strength = {
+						target = root
+						value < 0.7
+					}
+				}
+				add_to_list = source
+			}
+		}
+	}
+	score = {
+		add = scope:target.country_tax_base
+		divide = "scope:target.capital.distance_to(scope:attacker.capital)"
+		multiply = 10
+	}
+}

@@ -1,0 +1,38 @@
+﻿# New Intelligence: Geopolicy - define overrides (prefix gp_; DESIGN sections 6 and 7)
+# Partial per-key override of the NAI / NDiplomacy blocks from a mod define file: standard Jomini behaviour, used the
+# same way by the Battle mod (cw_ai_defines.txt). Vanilla 1.4.7 values and line numbers from
+# game/loading_screen/common/defines/00_defines.txt in the comments. The game rule "Geopolicy defines: vanilla"
+# (main_menu/common/game_rules/gp_game_rules.txt) lists the same keys in the same order with their vanilla values.
+
+NAI = {
+	# --- beautiful borders: finish the area, finish the region, close the exclaves ---
+	CONQUER_DESIRE_AREA_COMPLETE_BONUS = 70						# l.1192  40
+	CONQUER_DESIRE_AREA_RAMP_START = 0.4						# l.1193  0.6
+	CONQUER_DESIRE_REGION_BONUS = 50							# l.1194  30
+	CONQUER_DESIRE_REGION_RAMP_START = 0.35						# l.1195  0.5
+	CONQUER_DESIRE_CAPITAL_REGION_BONUS = 10					# l.1189  5
+	CONQUER_DESIRE_EXCLAVED_BONUS = 80							# l.1185  50
+	# --- culture and faith pull the border ---
+	CONQUER_DESIRE_SAME_CULTURE_BONUS = 3						# l.1186  1
+	CONQUER_DESIRE_ACCEPTED_CULTURE_BONUS = 6					# l.1187  5
+	CONQUER_DESIRE_COMMON_LANGUAGE_BONUS = 8					# l.1188  5
+	CONQUER_DESIRE_HEATHEN_BONUS = 25							# l.1191  20
+	# --- far land is unattractive land ---
+	AI_CONQUER_DESIRE_DISTANCE_MULTIPLIER = -0.15				# l.1429  -0.1
+	AI_CONQUER_DESIRE_CAPITAL_DISTANCE = 80						# l.1433  100
+	DISTANT_WAR_CONQUEST_FACTOR = 0.05							# l.1322  0.1
+	# --- digest before the next bite, fear coalitions a little earlier ---
+	AI_UNINTEGRATED_LAND_EXPANSION_PENALTY = 2.5				# l.1388  2
+	SAFE_AMOUNT_OF_ANTAGONISM = 25								# l.1391  30
+	POTENTIAL_COALITION_MAX_SAFE_RELATIVE_STRENGTH = 0.65		# l.1213  0.75
+}
+
+NDiplomacy = {
+	# --- who is outraged by whom ---
+	ANTAGONISM_ADDITIONAL_MODIFIER_SAME_RELIGION = 0.5			# l.2335  0.35   conquering a co-religionist outrages co-religionists
+	ANTAGONISM_ADDITIONAL_MODIFIER_DIFFERENT_RELIGION = -0.5	# l.2337  -0.35  heathens do not care what we do to each other
+	ANTAGONISM_ADDITIONAL_MODIFIER_INFIDEL_CONQUEST = 0.6		# l.2334  0.4    an infidel eating our co-religionist is a scandal
+	ANTAGONISM_ADDITIONAL_MODIFIER_SAME_CULTURE_GROUP = 0.3		# l.2333  0.2    kindred peoples watch each other
+	ANTAGONISM_STATIC_DIFFERENT_RELIGION = 12					# l.2357  10
+	ANTAGONISM_STATIC_SAME_CULTURE = -3							# l.2352  -2
+}

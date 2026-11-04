@@ -1,0 +1,17 @@
+{
+	"name": "New Intelligence: Geopolicy",
+	"id": "new_intelligence_geopolicy",
+	"version": "0.1.0",
+	"game_id": "eu5",
+	"supported_game_version": "1.4.*",
+	"short_description": "Geopolitical AI: zones of interest, regional roles, threat awareness, culture and faith, clean borders, new formable countries. Геополитический ИИ: зоны интересов, роли, угроза региону, культура и вера, красивые границы, новые формируемые страны.",
+	"tags": [
+		"Gameplay",
+		"AI",
+		"Diplomacy",
+		"Balance"
+	],
+	"relationships": [],
+	"game_custom_data": {},
+	"picture": "thumbnail.png"
+}

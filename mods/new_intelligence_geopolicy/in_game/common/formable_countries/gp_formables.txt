@@ -1,0 +1,420 @@
+﻿###################################
+# New Intelligence: Geopolicy - new formable countries (prefix gp_)
+#
+# Format: formable_countries/readme.txt and 00_formable_countries.txt (level, required_locations_fraction, rule,
+# potential / allow, name / flag / adjective / tag / color, regions / areas / provinces, form_effect).
+# Every tag here is NEW (checked against setup/countries, coat_of_arms and country_names loc): GAE AMC AGV WND BGD
+# ILY DAC GVO NVR JRS KHO. Colors: main_menu/common/named_colors/gp_colors.txt; arms: coat_of_arms/gp_formable_coa.txt;
+# names: gp_geopolicy_l_*.yml (<TAG>, <TAG>_ADJ, <key>, <key>_desc).
+# rule = historical / plausible is honoured by the vanilla game rule "Ahistorical formable countries".
+# Each formable keeps a one-line historical hook in its comment - the "if it had happened" the mod is built on.
+###################################
+
+# Alba - the pan-Gaelic kingdom. 1315-18 Edward Bruce was crowned High King of Ireland while his brother Robert
+# wrote to the Irish kings of "our nation and the common language"; here the Bruce project succeeds.
+gp_alba_f = {
+	level = 3
+	required_locations_fraction = 0.6
+	rule = plausible
+	content_priority = 700
+
+	potential = {
+		OR = {
+			culture = { has_culture_group = culture_group:scottish_group }
+			culture = { has_culture_group = culture_group:hibernian_group }
+		}
+	}
+
+	allow = {
+		owns = location:edinburgh
+		any_owned_location = { region = region:ireland_region }
+	}
+
+	name = GAE
+	flag = GAE
+	adjective = GAE_ADJ
+	tag = GAE
+	color = map_GAE
+
+	regions = {
+		ireland_region
+	}
+	areas = {
+		scottish_lowlands_area
+		scottish_highlands_area
+		hebrides_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# Armorica - a Breton-Norman realm on the Channel. Brittany and Normandy were bound by marriage, war and the
+# Richmond honour for three centuries; the War of the Breton Succession (1341-64) could have ended with a duke
+# strong enough to hold both shores.
+gp_armorica_f = {
+	level = 2
+	required_locations_fraction = 0.75
+	rule = plausible
+
+	potential = {
+		OR = {
+			culture = culture:breton
+			culture = culture:norman
+		}
+	}
+
+	allow = {
+		owns = location:rennes
+	}
+
+	name = AMC
+	flag = AMC
+	adjective = AMC_ADJ
+	tag = AMC
+	color = map_AMC
+
+	areas = {
+		brittany_area
+		normandy_area
+		anjou_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Angevin Empire - Henry II's realm (1154-1204) from the Tweed to the Pyrenees, restored by whoever holds both
+# England and the old Plantagenet duchies.
+gp_angevin_f = {
+	level = 4
+	required_locations_fraction = 0.6
+	rule = plausible
+
+	potential = {
+		OR = {
+			tag = ENG
+			tag = GBR
+			tag = NRM
+			tag = AQN
+			culture = culture:english
+			culture = culture:norman
+			culture = culture:angevin
+		}
+	}
+
+	allow = {
+		any_owned_location = { region = region:great_britain_region }
+		any_owned_location = { region = region:france_region }
+	}
+
+	name = AGV
+	flag = AGV
+	adjective = AGV_ADJ
+	tag = AGV
+	color = map_AGV
+
+	areas = {
+		home_counties_area
+		east_anglia_area
+		midlands_area
+		west_country_area
+		northumbria_area
+		wales_area
+		normandy_area
+		anjou_area
+		poitou_area
+		guyenne_area
+		gascony_area
+		brittany_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_empire }
+	}
+}
+
+# The Kingdom of the Wends - the Obotrite crown of Niklot and Pribislav, the "rex Sclavorum" title the Danish kings
+# kept, and Albert of Mecklenburg who became King of Sweden in 1364: a Baltic Slavic-German kingdom.
+gp_wendland_f = {
+	level = 2
+	required_locations_fraction = 0.75
+	rule = plausible
+
+	potential = {
+		OR = {
+			culture = culture:western_pomeranian
+			culture = culture:eastern_pomeranian
+			tag = MKL
+			tag = WOL
+			tag = STE
+			tag = POM
+		}
+	}
+
+	allow = {
+	}
+
+	name = WND
+	flag = WND
+	adjective = WND_ADJ
+	tag = WND
+	color = map_WND
+
+	areas = {
+		mecklenburg_area
+		pomerania_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Kingdom of Burgundy - Charles the Bold came to Trier in 1473 to be crowned king by the Emperor; the crown was
+# never placed. Here the Valois dukes (or whoever gathers their lands) get it.
+gp_burgundy_kingdom_f = {
+	level = 3
+	required_locations_fraction = 0.6
+	rule = plausible
+
+	potential = {
+		OR = {
+			culture = culture:burgundian
+			culture = culture:franc_comtois
+			culture = culture:walloon
+			culture = { has_culture_group = culture_group:netherlandish_group }
+			tag = BUR
+			tag = FLA
+			tag = BRB
+			tag = HOL
+		}
+	}
+
+	allow = {
+		owns = location:dijon
+	}
+
+	name = BGD
+	flag = BGD
+	adjective = BGD_ADJ
+	tag = BGD
+	color = map_BGD
+
+	areas = {
+		burgundy_area
+		franche_comte_area
+		lorraine_area
+		flanders_area
+		brabant_area
+		holland_area
+		wallonia_area
+		picardy_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# Illyria - in 1377 Tvrtko I of Bosnia was crowned "King of Serbia, Bosnia, the Coast and Croatia" at Mile.
+# A western Balkan kingdom that outlives its founder.
+gp_illyria_f = {
+	level = 3
+	required_locations_fraction = 0.6
+	rule = plausible
+
+	potential = {
+		OR = {
+			culture = culture:bosnian
+			culture = culture:croatian
+			culture = culture:serbian
+			culture = culture:dalmatian
+			tag = BOS
+			tag = CRO
+			tag = SER
+		}
+	}
+
+	allow = {
+	}
+
+	name = ILY
+	flag = ILY
+	adjective = ILY_ADJ
+	tag = ILY
+	color = map_ILY
+
+	areas = {
+		bosnia_area
+		croatia_area
+		slavonia_area
+		serbia_area
+		slovenia_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# Dacia - Michael the Brave held Wallachia, Transylvania and Moldavia together in 1600; the "Kingdom of Dacia" was
+# drawn up again in the chanceries of the 18th century.
+gp_dacia_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = plausible
+
+	potential = {
+		culture = { has_culture_group = culture_group:romanian_group }
+	}
+
+	allow = {
+	}
+
+	name = DAC
+	flag = DAC
+	adjective = DAC_ADJ
+	tag = DAC
+	color = map_DAC
+
+	areas = {
+		wallachia_area
+		moldavia_area
+		transylvania_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Kingdom of Rus' - Daniel of Galicia was crowned "Rex Russiae" by a papal legate in 1253; his kingdom of Halych
+# and Volhynia lasted until 1349 and is restored here.
+gp_galicia_volhynia_f = {
+	level = 2
+	required_locations_fraction = 0.75
+	rule = historical
+
+	potential = {
+		OR = {
+			culture = culture:halychian_culture
+			culture = culture:volhynian_culture
+			tag = HAL
+			tag = VOL
+		}
+	}
+
+	allow = {
+		owns = location:halych
+	}
+
+	name = GVO
+	flag = GVO
+	adjective = GVO_ADJ
+	tag = GVO
+	color = map_GVO
+
+	areas = {
+		red_ruthenia_area
+		volhynia_area
+		podolia_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# Novgorodian Rus' - "Lord Novgorod the Great" gathers the Rus' lands instead of Moscow: the republic of the north
+# as the other road to a Russian state.
+gp_novgorod_rus_f = {
+	level = 4
+	required_locations_fraction = 0.5
+	rule = plausible
+
+	potential = {
+		OR = {
+			tag = NOV
+			tag = PSK
+			culture = culture:novgorodian
+		}
+		NOT = { has_or_had_tag = MOS }
+	}
+
+	allow = {
+		owns = location:novgorod
+		capital.area = area:east_novgorod_area
+	}
+
+	name = NVR
+	flag = NVR
+	adjective = NVR_ADJ
+	tag = NVR
+	color = map_NVR
+
+	regions = {
+		russian_region
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_empire }
+	}
+}
+
+# The Kingdom of Jerusalem - the crown the kings of Cyprus and Naples still claimed in 1337; every crusade project of
+# the century (Philip VI's of 1332-36 among them) aimed at restoring it.
+gp_jerusalem_f = {
+	level = 2
+	required_locations_fraction = 0.75
+	rule = plausible
+
+	potential = {
+		religion.group = religion_group:christian
+	}
+
+	allow = {
+		owns = location:jerusalem
+	}
+
+	name = JRS
+	flag = JRS
+	adjective = JRS_ADJ
+	tag = JRS
+	color = map_JRS
+
+	areas = {
+		levant_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# Khorasan - the Kartids of Herat and the Sarbadars fought over the richest province of the old Ilkhanate; a
+# Khorasanian kingdom is the Persian east standing on its own.
+gp_khorasan_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = plausible
+
+	potential = {
+		OR = {
+			culture = culture:khorasani_culture
+			culture = culture:tajik_culture
+			tag = KRT
+		}
+	}
+
+	allow = {
+		owns = location:herat
+	}
+
+	name = KHO
+	flag = KHO
+	adjective = KHO_ADJ
+	tag = KHO
+	color = map_KHO
+
+	areas = {
+		western_khorasan_area
+		eastern_khorasan_area
+		quhestan_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}

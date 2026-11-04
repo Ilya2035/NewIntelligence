@@ -1,0 +1,34 @@
+﻿###################################
+# New Intelligence: Geopolicy - knobs and helper values (prefix gp_)
+#
+# Static values are referenced by name wherever a number is accepted (_script_values.info). The role / stage thresholds
+# are ALSO written as literals in gp_effects.txt (comparisons "var:x >= 0.25"), because a named value on the right-hand
+# side of a variable comparison is unverified - keep both in sync (GP TODO verify: replace the literals by these names).
+###################################
+
+# ---- stages (share of the home region's ownable locations that we own) ----------------------
+gp_share_regional = 0.25			# stage 2: the "sphere" preferences are added
+gp_share_hegemon = 0.55				# stage 3: the "far" preferences are added; role hegemon
+
+# ---- roles -----------------------------------------------------------------------------------
+gp_empire_min_locations = 220		# hegemon share + this many locations -> empire
+gp_empire_rank_min_locations = 150	# empire rank + this many locations -> empire
+gp_status_quo_max_locations = 8		# tiny county with a quiet personality -> status quo
+
+# ---- threat ----------------------------------------------------------------------------------
+gp_threat_ratio_min = 1.5			# a candidate must be at least this much stronger than us (relative_strength)
+gp_threat_ratio_besieged = 3		# ... and this much stronger + bordering us -> role besieged
+gp_threat_ratio_containable = 2.5	# below this the threat is a preferred war target (containment)
+
+# ---- helpers (country scope) -----------------------------------------------------------------
+
+# Share of the home region we own: gp_compute_region_share (gp_effects.txt) counts the ownable locations of the
+# capital's region into the two temporary variables, then stores this value as var:gp_region_share.
+# Reading a variable inside a script value: vanilla script_values/economy_satisfaction_target.txt:5.
+gp_region_share_value = {
+	value = var:gp_owned_tmp
+	divide = {
+		value = var:gp_total_tmp
+		min = 1
+	}
+}

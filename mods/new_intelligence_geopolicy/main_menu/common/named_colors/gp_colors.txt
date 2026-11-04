@@ -1,0 +1,14 @@
+﻿# New Intelligence: Geopolicy - map colors of the new formable countries (format: named_colors/02_map.txt)
+colors = {
+	map_GAE = rgb { 36 86 160 }			# Alba - saltire blue
+	map_AMC = rgb { 70 70 80 }			# Armorica - ermine black-grey
+	map_AGV = rgb { 185 40 50 }			# Angevin Empire - Plantagenet red
+	map_WND = rgb { 200 170 60 }		# Kingdom of the Wends - Mecklenburg gold
+	map_BGD = rgb { 110 70 150 }		# Kingdom of Burgundy - Valois purple
+	map_ILY = rgb { 80 130 170 }		# Illyria - Adriatic blue
+	map_DAC = rgb { 60 120 90 }			# Dacia - Carpathian green
+	map_GVO = rgb { 210 150 40 }		# Kingdom of Rus' - Galician gold
+	map_NVR = rgb { 120 160 190 }		# Novgorodian Rus' - northern blue
+	map_JRS = rgb { 230 215 170 }		# Kingdom of Jerusalem - argent and or
+	map_KHO = rgb { 140 110 60 }		# Khorasan - Herat ochre
+}

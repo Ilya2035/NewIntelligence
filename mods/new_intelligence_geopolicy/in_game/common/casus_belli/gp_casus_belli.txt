@@ -1,0 +1,41 @@
+﻿###################################
+# New Intelligence: Geopolicy - casus belli (prefix gp_)
+#
+# Format: casus_belli/readme.txt; root = country, scope:target = target. Available to players and AI alike: the
+# regional threat (var:gp_threat) is computed yearly for every real country (gp_effects.txt).
+# cut_down_in_size_cb / allow_release_areas / ai_cede_location_desire: as vanilla cb_coalition - the AI prefers to
+# release countries and trim the target rather than to annex it.
+# Loc: gp_cb_contain_threat, gp_cb_contain_threat_desc.
+###################################
+
+gp_cb_contain_threat = {
+	years = 10
+
+	create_visible = {
+		has_variable = gp_threat
+		scope:target ?= root.var:gp_threat
+	}
+	create_enabled = {
+		NOT = { has_truce_with = scope:target }
+	}
+	declare_enabled = {
+		has_variable = gp_threat
+		scope:target ?= root.var:gp_threat
+	}
+
+	war_goal_type = superiority
+
+	additional_war_enthusiasm_attacker = 0.15
+
+	cut_down_in_size_cb = yes
+	allow_release_areas = yes
+	ai_subjugation_desire = -100
+	ai_cede_location_desire = -25
+
+	ai_will_do = {
+		add = {
+			desc = "BASE"
+			value = 30
+		}
+	}
+}

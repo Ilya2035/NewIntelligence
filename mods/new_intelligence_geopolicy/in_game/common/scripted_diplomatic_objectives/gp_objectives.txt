@@ -1,0 +1,192 @@
+﻿###################################
+# New Intelligence: Geopolicy - scripted diplomatic objectives (prefix gp_)
+#
+# Format: scripted_diplomatic_objectives/readme.txt + vanilla iberia.txt / hre_emperorship.txt (days_between_checks,
+# actor_trigger root = actor, recipient_trigger scope:recipient / scope:actor, recipient_priority, pause / cancel,
+# improve_relation, country_relations, country_interactions, antagonise, max_allowed).
+# No recipient_list_builder: all reachable countries are filtered by recipient_trigger once a year.
+###################################
+
+# 1. Common front: ally with the countries that name the same regional threat as we do.
+gp_obj_common_front = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_threat
+		is_subject = no
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			gp_is_real_country = yes
+			is_subject = no
+			gp_shares_threat_with = { COUNTRY = scope:actor }
+			NOT = { this ?= scope:actor.var:gp_threat }
+			NOT = { is_rival_of = scope:actor }
+			NOT = { is_at_war_with = scope:actor }
+		}
+	}
+
+	recipient_priority = {
+		add = 60
+		add = "scope:recipient.opinion(scope:actor)"
+		divide = 4
+	}
+
+	pause_trigger = {
+		scope:actor = { at_war = yes }
+	}
+
+	cancel_trigger = {
+		scope:actor = {
+			NOT = { has_variable = gp_threat }
+		}
+	}
+
+	improve_relation = yes
+	country_relations = {
+		alliance = yes
+	}
+	max_allowed = 2
+}
+
+# 2. Seek a protector: a small or threatened country courts the strongest co-religionist of its region that is not
+#    its own threat.
+gp_obj_seek_protector = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+		is_subject = no
+		exists = capital
+		country_rank_level <= 2
+		OR = {
+			has_country_modifier = gp_role_consolidator
+			has_country_modifier = gp_role_status_quo
+			has_country_modifier = gp_role_besieged
+		}
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			gp_is_real_country = yes
+			is_subject = no
+			exists = capital
+			country_rank_level >= 3
+			religion.group = scope:actor.religion.group
+			NOT = { this ?= scope:actor.var:gp_threat }
+			NOT = { is_rival_of = scope:actor }
+			NOT = { is_at_war_with = scope:actor }
+			OR = {
+				capital.region = scope:actor.capital.region
+				is_neighbor_of = scope:actor
+			}
+			relative_strength = {
+				target = scope:actor
+				value >= 2
+			}
+		}
+	}
+
+	recipient_priority = {
+		add = 40
+		add = "scope:recipient.opinion(scope:actor)"
+		divide = 4
+	}
+
+	pause_trigger = {
+		scope:actor = { at_war = yes }
+	}
+
+	improve_relation = yes
+	country_relations = {
+		alliance = yes
+	}
+	max_allowed = 1
+}
+
+# 3. Sphere of influence: a regional power or hegemon cultivates the small co-religionist states of its region
+#    (relations, influence) instead of conquering them (see gp_score_hegemon_restraint).
+gp_obj_sphere_minor = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		OR = {
+			has_country_modifier = gp_role_regional
+			has_country_modifier = gp_role_hegemon
+		}
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			gp_is_real_country = yes
+			is_subject = no
+			exists = capital
+			country_rank_level <= 2
+			capital.region = scope:actor.capital.region
+			religion.group = scope:actor.religion.group
+			NOT = { is_rival_of = scope:actor }
+			NOT = { is_at_war_with = scope:actor }
+			relative_strength = {
+				target = scope:actor
+				value < 0.35
+			}
+		}
+	}
+
+	recipient_priority = {
+		add = 30
+		add = "scope:recipient.opinion(scope:actor)"
+		divide = 4
+	}
+
+	pause_trigger = {
+		scope:actor = { at_war = yes }
+	}
+
+	improve_relation = yes
+	improve_relation_limit = 100
+	country_interactions = {
+		influence_nation = yes
+	}
+	max_allowed = 3
+}
+
+# 4. The intruder is antagonised, never courted.
+gp_obj_antagonise_intruder = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		NOT = { has_country_modifier = gp_role_status_quo }
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			gp_is_intruder_of = { COUNTRY = scope:actor }
+			NOT = { is_at_war_with = scope:actor }
+		}
+	}
+
+	recipient_priority = {
+		add = 35
+	}
+
+	cancel_trigger = {
+		scope:recipient = {
+			NOT = { gp_is_intruder_of = { COUNTRY = scope:actor } }
+		}
+	}
+
+	improve_relation = no
+	antagonise = yes
+	max_allowed = 1
+}

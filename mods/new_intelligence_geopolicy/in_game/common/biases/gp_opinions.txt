@@ -1,0 +1,26 @@
+﻿###################################
+# New Intelligence: Geopolicy - opinion modifiers (prefix gp_)
+#
+# Format: biases/00_opinion_hardcoded.txt (value, months = removed after this time). All three are refreshed once a
+# year by gp_effects.txt with remove_opinion + add_opinion (vanilla on_papal_opinion_added does the same), so they
+# never stack; months = 14 lets them expire by themselves when the mod stops refreshing them.
+# Loc: <key> (vanilla: opinion_allied_our_rival: "Allied Our Rival").
+###################################
+
+# Our opinion of the strongest power that threatens our home region.
+gp_opinion_regional_threat = {
+	value = -40
+	months = 14
+}
+
+# Our opinion of a power from another sub-continent / faith holding land in our home region.
+gp_opinion_foreign_intruder = {
+	value = -30
+	months = 14
+}
+
+# Our opinion of a co-religionist of our region that names the same threat as we do.
+gp_opinion_common_enemy = {
+	value = 20
+	months = 14
+}

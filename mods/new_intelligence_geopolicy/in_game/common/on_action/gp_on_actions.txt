@@ -1,0 +1,41 @@
+﻿###################################
+# New Intelligence: Geopolicy - on_action hooks (prefix gp_)
+#
+# Same-named on_actions MERGE across files (vanilla splits on_winning_war / on_ending_war between files; the Battle
+# mod hooks the same vanilla keys from its own file). Rule: under a VANILLA key only ever add "on_actions = { gp_x }";
+# triggers and effects live in our own gp_* on_actions. Folder is "on_action" (singular).
+###################################
+
+# ---- vanilla keys: append-only -----------------------------------------------------------------
+
+on_game_started_after_lobby = {			# vanilla body is empty; global scope -> every_country loop (one-off)
+	on_actions = { gp_on_game_start }
+}
+
+yearly_country_pulse = {				# root = country
+	on_actions = { gp_yearly_pulse }
+}
+
+on_new_country_formed = {				# root = newly formed country (formable / tag switch)
+	on_actions = { gp_on_new_country }
+}
+
+on_released_country = {					# root = released country, scope:overlord = overlord
+	on_actions = { gp_on_new_country }
+}
+
+# ---- our on_actions ----------------------------------------------------------------------------
+
+gp_on_game_start = {
+	effect = { gp_on_game_start_effect = yes }
+}
+
+gp_yearly_pulse = {
+	trigger = { gp_is_real_country = yes }
+	effect = { gp_yearly_update = yes }
+}
+
+gp_on_new_country = {
+	trigger = { gp_is_real_country = yes }
+	effect = { gp_setup_country = yes }
+}

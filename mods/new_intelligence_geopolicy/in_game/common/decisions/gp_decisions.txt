@@ -1,0 +1,72 @@
+﻿###################################
+# New Intelligence: Geopolicy - decisions (prefix gp_)
+#
+# Format: as the Battle mod (decision_category, potential, allow with custom_tooltip state lines, ai_will_do, option).
+# "Geopolitical overview": a read-only report for the player. The allow block always passes; its custom_tooltip lines
+# show the current state (home-region share known, regional threat found or not, zone profile assigned). The single
+# option refreshes the player's own threat / intruder / common-front calculation right away instead of waiting for
+# the yearly pulse (AI-only modifiers are never applied to a player).
+# Loc keys: gp_geopolitical_overview.title / .desc / .a, gp_overview_*_tt.
+###################################
+
+gp_geopolitical_overview = {
+	decision_category = government_decisions
+
+	potential = {
+		is_ai = no
+		gp_is_real_country = yes
+	}
+
+	allow = {
+		OR = {
+			custom_tooltip = {
+				text = gp_overview_share_tt
+				has_variable = gp_region_share
+			}
+			custom_tooltip = {
+				text = gp_overview_no_share_tt
+				NOT = { has_variable = gp_region_share }
+			}
+		}
+		OR = {
+			custom_tooltip = {
+				text = gp_overview_threat_tt
+				has_variable = gp_threat
+			}
+			custom_tooltip = {
+				text = gp_overview_no_threat_tt
+				NOT = { has_variable = gp_threat }
+			}
+		}
+		OR = {
+			custom_tooltip = {
+				text = gp_overview_profile_tt
+				has_variable = gp_has_profile
+			}
+			custom_tooltip = {
+				text = gp_overview_generic_tt
+				NOT = { has_variable = gp_has_profile }
+			}
+		}
+	}
+
+	ai_will_do = {
+		value = 0
+	}
+
+	option = {
+		name = gp_geopolitical_overview.a
+		ai_chance = { value = 0 }
+		effect = {
+			custom_tooltip = {
+				text = gp_overview_refresh_tt
+				hidden_effect = {
+					gp_compute_region_share = yes
+					gp_update_threat = yes
+					gp_update_intruders = yes
+					gp_update_common_front = yes
+				}
+			}
+		}
+	}
+}

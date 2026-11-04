@@ -1,0 +1,315 @@
+﻿###################################
+# New Intelligence: Geopolicy - core effects (prefix gp_)
+#
+# One yearly pass per real country (gp_on_actions.txt): home-region share -> regional threat -> intruders ->
+# common front -> (AI only) temperament, stage zones, role. Nothing runs monthly.
+# Scopes saved with save_scope_as live for the whole effect chain; the game-start loop therefore clears them with
+# clear_saved_scope (vanilla: clear_saved_scope = court_host) before the next country is processed.
+###################################
+
+# ---- entry points --------------------------------------------------------------------------------
+
+# global scope (on_game_started_after_lobby)
+gp_on_game_start_effect = {
+	every_country = {
+		limit = { gp_is_real_country = yes }
+		gp_setup_country = yes
+	}
+}
+
+# root = country (game start, newly formed country, released country)
+gp_setup_country = {
+	gp_assign_zone_profile = yes
+	gp_yearly_update = yes
+}
+
+# root = country (yearly_country_pulse)
+gp_yearly_update = {
+	gp_compute_region_share = yes
+	gp_update_threat = yes
+	gp_update_intruders = yes
+	gp_update_common_front = yes
+	if = {
+		limit = {
+			is_ai = yes
+			gp_is_active = yes
+		}
+		gp_apply_temperament = yes
+		gp_update_stage_zones = yes
+		gp_update_role = yes
+	}
+	else = {
+		gp_clear_ai_modifiers = yes
+	}
+}
+
+# ---- home region share ---------------------------------------------------------------------------
+
+# Counts the ownable locations of the home region (effect-side counting: change_variable per location is the
+# verified form; a list loop inside a script value with a scope change is not).
+gp_compute_region_share = {
+	set_variable = { name = gp_owned_tmp value = 0 }
+	set_variable = { name = gp_total_tmp value = 0 }
+	if = {
+		limit = { exists = capital }
+		capital.region = {
+			every_ownable_location_in_region = {
+				root = { change_variable = { name = gp_total_tmp add = 1 } }
+				if = {
+					limit = { owner ?= root }
+					root = { change_variable = { name = gp_owned_tmp add = 1 } }
+				}
+			}
+		}
+	}
+	set_variable = { name = gp_region_share value = gp_region_share_value }
+	remove_variable = gp_owned_tmp
+	remove_variable = gp_total_tmp
+}
+
+# ---- regional threat -----------------------------------------------------------------------------
+
+# Strongest qualifying power present in our home region (fallback: among our neighbours) -> var:gp_threat,
+# var:gp_threat_ratio = its strength / ours. Opinion of it is refreshed (remove + add, so it never stacks).
+gp_update_threat = {
+	if = {
+		limit = { has_variable = gp_threat }
+		var:gp_threat ?= {
+			root = {
+				remove_opinion = { target = prev modifier = gp_opinion_regional_threat }
+			}
+		}
+		remove_variable = gp_threat
+	}
+	if = {
+		limit = { has_variable = gp_threat_ratio }
+		remove_variable = gp_threat_ratio
+	}
+	if = {
+		limit = { exists = capital }
+		save_scope_as = gp_self
+		capital.region = {
+			ordered_present_country = {
+				limit = { gp_is_threat_candidate = yes }
+				order_by = country_strength
+				max = 1
+				save_scope_as = gp_found_threat
+			}
+		}
+		if = {
+			limit = { NOT = { exists = scope:gp_found_threat } }
+			ordered_neighbor_country = {
+				limit = { gp_is_threat_candidate = yes }
+				order_by = country_strength
+				max = 1
+				save_scope_as = gp_found_threat
+			}
+		}
+		if = {
+			limit = { exists = scope:gp_found_threat }
+			set_variable = { name = gp_threat value = scope:gp_found_threat }
+			set_variable = {
+				name = gp_threat_ratio
+				value = "scope:gp_found_threat.relative_strength(root)"
+			}
+			add_opinion = { target = scope:gp_found_threat modifier = gp_opinion_regional_threat }
+		}
+		clear_saved_scope = gp_found_threat
+		clear_saved_scope = gp_self
+	}
+}
+
+# ---- foreign intruders ---------------------------------------------------------------------------
+
+# Every "intruder" (gp_triggers.txt) holding land in our home region: opinion -30, refreshed yearly.
+gp_update_intruders = {
+	if = {
+		limit = { exists = capital }
+		capital.region = {
+			every_present_country = {
+				limit = { gp_is_intruder = yes }
+				root = {
+					remove_opinion = { target = prev modifier = gp_opinion_foreign_intruder }
+					add_opinion = { target = prev modifier = gp_opinion_foreign_intruder }
+				}
+			}
+		}
+	}
+}
+
+# ---- common front --------------------------------------------------------------------------------
+
+# Countries of our region that name the same threat and share our religion group: +20 opinion (yearly refresh).
+gp_update_common_front = {
+	if = {
+		limit = {
+			exists = capital
+			has_variable = gp_threat
+		}
+		capital.region = {
+			every_present_country = {
+				limit = {
+					NOT = { this = root }
+					gp_is_real_country = yes
+					gp_shares_threat_with = { COUNTRY = root }
+					religion.group = root.religion.group
+					NOT = { this ?= root.var:gp_threat }
+				}
+				root = {
+					remove_opinion = { target = prev modifier = gp_opinion_common_enemy }
+					add_opinion = { target = prev modifier = gp_opinion_common_enemy }
+				}
+			}
+		}
+	}
+}
+
+# ---- temperament ---------------------------------------------------------------------------------
+
+gp_apply_temperament = {
+	gp_remove_temper_modifiers = yes
+	if = {
+		limit = { gp_is_steppe = yes }
+		add_country_modifier = { modifier = gp_temper_steppe months = 14 mode = replace }
+	}
+	else_if = {
+		limit = { gp_is_sinic = yes }
+		add_country_modifier = { modifier = gp_temper_sinic months = 14 mode = replace }
+	}
+	else_if = {
+		limit = {
+			OR = {
+				gp_is_japanese = yes
+				gp_is_korean = yes
+			}
+		}
+		add_country_modifier = { modifier = gp_temper_insular_east months = 14 mode = replace }
+	}
+	else_if = {
+		limit = { gp_is_indian = yes }
+		add_country_modifier = { modifier = gp_temper_indian months = 14 mode = replace }
+	}
+	else_if = {
+		limit = { gp_is_near_east_muslim = yes }
+		add_country_modifier = { modifier = gp_temper_islamic months = 14 mode = replace }
+	}
+	else_if = {
+		limit = { gp_is_european = yes }
+		add_country_modifier = { modifier = gp_temper_european months = 14 mode = replace }
+	}
+}
+
+gp_remove_temper_modifiers = {
+	if = { limit = { has_country_modifier = gp_temper_steppe } remove_country_modifier = gp_temper_steppe }
+	if = { limit = { has_country_modifier = gp_temper_sinic } remove_country_modifier = gp_temper_sinic }
+	if = { limit = { has_country_modifier = gp_temper_insular_east } remove_country_modifier = gp_temper_insular_east }
+	if = { limit = { has_country_modifier = gp_temper_indian } remove_country_modifier = gp_temper_indian }
+	if = { limit = { has_country_modifier = gp_temper_islamic } remove_country_modifier = gp_temper_islamic }
+	if = { limit = { has_country_modifier = gp_temper_european } remove_country_modifier = gp_temper_european }
+}
+
+# ---- stages --------------------------------------------------------------------------------------
+
+# Thresholds are literals here (see gp_values.txt header): 0.25 = gp_share_regional, 0.55 = gp_share_hegemon.
+gp_update_stage_zones = {
+	if = {
+		limit = { var:gp_region_share >= 0.25 }
+		gp_zones_add_sphere = yes
+	}
+	else = {
+		gp_zones_remove_sphere = yes
+	}
+	if = {
+		limit = { var:gp_region_share >= 0.55 }
+		gp_zones_add_far = yes
+	}
+	else = {
+		gp_zones_remove_far = yes
+	}
+}
+
+# ---- roles ---------------------------------------------------------------------------------------
+
+gp_update_role = {
+	gp_remove_role_modifiers = yes
+	if = {
+		limit = {
+			has_variable = gp_threat
+			var:gp_threat_ratio >= 3
+			var:gp_threat ?= { is_neighbor_of = root }
+		}
+		add_country_modifier = { modifier = gp_role_besieged months = 14 mode = replace }
+	}
+	else_if = {
+		limit = {
+			OR = {
+				AND = {
+					var:gp_region_share >= 0.55
+					num_locations >= gp_empire_min_locations
+				}
+				AND = {
+					country_rank = country_rank:rank_empire
+					num_locations >= gp_empire_rank_min_locations
+				}
+			}
+		}
+		add_country_modifier = { modifier = gp_role_empire months = 14 mode = replace }
+	}
+	else_if = {
+		limit = { var:gp_region_share >= 0.55 }
+		add_country_modifier = { modifier = gp_role_hegemon months = 14 mode = replace }
+	}
+	else_if = {
+		limit = {
+			OR = {
+				var:gp_region_share >= 0.25
+				AND = {
+					country_rank_level >= 3
+					num_locations >= 40
+				}
+			}
+		}
+		add_country_modifier = { modifier = gp_role_regional months = 14 mode = replace }
+	}
+	else_if = {
+		limit = {
+			num_locations <= gp_status_quo_max_locations
+			country_rank_level <= 1
+			NOT = { gp_is_steppe = yes }
+			NOT = { ai_personality = ai_personality:ai_aggressive }
+			NOT = { ai_personality = ai_personality:ai_expansionist }
+			NOT = { ai_personality = ai_personality:ai_opportunistic }
+		}
+		add_country_modifier = { modifier = gp_role_status_quo months = 14 mode = replace }
+	}
+	else = {
+		add_country_modifier = { modifier = gp_role_consolidator months = 14 mode = replace }
+	}
+	if = {
+		limit = {
+			gp_is_strong_mode = yes
+			OR = {
+				has_country_modifier = gp_role_consolidator
+				has_country_modifier = gp_role_regional
+				has_country_modifier = gp_role_empire
+			}
+		}
+		add_country_modifier = { modifier = gp_strong_tempo months = 14 mode = replace }
+	}
+}
+
+gp_remove_role_modifiers = {
+	if = { limit = { has_country_modifier = gp_role_consolidator } remove_country_modifier = gp_role_consolidator }
+	if = { limit = { has_country_modifier = gp_role_regional } remove_country_modifier = gp_role_regional }
+	if = { limit = { has_country_modifier = gp_role_hegemon } remove_country_modifier = gp_role_hegemon }
+	if = { limit = { has_country_modifier = gp_role_empire } remove_country_modifier = gp_role_empire }
+	if = { limit = { has_country_modifier = gp_role_besieged } remove_country_modifier = gp_role_besieged }
+	if = { limit = { has_country_modifier = gp_role_status_quo } remove_country_modifier = gp_role_status_quo }
+	if = { limit = { has_country_modifier = gp_strong_tempo } remove_country_modifier = gp_strong_tempo }
+}
+
+# Player took the tag (or the game rule is off): no AI-only modifiers must remain visible on the country.
+gp_clear_ai_modifiers = {
+	gp_remove_role_modifiers = yes
+	gp_remove_temper_modifiers = yes
+}

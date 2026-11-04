@@ -1,0 +1,14 @@
+﻿# New Intelligence: Geopolicy - game concepts (prefix gp_)
+# Grammar: game/main_menu/common/game_concepts/00_game_concepts.txt (texture resolves to
+# game/main_menu/gfx/interface/icons/<texture>.dds; alias lists alternative link words).
+# Usage in text: [gp_geopolitics|e] / [gp_regional_threat|e]. Loc keys: game_concept_<key>, game_concept_<key>_desc,
+# game_concept_<alias>.
+
+gp_geopolitics = {
+	alias = { gp_zones_of_interest }
+	texture = "flat_icons/objectives"
+}
+
+gp_regional_threat = {
+	texture = "flat_icons/objectives"
+}

@@ -1,0 +1,534 @@
+﻿###################################
+# New Intelligence: Geopolicy - zone profiles by tag (prefix gp_)
+#
+# The preferences themselves live in in_game/common/area_preferences/gp_zones.txt. Four switches map a tag to its
+# core / sphere / far preference (switch = { trigger = tag ... }: vanilla scripted_effects use switch with
+# trigger = $location$ and location:x = { } branches; with trigger = tag the branch keys are bare tags).
+# Countries without a tag profile fall back to gp_generic_home_region (unless vanilla already gave them
+# generic_conquer_home_region) and to the group spheres (Anatolian beyliks, Persian emirates) by trigger.
+# A formable that switches tag (BRA -> PRU, ENG -> GBR) re-runs gp_assign_zone_profile via on_new_country_formed;
+# the old core preference stays (same areas, harmless).
+###################################
+
+gp_add_pref = {
+	if = {
+		limit = { NOT = { has_area_preference = $PREF$ } }
+		add_area_preference = $PREF$
+	}
+}
+
+gp_remove_pref = {
+	if = {
+		limit = { has_area_preference = $PREF$ }
+		remove_area_preference = $PREF$
+	}
+}
+
+# ---- stage 1: core (game start / new country) ---------------------------------------------------
+
+gp_assign_zone_profile = {
+	switch = {
+		trigger = tag
+		# British Isles
+		ENG = { gp_add_pref = { PREF = gp_eng_core } set_variable = gp_has_profile }
+		GBR = { gp_add_pref = { PREF = gp_eng_core } set_variable = gp_has_profile }
+		SCO = { gp_add_pref = { PREF = gp_sco_core } set_variable = gp_has_profile }
+		SBL = { gp_add_pref = { PREF = gp_sco_core } set_variable = gp_has_profile }
+		WLS = { gp_add_pref = { PREF = gp_wls_core } set_variable = gp_has_profile }
+		# France
+		FRA = { gp_add_pref = { PREF = gp_fra_core } set_variable = gp_has_profile }
+		BUR = { gp_add_pref = { PREF = gp_bur_core } set_variable = gp_has_profile }
+		BRI = { gp_add_pref = { PREF = gp_bri_core } set_variable = gp_has_profile }
+		NRM = { gp_add_pref = { PREF = gp_nrm_core } set_variable = gp_has_profile }
+		AQN = { gp_add_pref = { PREF = gp_aqn_core } set_variable = gp_has_profile }
+		PRO = { gp_add_pref = { PREF = gp_pro_core } set_variable = gp_has_profile }
+		SAV = { gp_add_pref = { PREF = gp_sav_core } set_variable = gp_has_profile }
+		DAU = { gp_add_pref = { PREF = gp_sav_core } set_variable = gp_has_profile }
+		# Iberia
+		CAS = { gp_add_pref = { PREF = gp_cas_core } set_variable = gp_has_profile }
+		SPA = { gp_add_pref = { PREF = gp_cas_core } set_variable = gp_has_profile }
+		ARA = { gp_add_pref = { PREF = gp_ara_core } set_variable = gp_has_profile }
+		POR = { gp_add_pref = { PREF = gp_por_core } set_variable = gp_has_profile }
+		NAV = { gp_add_pref = { PREF = gp_nav_core } set_variable = gp_has_profile }
+		GRA = { gp_add_pref = { PREF = gp_gra_core } set_variable = gp_has_profile }
+		# Northern Germany
+		BRA = { gp_add_pref = { PREF = gp_bra_core } set_variable = gp_has_profile }
+		PRU = { gp_add_pref = { PREF = gp_bra_core } set_variable = gp_has_profile }
+		WOL = { gp_add_pref = { PREF = gp_pom_core } set_variable = gp_has_profile }
+		STE = { gp_add_pref = { PREF = gp_pom_core } set_variable = gp_has_profile }
+		POM = { gp_add_pref = { PREF = gp_pom_core } set_variable = gp_has_profile }
+		MKL = { gp_add_pref = { PREF = gp_mkl_core } set_variable = gp_has_profile }
+		MEI = { gp_add_pref = { PREF = gp_sax_core } set_variable = gp_has_profile }
+		THU = { gp_add_pref = { PREF = gp_sax_core } set_variable = gp_has_profile }
+		SAX = { gp_add_pref = { PREF = gp_sax_core } set_variable = gp_has_profile }
+		BRU = { gp_add_pref = { PREF = gp_welf_core } set_variable = gp_has_profile }
+		LUN = { gp_add_pref = { PREF = gp_welf_core } set_variable = gp_has_profile }
+		MAG = { gp_add_pref = { PREF = gp_welf_core } set_variable = gp_has_profile }
+		HES = { gp_add_pref = { PREF = gp_hes_core } set_variable = gp_has_profile }
+		MAI = { gp_add_pref = { PREF = gp_hes_core } set_variable = gp_has_profile }
+		KOL = { gp_add_pref = { PREF = gp_rhine_core } set_variable = gp_has_profile }
+		JUL = { gp_add_pref = { PREF = gp_rhine_core } set_variable = gp_has_profile }
+		KLE = { gp_add_pref = { PREF = gp_rhine_core } set_variable = gp_has_profile }
+		BRG = { gp_add_pref = { PREF = gp_rhine_core } set_variable = gp_has_profile }
+		TRI = { gp_add_pref = { PREF = gp_rhine_core } set_variable = gp_has_profile }
+		HOL = { gp_add_pref = { PREF = gp_dutch_core } set_variable = gp_has_profile }
+		BRB = { gp_add_pref = { PREF = gp_dutch_core } set_variable = gp_has_profile }
+		GEL = { gp_add_pref = { PREF = gp_dutch_core } set_variable = gp_has_profile }
+		UTR = { gp_add_pref = { PREF = gp_dutch_core } set_variable = gp_has_profile }
+		FLA = { gp_add_pref = { PREF = gp_dutch_core } set_variable = gp_has_profile }
+		FRI = { gp_add_pref = { PREF = gp_dutch_core } set_variable = gp_has_profile }
+		NED = { gp_add_pref = { PREF = gp_dutch_core } set_variable = gp_has_profile }
+		LUX = { gp_add_pref = { PREF = gp_lux_core } set_variable = gp_has_profile }
+		LOR = { gp_add_pref = { PREF = gp_lux_core } set_variable = gp_has_profile }
+		# Southern Germany (Austria and Bohemia keep vanilla's core preferences)
+		UBV = { gp_add_pref = { PREF = gp_bav_core } set_variable = gp_has_profile }
+		LBV = { gp_add_pref = { PREF = gp_bav_core } set_variable = gp_has_profile }
+		BAV = { gp_add_pref = { PREF = gp_bav_core } set_variable = gp_has_profile }
+		WUR = { gp_add_pref = { PREF = gp_swabia_core } set_variable = gp_has_profile }
+		BDE = { gp_add_pref = { PREF = gp_swabia_core } set_variable = gp_has_profile }
+		PAL = { gp_add_pref = { PREF = gp_swabia_core } set_variable = gp_has_profile }
+		WBG = { gp_add_pref = { PREF = gp_franconia_core } set_variable = gp_has_profile }
+		NUR = { gp_add_pref = { PREF = gp_franconia_core } set_variable = gp_has_profile }
+		BRN = { gp_add_pref = { PREF = gp_swiss_core } set_variable = gp_has_profile }
+		ZUR = { gp_add_pref = { PREF = gp_swiss_core } set_variable = gp_has_profile }
+		SYZ = { gp_add_pref = { PREF = gp_swiss_core } set_variable = gp_has_profile }
+		URI = { gp_add_pref = { PREF = gp_swiss_core } set_variable = gp_has_profile }
+		LCU = { gp_add_pref = { PREF = gp_swiss_core } set_variable = gp_has_profile }
+		BAS = { gp_add_pref = { PREF = gp_swiss_core } set_variable = gp_has_profile }
+		SWI = { gp_add_pref = { PREF = gp_swiss_core } set_variable = gp_has_profile }
+		# Italy
+		MLO = { gp_add_pref = { PREF = gp_mlo_core } set_variable = gp_has_profile }
+		VEN = { gp_add_pref = { PREF = gp_ven_core } set_variable = gp_has_profile }
+		GEN = { gp_add_pref = { PREF = gp_gen_core } set_variable = gp_has_profile }
+		FLO = { gp_add_pref = { PREF = gp_flo_core } set_variable = gp_has_profile }
+		PAP = { gp_add_pref = { PREF = gp_pap_core } set_variable = gp_has_profile }
+		NAP = { gp_add_pref = { PREF = gp_nap_core } set_variable = gp_has_profile }
+		SIC = { gp_add_pref = { PREF = gp_sic_core } set_variable = gp_has_profile }
+		VER = { gp_add_pref = { PREF = gp_signoria_core } set_variable = gp_has_profile }
+		MAN = { gp_add_pref = { PREF = gp_signoria_core } set_variable = gp_has_profile }
+		AQU = { gp_add_pref = { PREF = gp_signoria_core } set_variable = gp_has_profile }
+		# Scandinavia
+		DAN = { gp_add_pref = { PREF = gp_dan_core } set_variable = gp_has_profile }
+		SWE = { gp_add_pref = { PREF = gp_swe_core } set_variable = gp_has_profile }
+		NOR = { gp_add_pref = { PREF = gp_nor_core } set_variable = gp_has_profile }
+		# Poland, the Order, Lithuania
+		POL = { gp_add_pref = { PREF = gp_pol_core } set_variable = gp_has_profile }
+		PLC = { gp_add_pref = { PREF = gp_pol_core } set_variable = gp_has_profile }
+		TEU = { gp_add_pref = { PREF = gp_teu_core } set_variable = gp_has_profile }
+		LIT = { gp_add_pref = { PREF = gp_lit_core } set_variable = gp_has_profile }
+		RAW = { gp_add_pref = { PREF = gp_maz_core } set_variable = gp_has_profile }
+		CZK = { gp_add_pref = { PREF = gp_maz_core } set_variable = gp_has_profile }
+		PLK = { gp_add_pref = { PREF = gp_maz_core } set_variable = gp_has_profile }
+		MAZ = { gp_add_pref = { PREF = gp_maz_core } set_variable = gp_has_profile }
+		LIV = { gp_add_pref = { PREF = gp_liv_core } set_variable = gp_has_profile }
+		ARR = { gp_add_pref = { PREF = gp_liv_core } set_variable = gp_has_profile }
+		# Rus' (Muscovy keeps vanilla's region preference as its core)
+		NOV = { gp_add_pref = { PREF = gp_nov_core } set_variable = gp_has_profile }
+		KIE = { gp_add_pref = { PREF = gp_kie_core } set_variable = gp_has_profile }
+		HAL = { gp_add_pref = { PREF = gp_hal_core } set_variable = gp_has_profile }
+		VOL = { gp_add_pref = { PREF = gp_hal_core } set_variable = gp_has_profile }
+		GLH = { gp_add_pref = { PREF = gp_glh_core } set_variable = gp_has_profile }
+		# Carpathia and the Balkans
+		HUN = { gp_add_pref = { PREF = gp_hun_core } set_variable = gp_has_profile }
+		WAL = { gp_add_pref = { PREF = gp_wal_core } set_variable = gp_has_profile }
+		IAS = { gp_add_pref = { PREF = gp_mol_core } set_variable = gp_has_profile }
+		BIA = { gp_add_pref = { PREF = gp_mol_core } set_variable = gp_has_profile }
+		BLD = { gp_add_pref = { PREF = gp_mol_core } set_variable = gp_has_profile }
+		MOL = { gp_add_pref = { PREF = gp_mol_core } set_variable = gp_has_profile }
+		BYZ = { gp_add_pref = { PREF = gp_byz_core } set_variable = gp_has_profile }
+		SER = { gp_add_pref = { PREF = gp_ser_core } set_variable = gp_has_profile }
+		BUL = { gp_add_pref = { PREF = gp_bul_core } set_variable = gp_has_profile }
+		BOS = { gp_add_pref = { PREF = gp_bos_core } set_variable = gp_has_profile }
+		CRO = { gp_add_pref = { PREF = gp_cro_core } set_variable = gp_has_profile }
+		ALB = { gp_add_pref = { PREF = gp_alb_core } set_variable = gp_has_profile }
+		EPI = { gp_add_pref = { PREF = gp_alb_core } set_variable = gp_has_profile }
+		ACH = { gp_add_pref = { PREF = gp_ach_core } set_variable = gp_has_profile }
+		# Anatolia, Caucasus, Near East
+		TUR = { gp_add_pref = { PREF = gp_tur_core } set_variable = gp_has_profile }
+		TRE = { gp_add_pref = { PREF = gp_tre_core } set_variable = gp_has_profile }
+		CIL = { gp_add_pref = { PREF = gp_cil_core } set_variable = gp_has_profile }
+		MAM = { gp_add_pref = { PREF = gp_mam_core } set_variable = gp_has_profile }
+		YEM = { gp_add_pref = { PREF = gp_yem_core } set_variable = gp_has_profile }
+		GEO = { gp_add_pref = { PREF = gp_geo_core } set_variable = gp_has_profile }
+		KRT = { gp_add_pref = { PREF = gp_krt_core } set_variable = gp_has_profile }
+		CHG = { gp_add_pref = { PREF = gp_chg_core } set_variable = gp_has_profile }
+		# Maghreb
+		MOR = { gp_add_pref = { PREF = gp_mor_core } set_variable = gp_has_profile }
+		TLE = { gp_add_pref = { PREF = gp_tle_core } set_variable = gp_has_profile }
+		TUN = { gp_add_pref = { PREF = gp_tun_core } set_variable = gp_has_profile }
+	}
+	# Austria, Bohemia and Muscovy: core comes from vanilla (austria_minor_conquest, bohemia_core_region,
+	# russia_conquer_region); they only get our sphere / far stages.
+	if = {
+		limit = {
+			OR = {
+				tag = HAB
+				tag = BOH
+				tag = MOS
+				tag = RUS
+			}
+		}
+		set_variable = gp_has_profile
+	}
+	if = {
+		limit = {
+			NOT = { has_variable = gp_has_profile }
+			NOT = { has_area_preference = generic_conquer_home_region }
+		}
+		gp_add_pref = { PREF = gp_generic_home_region }
+	}
+}
+
+# ---- stage 2: sphere -----------------------------------------------------------------------------
+
+gp_zones_add_sphere = {
+	switch = {
+		trigger = tag
+		ENG = { gp_add_pref = { PREF = gp_eng_sphere } }
+		GBR = { gp_add_pref = { PREF = gp_eng_sphere } }
+		SCO = { gp_add_pref = { PREF = gp_sco_sphere } }
+		SBL = { gp_add_pref = { PREF = gp_sco_sphere } }
+		WLS = { gp_add_pref = { PREF = gp_wls_sphere } }
+		FRA = { gp_add_pref = { PREF = gp_fra_sphere } }
+		BUR = { gp_add_pref = { PREF = gp_bur_sphere } }
+		BRI = { gp_add_pref = { PREF = gp_bri_sphere } }
+		NRM = { gp_add_pref = { PREF = gp_nrm_sphere } }
+		AQN = { gp_add_pref = { PREF = gp_aqn_sphere } }
+		PRO = { gp_add_pref = { PREF = gp_pro_sphere } }
+		SAV = { gp_add_pref = { PREF = gp_sav_sphere } }
+		DAU = { gp_add_pref = { PREF = gp_sav_sphere } }
+		CAS = { gp_add_pref = { PREF = gp_cas_sphere } }
+		SPA = { gp_add_pref = { PREF = gp_cas_sphere } }
+		ARA = { gp_add_pref = { PREF = gp_ara_sphere } }
+		POR = { gp_add_pref = { PREF = gp_por_sphere } }
+		NAV = { gp_add_pref = { PREF = gp_nav_sphere } }
+		GRA = { gp_add_pref = { PREF = gp_gra_sphere } }
+		BRA = { gp_add_pref = { PREF = gp_bra_sphere } }
+		PRU = { gp_add_pref = { PREF = gp_bra_sphere } }
+		WOL = { gp_add_pref = { PREF = gp_pom_sphere } }
+		STE = { gp_add_pref = { PREF = gp_pom_sphere } }
+		POM = { gp_add_pref = { PREF = gp_pom_sphere } }
+		MKL = { gp_add_pref = { PREF = gp_mkl_sphere } }
+		MEI = { gp_add_pref = { PREF = gp_sax_sphere } }
+		THU = { gp_add_pref = { PREF = gp_sax_sphere } }
+		SAX = { gp_add_pref = { PREF = gp_sax_sphere } }
+		BRU = { gp_add_pref = { PREF = gp_welf_sphere } }
+		LUN = { gp_add_pref = { PREF = gp_welf_sphere } }
+		MAG = { gp_add_pref = { PREF = gp_welf_sphere } }
+		HES = { gp_add_pref = { PREF = gp_hes_sphere } }
+		MAI = { gp_add_pref = { PREF = gp_hes_sphere } }
+		KOL = { gp_add_pref = { PREF = gp_rhine_sphere } }
+		JUL = { gp_add_pref = { PREF = gp_rhine_sphere } }
+		KLE = { gp_add_pref = { PREF = gp_rhine_sphere } }
+		BRG = { gp_add_pref = { PREF = gp_rhine_sphere } }
+		TRI = { gp_add_pref = { PREF = gp_rhine_sphere } }
+		HOL = { gp_add_pref = { PREF = gp_dutch_sphere } }
+		BRB = { gp_add_pref = { PREF = gp_dutch_sphere } }
+		GEL = { gp_add_pref = { PREF = gp_dutch_sphere } }
+		UTR = { gp_add_pref = { PREF = gp_dutch_sphere } }
+		FLA = { gp_add_pref = { PREF = gp_dutch_sphere } }
+		FRI = { gp_add_pref = { PREF = gp_dutch_sphere } }
+		NED = { gp_add_pref = { PREF = gp_dutch_sphere } }
+		LUX = { gp_add_pref = { PREF = gp_lux_sphere } }
+		LOR = { gp_add_pref = { PREF = gp_lux_sphere } }
+		HAB = { gp_add_pref = { PREF = gp_hab_sphere } }
+		UBV = { gp_add_pref = { PREF = gp_bav_sphere } }
+		LBV = { gp_add_pref = { PREF = gp_bav_sphere } }
+		BAV = { gp_add_pref = { PREF = gp_bav_sphere } }
+		BOH = { gp_add_pref = { PREF = gp_boh_sphere } }
+		WUR = { gp_add_pref = { PREF = gp_swabia_sphere } }
+		BDE = { gp_add_pref = { PREF = gp_swabia_sphere } }
+		PAL = { gp_add_pref = { PREF = gp_swabia_sphere } }
+		WBG = { gp_add_pref = { PREF = gp_franconia_sphere } }
+		NUR = { gp_add_pref = { PREF = gp_franconia_sphere } }
+		BRN = { gp_add_pref = { PREF = gp_swiss_sphere } }
+		ZUR = { gp_add_pref = { PREF = gp_swiss_sphere } }
+		SYZ = { gp_add_pref = { PREF = gp_swiss_sphere } }
+		URI = { gp_add_pref = { PREF = gp_swiss_sphere } }
+		LCU = { gp_add_pref = { PREF = gp_swiss_sphere } }
+		BAS = { gp_add_pref = { PREF = gp_swiss_sphere } }
+		SWI = { gp_add_pref = { PREF = gp_swiss_sphere } }
+		MLO = { gp_add_pref = { PREF = gp_mlo_sphere } }
+		VEN = { gp_add_pref = { PREF = gp_ven_sphere } }
+		GEN = { gp_add_pref = { PREF = gp_gen_sphere } }
+		FLO = { gp_add_pref = { PREF = gp_flo_sphere } }
+		PAP = { gp_add_pref = { PREF = gp_pap_sphere } }
+		NAP = { gp_add_pref = { PREF = gp_nap_sphere } }
+		VER = { gp_add_pref = { PREF = gp_signoria_sphere } }
+		MAN = { gp_add_pref = { PREF = gp_signoria_sphere } }
+		AQU = { gp_add_pref = { PREF = gp_signoria_sphere } }
+		DAN = { gp_add_pref = { PREF = gp_dan_sphere } }
+		SWE = { gp_add_pref = { PREF = gp_swe_sphere } }
+		NOR = { gp_add_pref = { PREF = gp_nor_sphere } }
+		POL = { gp_add_pref = { PREF = gp_pol_sphere } }
+		PLC = { gp_add_pref = { PREF = gp_pol_sphere } }
+		TEU = { gp_add_pref = { PREF = gp_teu_sphere } }
+		LIT = { gp_add_pref = { PREF = gp_lit_sphere } }
+		RAW = { gp_add_pref = { PREF = gp_maz_sphere } }
+		CZK = { gp_add_pref = { PREF = gp_maz_sphere } }
+		PLK = { gp_add_pref = { PREF = gp_maz_sphere } }
+		MAZ = { gp_add_pref = { PREF = gp_maz_sphere } }
+		LIV = { gp_add_pref = { PREF = gp_liv_sphere } }
+		ARR = { gp_add_pref = { PREF = gp_liv_sphere } }
+		MOS = { gp_add_pref = { PREF = gp_mos_sphere } }
+		RUS = { gp_add_pref = { PREF = gp_mos_sphere } }
+		NOV = { gp_add_pref = { PREF = gp_nov_sphere } }
+		KIE = { gp_add_pref = { PREF = gp_kie_sphere } }
+		HAL = { gp_add_pref = { PREF = gp_hal_sphere } }
+		VOL = { gp_add_pref = { PREF = gp_hal_sphere } }
+		GLH = { gp_add_pref = { PREF = gp_glh_sphere } }
+		HUN = { gp_add_pref = { PREF = gp_hun_sphere } }
+		WAL = { gp_add_pref = { PREF = gp_wal_sphere } }
+		IAS = { gp_add_pref = { PREF = gp_mol_sphere } }
+		BIA = { gp_add_pref = { PREF = gp_mol_sphere } }
+		BLD = { gp_add_pref = { PREF = gp_mol_sphere } }
+		MOL = { gp_add_pref = { PREF = gp_mol_sphere } }
+		BYZ = { gp_add_pref = { PREF = gp_byz_sphere } }
+		SER = { gp_add_pref = { PREF = gp_ser_sphere } }
+		BUL = { gp_add_pref = { PREF = gp_bul_sphere } }
+		BOS = { gp_add_pref = { PREF = gp_bos_sphere } }
+		CRO = { gp_add_pref = { PREF = gp_cro_sphere } }
+		ALB = { gp_add_pref = { PREF = gp_alb_sphere } }
+		EPI = { gp_add_pref = { PREF = gp_alb_sphere } }
+		ACH = { gp_add_pref = { PREF = gp_ach_sphere } }
+		TUR = { gp_add_pref = { PREF = gp_tur_sphere } }
+		TRE = { gp_add_pref = { PREF = gp_tre_sphere } }
+		CIL = { gp_add_pref = { PREF = gp_cil_sphere } }
+		MAM = { gp_add_pref = { PREF = gp_mam_sphere } }
+		YEM = { gp_add_pref = { PREF = gp_yem_sphere } }
+		GEO = { gp_add_pref = { PREF = gp_geo_sphere } }
+		KRT = { gp_add_pref = { PREF = gp_krt_sphere } }
+		CHG = { gp_add_pref = { PREF = gp_chg_sphere } }
+		MOR = { gp_add_pref = { PREF = gp_mor_sphere } }
+		TLE = { gp_add_pref = { PREF = gp_tle_sphere } }
+		TUN = { gp_add_pref = { PREF = gp_tun_sphere } }
+	}
+	# group spheres for countries without a tag profile
+	if = {
+		limit = {
+			NOT = { has_variable = gp_has_profile }
+			exists = capital
+			capital.region = region:anatolia_region
+			religion.group = religion_group:muslim
+		}
+		gp_add_pref = { PREF = gp_anatolia_sphere }
+	}
+	if = {
+		limit = {
+			NOT = { has_variable = gp_has_profile }
+			exists = capital
+			capital.region = region:persia_region
+		}
+		gp_add_pref = { PREF = gp_persia_sphere }
+	}
+}
+
+gp_zones_remove_sphere = {
+	switch = {
+		trigger = tag
+		ENG = { gp_remove_pref = { PREF = gp_eng_sphere } }
+		GBR = { gp_remove_pref = { PREF = gp_eng_sphere } }
+		SCO = { gp_remove_pref = { PREF = gp_sco_sphere } }
+		SBL = { gp_remove_pref = { PREF = gp_sco_sphere } }
+		WLS = { gp_remove_pref = { PREF = gp_wls_sphere } }
+		FRA = { gp_remove_pref = { PREF = gp_fra_sphere } }
+		BUR = { gp_remove_pref = { PREF = gp_bur_sphere } }
+		BRI = { gp_remove_pref = { PREF = gp_bri_sphere } }
+		NRM = { gp_remove_pref = { PREF = gp_nrm_sphere } }
+		AQN = { gp_remove_pref = { PREF = gp_aqn_sphere } }
+		PRO = { gp_remove_pref = { PREF = gp_pro_sphere } }
+		SAV = { gp_remove_pref = { PREF = gp_sav_sphere } }
+		DAU = { gp_remove_pref = { PREF = gp_sav_sphere } }
+		CAS = { gp_remove_pref = { PREF = gp_cas_sphere } }
+		SPA = { gp_remove_pref = { PREF = gp_cas_sphere } }
+		ARA = { gp_remove_pref = { PREF = gp_ara_sphere } }
+		POR = { gp_remove_pref = { PREF = gp_por_sphere } }
+		NAV = { gp_remove_pref = { PREF = gp_nav_sphere } }
+		GRA = { gp_remove_pref = { PREF = gp_gra_sphere } }
+		BRA = { gp_remove_pref = { PREF = gp_bra_sphere } }
+		PRU = { gp_remove_pref = { PREF = gp_bra_sphere } }
+		WOL = { gp_remove_pref = { PREF = gp_pom_sphere } }
+		STE = { gp_remove_pref = { PREF = gp_pom_sphere } }
+		POM = { gp_remove_pref = { PREF = gp_pom_sphere } }
+		MKL = { gp_remove_pref = { PREF = gp_mkl_sphere } }
+		MEI = { gp_remove_pref = { PREF = gp_sax_sphere } }
+		THU = { gp_remove_pref = { PREF = gp_sax_sphere } }
+		SAX = { gp_remove_pref = { PREF = gp_sax_sphere } }
+		BRU = { gp_remove_pref = { PREF = gp_welf_sphere } }
+		LUN = { gp_remove_pref = { PREF = gp_welf_sphere } }
+		MAG = { gp_remove_pref = { PREF = gp_welf_sphere } }
+		HES = { gp_remove_pref = { PREF = gp_hes_sphere } }
+		MAI = { gp_remove_pref = { PREF = gp_hes_sphere } }
+		KOL = { gp_remove_pref = { PREF = gp_rhine_sphere } }
+		JUL = { gp_remove_pref = { PREF = gp_rhine_sphere } }
+		KLE = { gp_remove_pref = { PREF = gp_rhine_sphere } }
+		BRG = { gp_remove_pref = { PREF = gp_rhine_sphere } }
+		TRI = { gp_remove_pref = { PREF = gp_rhine_sphere } }
+		HOL = { gp_remove_pref = { PREF = gp_dutch_sphere } }
+		BRB = { gp_remove_pref = { PREF = gp_dutch_sphere } }
+		GEL = { gp_remove_pref = { PREF = gp_dutch_sphere } }
+		UTR = { gp_remove_pref = { PREF = gp_dutch_sphere } }
+		FLA = { gp_remove_pref = { PREF = gp_dutch_sphere } }
+		FRI = { gp_remove_pref = { PREF = gp_dutch_sphere } }
+		NED = { gp_remove_pref = { PREF = gp_dutch_sphere } }
+		LUX = { gp_remove_pref = { PREF = gp_lux_sphere } }
+		LOR = { gp_remove_pref = { PREF = gp_lux_sphere } }
+		HAB = { gp_remove_pref = { PREF = gp_hab_sphere } }
+		UBV = { gp_remove_pref = { PREF = gp_bav_sphere } }
+		LBV = { gp_remove_pref = { PREF = gp_bav_sphere } }
+		BAV = { gp_remove_pref = { PREF = gp_bav_sphere } }
+		BOH = { gp_remove_pref = { PREF = gp_boh_sphere } }
+		WUR = { gp_remove_pref = { PREF = gp_swabia_sphere } }
+		BDE = { gp_remove_pref = { PREF = gp_swabia_sphere } }
+		PAL = { gp_remove_pref = { PREF = gp_swabia_sphere } }
+		WBG = { gp_remove_pref = { PREF = gp_franconia_sphere } }
+		NUR = { gp_remove_pref = { PREF = gp_franconia_sphere } }
+		BRN = { gp_remove_pref = { PREF = gp_swiss_sphere } }
+		ZUR = { gp_remove_pref = { PREF = gp_swiss_sphere } }
+		SYZ = { gp_remove_pref = { PREF = gp_swiss_sphere } }
+		URI = { gp_remove_pref = { PREF = gp_swiss_sphere } }
+		LCU = { gp_remove_pref = { PREF = gp_swiss_sphere } }
+		BAS = { gp_remove_pref = { PREF = gp_swiss_sphere } }
+		SWI = { gp_remove_pref = { PREF = gp_swiss_sphere } }
+		MLO = { gp_remove_pref = { PREF = gp_mlo_sphere } }
+		VEN = { gp_remove_pref = { PREF = gp_ven_sphere } }
+		GEN = { gp_remove_pref = { PREF = gp_gen_sphere } }
+		FLO = { gp_remove_pref = { PREF = gp_flo_sphere } }
+		PAP = { gp_remove_pref = { PREF = gp_pap_sphere } }
+		NAP = { gp_remove_pref = { PREF = gp_nap_sphere } }
+		VER = { gp_remove_pref = { PREF = gp_signoria_sphere } }
+		MAN = { gp_remove_pref = { PREF = gp_signoria_sphere } }
+		AQU = { gp_remove_pref = { PREF = gp_signoria_sphere } }
+		DAN = { gp_remove_pref = { PREF = gp_dan_sphere } }
+		SWE = { gp_remove_pref = { PREF = gp_swe_sphere } }
+		NOR = { gp_remove_pref = { PREF = gp_nor_sphere } }
+		POL = { gp_remove_pref = { PREF = gp_pol_sphere } }
+		PLC = { gp_remove_pref = { PREF = gp_pol_sphere } }
+		TEU = { gp_remove_pref = { PREF = gp_teu_sphere } }
+		LIT = { gp_remove_pref = { PREF = gp_lit_sphere } }
+		RAW = { gp_remove_pref = { PREF = gp_maz_sphere } }
+		CZK = { gp_remove_pref = { PREF = gp_maz_sphere } }
+		PLK = { gp_remove_pref = { PREF = gp_maz_sphere } }
+		MAZ = { gp_remove_pref = { PREF = gp_maz_sphere } }
+		LIV = { gp_remove_pref = { PREF = gp_liv_sphere } }
+		ARR = { gp_remove_pref = { PREF = gp_liv_sphere } }
+		MOS = { gp_remove_pref = { PREF = gp_mos_sphere } }
+		RUS = { gp_remove_pref = { PREF = gp_mos_sphere } }
+		NOV = { gp_remove_pref = { PREF = gp_nov_sphere } }
+		KIE = { gp_remove_pref = { PREF = gp_kie_sphere } }
+		HAL = { gp_remove_pref = { PREF = gp_hal_sphere } }
+		VOL = { gp_remove_pref = { PREF = gp_hal_sphere } }
+		GLH = { gp_remove_pref = { PREF = gp_glh_sphere } }
+		HUN = { gp_remove_pref = { PREF = gp_hun_sphere } }
+		WAL = { gp_remove_pref = { PREF = gp_wal_sphere } }
+		IAS = { gp_remove_pref = { PREF = gp_mol_sphere } }
+		BIA = { gp_remove_pref = { PREF = gp_mol_sphere } }
+		BLD = { gp_remove_pref = { PREF = gp_mol_sphere } }
+		MOL = { gp_remove_pref = { PREF = gp_mol_sphere } }
+		BYZ = { gp_remove_pref = { PREF = gp_byz_sphere } }
+		SER = { gp_remove_pref = { PREF = gp_ser_sphere } }
+		BUL = { gp_remove_pref = { PREF = gp_bul_sphere } }
+		BOS = { gp_remove_pref = { PREF = gp_bos_sphere } }
+		CRO = { gp_remove_pref = { PREF = gp_cro_sphere } }
+		ALB = { gp_remove_pref = { PREF = gp_alb_sphere } }
+		EPI = { gp_remove_pref = { PREF = gp_alb_sphere } }
+		ACH = { gp_remove_pref = { PREF = gp_ach_sphere } }
+		TUR = { gp_remove_pref = { PREF = gp_tur_sphere } }
+		TRE = { gp_remove_pref = { PREF = gp_tre_sphere } }
+		CIL = { gp_remove_pref = { PREF = gp_cil_sphere } }
+		MAM = { gp_remove_pref = { PREF = gp_mam_sphere } }
+		YEM = { gp_remove_pref = { PREF = gp_yem_sphere } }
+		GEO = { gp_remove_pref = { PREF = gp_geo_sphere } }
+		KRT = { gp_remove_pref = { PREF = gp_krt_sphere } }
+		CHG = { gp_remove_pref = { PREF = gp_chg_sphere } }
+		MOR = { gp_remove_pref = { PREF = gp_mor_sphere } }
+		TLE = { gp_remove_pref = { PREF = gp_tle_sphere } }
+		TUN = { gp_remove_pref = { PREF = gp_tun_sphere } }
+	}
+	gp_remove_pref = { PREF = gp_anatolia_sphere }
+	gp_remove_pref = { PREF = gp_persia_sphere }
+}
+
+# ---- stage 3: far --------------------------------------------------------------------------------
+
+gp_zones_add_far = {
+	switch = {
+		trigger = tag
+		ENG = { gp_add_pref = { PREF = gp_eng_far } }
+		GBR = { gp_add_pref = { PREF = gp_eng_far } }
+		FRA = { gp_add_pref = { PREF = gp_fra_far } }
+		BUR = { gp_add_pref = { PREF = gp_bur_far } }
+		PRO = { gp_add_pref = { PREF = gp_pro_far } }
+		CAS = { gp_add_pref = { PREF = gp_cas_far } }
+		SPA = { gp_add_pref = { PREF = gp_cas_far } }
+		ARA = { gp_add_pref = { PREF = gp_ara_far } }
+		POR = { gp_add_pref = { PREF = gp_por_far } }
+		GRA = { gp_add_pref = { PREF = gp_gra_far } }
+		BRA = { gp_add_pref = { PREF = gp_bra_far } }
+		PRU = { gp_add_pref = { PREF = gp_bra_far } }
+		HAB = { gp_add_pref = { PREF = gp_hab_far } }
+		BOH = { gp_add_pref = { PREF = gp_boh_far } }
+		MLO = { gp_add_pref = { PREF = gp_mlo_far } }
+		VEN = { gp_add_pref = { PREF = gp_ven_far } }
+		GEN = { gp_add_pref = { PREF = gp_gen_far } }
+		SIC = { gp_add_pref = { PREF = gp_sic_far } }
+		DAN = { gp_add_pref = { PREF = gp_dan_far } }
+		SWE = { gp_add_pref = { PREF = gp_swe_far } }
+		NOR = { gp_add_pref = { PREF = gp_nor_far } }
+		POL = { gp_add_pref = { PREF = gp_pol_far } }
+		PLC = { gp_add_pref = { PREF = gp_pol_far } }
+		TEU = { gp_add_pref = { PREF = gp_teu_far } }
+		LIT = { gp_add_pref = { PREF = gp_lit_far } }
+		MOS = { gp_add_pref = { PREF = gp_mos_far } }
+		RUS = { gp_add_pref = { PREF = gp_mos_far } }
+		GLH = { gp_add_pref = { PREF = gp_glh_far } }
+		HUN = { gp_add_pref = { PREF = gp_hun_far } }
+		BYZ = { gp_add_pref = { PREF = gp_byz_far } }
+		SER = { gp_add_pref = { PREF = gp_ser_far } }
+		TUR = { gp_add_pref = { PREF = gp_tur_far } }
+		MAM = { gp_add_pref = { PREF = gp_mam_far } }
+		GEO = { gp_add_pref = { PREF = gp_geo_far } }
+		TUN = { gp_add_pref = { PREF = gp_tun_far } }
+	}
+}
+
+gp_zones_remove_far = {
+	switch = {
+		trigger = tag
+		ENG = { gp_remove_pref = { PREF = gp_eng_far } }
+		GBR = { gp_remove_pref = { PREF = gp_eng_far } }
+		FRA = { gp_remove_pref = { PREF = gp_fra_far } }
+		BUR = { gp_remove_pref = { PREF = gp_bur_far } }
+		PRO = { gp_remove_pref = { PREF = gp_pro_far } }
+		CAS = { gp_remove_pref = { PREF = gp_cas_far } }
+		SPA = { gp_remove_pref = { PREF = gp_cas_far } }
+		ARA = { gp_remove_pref = { PREF = gp_ara_far } }
+		POR = { gp_remove_pref = { PREF = gp_por_far } }
+		GRA = { gp_remove_pref = { PREF = gp_gra_far } }
+		BRA = { gp_remove_pref = { PREF = gp_bra_far } }
+		PRU = { gp_remove_pref = { PREF = gp_bra_far } }
+		HAB = { gp_remove_pref = { PREF = gp_hab_far } }
+		BOH = { gp_remove_pref = { PREF = gp_boh_far } }
+		MLO = { gp_remove_pref = { PREF = gp_mlo_far } }
+		VEN = { gp_remove_pref = { PREF = gp_ven_far } }
+		GEN = { gp_remove_pref = { PREF = gp_gen_far } }
+		SIC = { gp_remove_pref = { PREF = gp_sic_far } }
+		DAN = { gp_remove_pref = { PREF = gp_dan_far } }
+		SWE = { gp_remove_pref = { PREF = gp_swe_far } }
+		NOR = { gp_remove_pref = { PREF = gp_nor_far } }
+		POL = { gp_remove_pref = { PREF = gp_pol_far } }
+		PLC = { gp_remove_pref = { PREF = gp_pol_far } }
+		TEU = { gp_remove_pref = { PREF = gp_teu_far } }
+		LIT = { gp_remove_pref = { PREF = gp_lit_far } }
+		MOS = { gp_remove_pref = { PREF = gp_mos_far } }
+		RUS = { gp_remove_pref = { PREF = gp_mos_far } }
+		GLH = { gp_remove_pref = { PREF = gp_glh_far } }
+		HUN = { gp_remove_pref = { PREF = gp_hun_far } }
+		BYZ = { gp_remove_pref = { PREF = gp_byz_far } }
+		SER = { gp_remove_pref = { PREF = gp_ser_far } }
+		TUR = { gp_remove_pref = { PREF = gp_tur_far } }
+		MAM = { gp_remove_pref = { PREF = gp_mam_far } }
+		GEO = { gp_remove_pref = { PREF = gp_geo_far } }
+		TUN = { gp_remove_pref = { PREF = gp_tun_far } }
+	}
+}

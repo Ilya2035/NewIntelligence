@@ -1,0 +1,145 @@
+﻿# New Intelligence: Geopolicy - coats of arms of the new formable countries
+# Format: main_menu/common/coat_of_arms/coat_of_arms/pre_scripted_countries.txt (pattern, color1/2, colored_emblem).
+# Colors: named_colors/01_coa.txt; textures: main_menu/gfx/coat_of_arms/{patterns,colored_emblems}
+# (every texture checked by tools/check_geopolicy_refs.sh). No flag_definitions entry is needed: a country whose tag
+# has no definition uses its tag as the coat-of-arms key.
+
+GAE = { # Alba - azure, a saltire argent
+	pattern = "pattern_solid.dds"
+	color1 = "blue"
+	color2 = "white"
+
+	colored_emblem = {
+		texture = "ce_saltire.dds"
+		color1 = color2
+		color2 = color2
+	}
+}
+
+AMC = { # Armorica - argent, a boar passant sable (the Breton boar on the ermine field)
+	pattern = "pattern_solid.dds"
+	color1 = "white"
+	color2 = "black"
+
+	colored_emblem = {
+		texture = "ce_boar_passant.dds"
+		color1 = color2
+		color2 = color2
+		instance = { position = { 0.5 0.5 } scale = { 0.85 0.85 } }
+	}
+}
+
+AGV = { # Angevin Empire - gules, two lions passant guardant or (the Norman lions)
+	pattern = "pattern_solid.dds"
+	color1 = "red"
+	color2 = "yellow"
+
+	colored_emblem = {
+		texture = "ce_lions_02_passant_guardant_wide.dds"
+		color1 = color2
+		color2 = color2
+	}
+}
+
+WND = { # Kingdom of the Wends - or, a bull's head erased sable (Mecklenburg)
+	pattern = "pattern_solid.dds"
+	color1 = "yellow"
+	color2 = "black"
+
+	colored_emblem = {
+		texture = "ce_bull_head_erased_mecklenburg.dds"
+		color1 = color2
+		color2 = color2
+		instance = { position = { 0.5 0.5 } scale = { 0.85 0.85 } }
+	}
+}
+
+BGD = { # Kingdom of Burgundy - azure, a fleur-de-lis or (the Valois lily)
+	pattern = "pattern_solid.dds"
+	color1 = "blue"
+	color2 = "yellow"
+
+	colored_emblem = {
+		texture = "ce_fleur_de_lis.dds"
+		color1 = color2
+		color2 = color2
+		instance = { position = { 0.5 0.5 } scale = { 0.8 0.8 } }
+	}
+}
+
+ILY = { # Illyria - azure, a double-headed eagle argent (the Nemanjic eagle)
+	pattern = "pattern_solid.dds"
+	color1 = "blue"
+	color2 = "white"
+
+	colored_emblem = {
+		texture = "ce_eagle_double_headed_shield.dds"
+		color1 = color2
+		color2 = color2
+		instance = { position = { 0.5 0.5 } scale = { 0.85 0.85 } }
+	}
+}
+
+DAC = { # Dacia - vert, an aurochs head or (the Moldavian aurochs)
+	pattern = "pattern_solid.dds"
+	color1 = "green"
+	color2 = "yellow"
+
+	colored_emblem = {
+		texture = "ce_bull_head_moldavia.dds"
+		color1 = color2
+		color2 = color2
+		instance = { position = { 0.5 0.5 } scale = { 0.85 0.85 } }
+	}
+}
+
+GVO = { # Kingdom of Rus' - azure, a lion crowned or (the lion of Halych)
+	pattern = "pattern_solid.dds"
+	color1 = "blue"
+	color2 = "yellow"
+
+	colored_emblem = {
+		texture = "ce_lion_passant_crowned.dds"
+		color1 = color2
+		color2 = color2
+		instance = { position = { 0.5 0.5 } scale = { 0.85 0.85 } }
+	}
+}
+
+NVR = { # Novgorodian Rus' - argent, a bear rampant sable (the bears of Novgorod)
+	pattern = "pattern_solid.dds"
+	color1 = "white"
+	color2 = "black"
+
+	colored_emblem = {
+		texture = "ce_bear_rampant.dds"
+		color1 = color2
+		color2 = color2
+		instance = { position = { 0.5 0.5 } scale = { 0.85 0.85 } }
+	}
+}
+
+JRS = { # Kingdom of Jerusalem - argent, a cross potent between four crosslets or
+	pattern = "pattern_solid.dds"
+	color1 = "white"
+	color2 = "yellow"
+
+	colored_emblem = {
+		texture = "ce_cross_jerusalem.dds"
+		color1 = color2
+		color2 = color2
+	}
+}
+
+KHO = { # Khorasan - vert, a six-pointed star or
+	pattern = "pattern_solid.dds"
+	color1 = "green"
+	color2 = "yellow"
+
+	colored_emblem = {
+		texture = "ce_star_06_mena.dds"
+		color1 = color2
+		color2 = color2
+		instance = { position = { 0.5 0.5 } scale = { 0.7 0.7 } }
+	}
+}

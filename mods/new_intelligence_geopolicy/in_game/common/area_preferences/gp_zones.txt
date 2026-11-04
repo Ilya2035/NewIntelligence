@@ -1,0 +1,1400 @@
+﻿###################################
+# New Intelligence: Geopolicy - zones of interest (conquest area preferences, prefix gp_)
+#
+# Format: area_preferences/conquest_preferences.txt (preference_type, modifier, area/region lists, consider_capital_region).
+# A country gets its preferences from gp_zone_effects.txt (switch on tag) in three stages (DESIGN section 2):
+#   core   (always)                       modifier 6   - the areas the country must own to exist as itself
+#   sphere (home-region share >= 0.25)    modifier 3   - what it historically contested next
+#   far    (home-region share >= 0.55)    modifier 1.5 - projection of power / colonial reach
+# Vanilla keeps its own preferences (castile_conquer_spain, russia_conquer_region, ottoman_expansion_*...); ours add to them.
+# GP TODO verify: the engine semantics of "modifier" (vanilla uses -0.9 .. 100; generic_conquer_home_region = 20). Our values
+# stay inside the vanilla range and only ever order targets (core > sphere > far); no negative values are used so that
+# nothing can stack below -1 with a vanilla negative preference on the same area.
+# Area / region keys: in_game/map_data/definitions.txt (verified by tools/check_geopolicy_refs.sh against the map).
+###################################
+
+# ---- generic (every country without a tag profile) ---------------------------------------------
+
+gp_generic_home_region = {
+	preference_type = conquest
+	modifier = 10
+	consider_capital_region = yes
+}
+
+# ---- group spheres (assigned by trigger, not by tag) --------------------------------------------
+
+# Anatolian beyliks: the peninsula is the prize (vanilla gives them generic_conquer_home_region).
+gp_anatolia_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	region = anatolia_region
+}
+
+# Post-Ilkhanate emirates: whoever unites Persia takes the Iraqs and Azerbaijan too.
+gp_persia_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	region = persia_region
+	area = iraq_arabi_area
+	area = jazira_area
+}
+
+# ================================================================================================
+# BRITISH ISLES
+# ================================================================================================
+
+# England: the island first; then Scotland's lowlands, the Pale and the old Norman/Angevin coast; far: the rest of
+# Ireland and Gascony (vanilla adds england_conquer_britain 5 / france 15 / ireland 3 on its own).
+gp_eng_core = {
+	preference_type = conquest
+	modifier = 6
+	area = home_counties_area
+	area = east_anglia_area
+	area = midlands_area
+	area = northumbria_area
+	area = west_country_area
+	area = wales_area
+}
+gp_eng_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = scottish_lowlands_area
+	area = leinster_area
+	area = munster_area
+	area = normandy_area
+	area = picardy_area
+	area = brittany_area
+}
+gp_eng_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = scottish_highlands_area
+	area = hebrides_area
+	area = ulster_area
+	area = connaught_area
+	area = guyenne_area
+	area = gascony_area
+	area = poitou_area
+}
+
+# Scotland (and the Balliol claimant): the kingdom, then the Isles' hinterland in Ulster and the Northumbrian marches.
+gp_sco_core = {
+	preference_type = conquest
+	modifier = 6
+	area = scottish_lowlands_area
+	area = scottish_highlands_area
+	area = hebrides_area
+	area = northern_isles_area
+}
+gp_sco_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = northumbria_area
+	area = ulster_area
+}
+
+# Wales: the principality, then the Marches.
+gp_wls_core = {
+	preference_type = conquest
+	modifier = 6
+	area = wales_area
+}
+gp_wls_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = west_country_area
+	area = midlands_area
+}
+
+# ================================================================================================
+# FRANCE
+# ================================================================================================
+
+# France: the whole kingdom is the core (vanilla france_english_holdings 100 drives the English out); the Low Countries
+# are the sphere; northern Italy the far ambition (vanilla adds france_conquer_northern_italy later).
+gp_fra_core = {
+	preference_type = conquest
+	modifier = 6
+	region = france_region
+}
+gp_fra_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = flanders_area
+	area = wallonia_area
+}
+gp_fra_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = piemonte_area
+	area = liguria_area
+}
+
+# Burgundy: the duchy and the county, then the Burgundian Netherlands of the Valois dukes.
+gp_bur_core = {
+	preference_type = conquest
+	modifier = 6
+	area = burgundy_area
+	area = franche_comte_area
+}
+gp_bur_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = flanders_area
+	area = brabant_area
+	area = wallonia_area
+	area = holland_area
+	area = picardy_area
+	area = lorraine_area
+}
+gp_bur_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = friesland_area
+	area = alsace_area
+	area = champagne_area
+}
+
+# Brittany: the duchy, then its Norman and Angevin neighbours.
+gp_bri_core = {
+	preference_type = conquest
+	modifier = 6
+	area = brittany_area
+}
+gp_bri_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = normandy_area
+	area = anjou_area
+	area = poitou_area
+}
+
+# Normandy: the duchy, then Anjou, Picardy and Brittany.
+gp_nrm_core = {
+	preference_type = conquest
+	modifier = 6
+	area = normandy_area
+}
+gp_nrm_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = anjou_area
+	area = picardy_area
+	area = brittany_area
+}
+
+# Aquitaine (the English duchy): Guyenne and Gascony, then Poitou and Languedoc.
+gp_aqn_core = {
+	preference_type = conquest
+	modifier = 6
+	area = guyenne_area
+	area = gascony_area
+}
+gp_aqn_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = poitou_area
+	area = languedoc_area
+}
+
+# Provence (Angevin): the county, then Languedoc and Savoy; far: the Neapolitan claim.
+gp_pro_core = {
+	preference_type = conquest
+	modifier = 6
+	area = provence_area
+}
+gp_pro_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = languedoc_area
+	area = savoy_area
+}
+gp_pro_far = {
+	preference_type = conquest
+	modifier = 1
+	area = campania_area
+}
+
+# Savoy and the Dauphine: both sides of the Alps.
+gp_sav_core = {
+	preference_type = conquest
+	modifier = 6
+	area = savoy_area
+	area = piemonte_area
+}
+gp_sav_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = western_switzerland_area
+	area = lyonnais_area
+	area = liguria_area
+	area = lombardy_area
+}
+
+# ================================================================================================
+# IBERIA (vanilla: castile_conquer_spain 10, morocco_conquer_iberia 10, aragon_conquer_mediterranean_islands 5.5)
+# ================================================================================================
+
+# Castile: the crown lands; the Portuguese and Aragonese crowns are left to vanilla (union through diplomacy).
+gp_cas_core = {
+	preference_type = conquest
+	modifier = 6
+	area = castile_area
+	area = leon_area
+	area = galicia_area
+	area = toledo_area
+	area = extremadura_area
+	area = andalusia_area
+	area = murcia_area
+}
+gp_cas_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = granada_area
+	area = navarre_area
+}
+gp_cas_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = morocco_area
+	area = sus_area
+	area = canary_islands_area
+}
+
+# Aragon: the crown, then the islands, Sicily and Murcia; far: Naples, the Morea of the Catalan Company, Tunis.
+gp_ara_core = {
+	preference_type = conquest
+	modifier = 6
+	area = aragon_area
+	area = catalonia_area
+	area = valencia_area
+	area = balearics_area
+}
+gp_ara_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = sardinia_area
+	area = sicily_area
+	area = murcia_area
+	area = navarre_area
+}
+gp_ara_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = campania_area
+	area = apulia_area
+	area = basilicata_area
+	area = morea_area
+	area = aegean_archipelago_area
+	area = tunis_area
+}
+
+# Portugal: the kingdom; then Galicia (the Portuguese-Castilian wars); far: Ceuta, the Sus, the islands.
+gp_por_core = {
+	preference_type = conquest
+	modifier = 6
+	area = north_portugal_area
+	area = south_portugal_area
+}
+gp_por_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = galicia_area
+	area = extremadura_area
+}
+gp_por_far = {
+	preference_type = conquest
+	modifier = 2
+	area = morocco_area
+	area = sus_area
+	area = canary_islands_area
+	area = azores_area
+	area = south_macaronesia_area
+}
+
+# Navarre: the kingdom, then Gascony and upper Aragon (the Basque lands).
+gp_nav_core = {
+	preference_type = conquest
+	modifier = 6
+	area = navarre_area
+}
+gp_nav_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = gascony_area
+	area = aragon_area
+}
+
+# Granada: the emirate, then Andalusia and Murcia; far: the Maghreb coast.
+gp_gra_core = {
+	preference_type = conquest
+	modifier = 6
+	area = granada_area
+}
+gp_gra_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = andalusia_area
+	area = murcia_area
+}
+gp_gra_far = {
+	preference_type = conquest
+	modifier = 1
+	area = morocco_area
+}
+
+# ================================================================================================
+# NORTHERN GERMANY
+# ================================================================================================
+
+# Brandenburg: the Mark; then Pomerania, Mecklenburg, Lusatia (Upper Saxony), Magdeburg (Lower Saxony) and the
+# Neumark (Greater Poland); far: Silesia, Prussia, Holstein (vanilla adds brandenburg_conquest / prussia_conquest later).
+gp_bra_core = {
+	preference_type = conquest
+	modifier = 6
+	area = brandenburg_area
+}
+gp_bra_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = pomerania_area
+	area = mecklenburg_area
+	area = upper_saxony_area
+	area = lower_saxony_area
+	area = greater_poland_area
+}
+gp_bra_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = silesia_area
+	area = prussia_area
+	area = holstein_area
+}
+
+# Pomeranian dukes (Wolgast, Stettin): the duchy, then Mecklenburg, Pomerelia (Prussia) and the Neumark.
+gp_pom_core = {
+	preference_type = conquest
+	modifier = 6
+	area = pomerania_area
+}
+gp_pom_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = mecklenburg_area
+	area = prussia_area
+	area = greater_poland_area
+}
+
+# Mecklenburg: the duchy, then Pomerania, Holstein and the Elbe.
+gp_mkl_core = {
+	preference_type = conquest
+	modifier = 6
+	area = mecklenburg_area
+}
+gp_mkl_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = pomerania_area
+	area = holstein_area
+	area = lower_saxony_area
+}
+
+# Wettins (Meissen, Thuringia): Upper Saxony, then Hesse, Franconia, Lusatia-Brandenburg and Silesia.
+gp_sax_core = {
+	preference_type = conquest
+	modifier = 6
+	area = upper_saxony_area
+}
+gp_sax_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = hesse_area
+	area = franconia_area
+	area = brandenburg_area
+	area = silesia_area
+}
+
+# Welfs (Brunswick, Lueneburg) and Magdeburg: Lower Saxony, then Westphalia, Holstein and the Mark.
+gp_welf_core = {
+	preference_type = conquest
+	modifier = 6
+	area = lower_saxony_area
+}
+gp_welf_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = westphalia_area
+	area = holstein_area
+	area = brandenburg_area
+}
+
+# Hesse and Mainz: Hesse, then Westphalia, the Rhineland, Franconia and Upper Saxony.
+gp_hes_core = {
+	preference_type = conquest
+	modifier = 6
+	area = hesse_area
+}
+gp_hes_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = westphalia_area
+	area = rhineland_area
+	area = franconia_area
+	area = upper_saxony_area
+}
+
+# Rhenish princes (Cologne, Juelich, Cleves, Berg, Trier): the Rhineland, then Westphalia, Hesse and Brabant.
+gp_rhine_core = {
+	preference_type = conquest
+	modifier = 6
+	area = rhineland_area
+}
+gp_rhine_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = westphalia_area
+	area = hesse_area
+	area = brabant_area
+}
+
+# The Low Countries (Holland, Brabant, Guelders, Utrecht, Flanders, Frisia): the seventeen provinces,
+# then Westphalia, the Rhineland and Picardy (vanilla dutch_conquest 3 covers the Netherlands formable).
+gp_dutch_core = {
+	preference_type = conquest
+	modifier = 6
+	area = holland_area
+	area = brabant_area
+	area = friesland_area
+	area = flanders_area
+	area = wallonia_area
+}
+gp_dutch_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = westphalia_area
+	area = rhineland_area
+	area = picardy_area
+}
+
+# Luxembourg and Lorraine: Wallonia / Lorraine, then the neighbours along the Moselle.
+gp_lux_core = {
+	preference_type = conquest
+	modifier = 6
+	area = wallonia_area
+	area = lorraine_area
+}
+gp_lux_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = rhineland_area
+	area = champagne_area
+	area = alsace_area
+	area = franche_comte_area
+}
+
+# ================================================================================================
+# SOUTHERN GERMANY (vanilla: austria_minor_conquest 10 + austria_swiss_intention 2, bohemia_core_region 5)
+# ================================================================================================
+
+# Austria: core from vanilla; sphere: Bavaria, Swabia (Vorlande), Bohemia, Moravia, western Hungary, Friuli;
+# far: the Hungarian plain and the Croatian lands (vanilla adds austria_hungary_conquest / empire_conquest at 1450+).
+gp_hab_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = bavaria_area
+	area = swabia_area
+	area = upper_rhine_area
+	area = bohemia_area
+	area = moravia_area
+	area = transdanubia_area
+	area = veneto_area
+}
+gp_hab_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = north_alfold_area
+	area = south_alfold_area
+	area = slovakia_area
+	area = transylvania_area
+	area = croatia_area
+	area = slavonia_area
+	area = bosnia_area
+}
+
+# Bavaria (Upper and Lower): the duchy, then Tyrol, Salzburg, the Innviertel, eastern Swabia and Franconia.
+gp_bav_core = {
+	preference_type = conquest
+	modifier = 6
+	area = bavaria_area
+}
+gp_bav_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = tirol_area
+	area = salzburg_area
+	area = upper_austria_area
+	area = swabia_area
+	area = franconia_area
+}
+
+# Bohemia: core from vanilla; sphere: Lusatia, Brandenburg (Charles IV bought it), the Upper Palatinate, Lower Austria;
+# far: Slovakia and the Polish lands.
+gp_boh_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = upper_saxony_area
+	area = brandenburg_area
+	area = bavaria_area
+	area = austria_area
+}
+gp_boh_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = slovakia_area
+	area = greater_poland_area
+	area = lesser_poland_area
+}
+
+# Swabian princes (Wuerttemberg, Baden, the Palatinate): Swabia and the Upper Rhine, then Alsace, Raetia,
+# Franconia and Bavaria.
+gp_swabia_core = {
+	preference_type = conquest
+	modifier = 6
+	area = swabia_area
+	area = upper_rhine_area
+}
+gp_swabia_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = alsace_area
+	area = eastern_switzerland_area
+	area = franconia_area
+	area = bavaria_area
+}
+
+# Franconian princes (Wuerzburg, Nuremberg): Franconia, then Swabia, Hesse, Upper Saxony and Bavaria.
+gp_franconia_core = {
+	preference_type = conquest
+	modifier = 6
+	area = franconia_area
+}
+gp_franconia_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = swabia_area
+	area = hesse_area
+	area = upper_saxony_area
+	area = bavaria_area
+}
+
+# Swiss cantons: the three Switzerlands, then Vaud (Savoy), Alsace, Vorarlberg (Tyrol), Ticino (Lombardy).
+gp_swiss_core = {
+	preference_type = conquest
+	modifier = 6
+	area = central_switzerland_area
+	area = eastern_switzerland_area
+	area = western_switzerland_area
+}
+gp_swiss_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = savoy_area
+	area = alsace_area
+	area = tirol_area
+	area = lombardy_area
+	area = upper_rhine_area
+}
+
+# ================================================================================================
+# ITALY (vanilla: naples_conquer_siciliy 10, siciliy_conquer_naples 10, venice_conquest 3)
+# ================================================================================================
+
+# Milan: Lombardy, then Piedmont, Emilia, Liguria, the Veneto; far: Tuscany.
+gp_mlo_core = {
+	preference_type = conquest
+	modifier = 6
+	area = lombardy_area
+}
+gp_mlo_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = piemonte_area
+	area = emilia_area
+	area = liguria_area
+	area = veneto_area
+}
+gp_mlo_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = tuscany_area
+}
+
+# Venice: the Terraferma, then Lombardy and Romagna; far: Dalmatia, Albania, Carniola (the Stato da Mar is vanilla's).
+gp_ven_core = {
+	preference_type = conquest
+	modifier = 6
+	area = veneto_area
+}
+gp_ven_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = lombardy_area
+	area = emilia_area
+}
+gp_ven_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = slovenia_area
+	area = croatia_area
+	area = albania_area
+}
+
+# Genoa: Liguria and Corsica, then Piedmont, Sardinia and Tuscany; far: Kaffa and Chios.
+gp_gen_core = {
+	preference_type = conquest
+	modifier = 6
+	area = liguria_area
+}
+gp_gen_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = piemonte_area
+	area = sardinia_area
+	area = tuscany_area
+}
+gp_gen_far = {
+	preference_type = conquest
+	modifier = 1
+	area = crimea_area
+	area = aegean_archipelago_area
+}
+
+# Florence: Tuscany, then Romagna, Umbria-Marche and Liguria.
+gp_flo_core = {
+	preference_type = conquest
+	modifier = 6
+	area = tuscany_area
+}
+gp_flo_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = emilia_area
+	area = marche_area
+	area = liguria_area
+}
+
+# The Papacy: the Patrimony of St Peter, Romagna and the Marches; sphere: Tuscany, Campania, Abruzzi.
+gp_pap_core = {
+	preference_type = conquest
+	modifier = 6
+	area = lazio_area
+	area = marche_area
+	area = emilia_area
+}
+gp_pap_sphere = {
+	preference_type = conquest
+	modifier = 1.5
+	area = tuscany_area
+	area = campania_area
+	area = abruzzo_area
+}
+
+# Naples: the Regno (vanilla reunites Sicily); sphere: Lazio, Albania and the Morea of the Angevin princes of Achaea.
+gp_nap_core = {
+	preference_type = conquest
+	modifier = 6
+	area = campania_area
+	area = apulia_area
+	area = basilicata_area
+	area = abruzzo_area
+}
+gp_nap_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = lazio_area
+	area = albania_area
+	area = morea_area
+}
+
+# Sicily: the island (vanilla retakes Naples); far: Malta's Hafsid neighbour and Sardinia.
+gp_sic_core = {
+	preference_type = conquest
+	modifier = 6
+	area = sicily_area
+}
+gp_sic_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = tunis_area
+	area = sardinia_area
+}
+
+# Smaller northern signorie (Verona, Mantua, Aquileia): the Veneto / Lombardy, then Emilia.
+gp_signoria_core = {
+	preference_type = conquest
+	modifier = 6
+	area = veneto_area
+	area = lombardy_area
+}
+gp_signoria_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = emilia_area
+	area = slovenia_area
+}
+
+# ================================================================================================
+# SCANDINAVIA
+# ================================================================================================
+
+# Denmark: the islands and Scania, then Holstein, Mecklenburg, Gotland and the Norwegian union; far: Sweden, Ruegen, Iceland.
+gp_dan_core = {
+	preference_type = conquest
+	modifier = 6
+	area = denmark_area
+	area = skaneland_area
+}
+gp_dan_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = holstein_area
+	area = mecklenburg_area
+	area = gotaland_area
+	area = syd_norge_area
+}
+gp_dan_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = svealand_area
+	area = pomerania_area
+	area = iceland_area
+}
+
+# Sweden: Svealand, Goetaland and Finland; then Norrland, Scania, Karelia; far: Estonia, Ingria and the union crowns
+# (vanilla adds sweden_swedish_empire_conquests 15 at 1600).
+gp_swe_core = {
+	preference_type = conquest
+	modifier = 6
+	area = svealand_area
+	area = gotaland_area
+	area = finland_area
+}
+gp_swe_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = norrland_area
+	area = skaneland_area
+	area = karelia_area
+}
+gp_swe_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = baltic_area
+	area = west_novgorod_area
+	area = denmark_area
+	area = syd_norge_area
+}
+
+# Norway: the two Norways, then the Atlantic islands and Bohuslaen; far: Denmark and Greenland.
+gp_nor_core = {
+	preference_type = conquest
+	modifier = 6
+	area = syd_norge_area
+	area = nord_norge_area
+}
+gp_nor_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = iceland_area
+	area = northern_isles_area
+	area = gotaland_area
+	area = hebrides_area
+}
+gp_nor_far = {
+	preference_type = conquest
+	modifier = 1
+	area = denmark_area
+	area = greenland_area
+}
+
+# ================================================================================================
+# POLAND, THE ORDER, LITHUANIA (vanilla: poland_conquer_prussia 5 / ruthenia 2.5, lithuania_conquer_livonia 10 / ruthenia 5)
+# ================================================================================================
+
+# Poland: the Crown lands; then Silesia, Pomerelia, Red Ruthenia, Podolia, Volhynia (Casimir's conquest of 1340-66)
+# and the Lithuanian union; far: Moldavia, Pomerania, White Ruthenia.
+gp_pol_core = {
+	preference_type = conquest
+	modifier = 6
+	area = greater_poland_area
+	area = lesser_poland_area
+	area = central_poland_area
+	area = mazovia_area
+}
+gp_pol_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = silesia_area
+	area = prussia_area
+	area = red_ruthenia_area
+	area = podolia_area
+	area = volhynia_area
+	area = lithuania_area
+	area = samogitia_area
+}
+gp_pol_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = moldavia_area
+	area = pomerania_area
+	area = white_ruthenia_area
+}
+
+# The Teutonic Order: Prussia, then Livonia, Samogitia, Pomerelia and Mazovia; far: Lithuania itself.
+gp_teu_core = {
+	preference_type = conquest
+	modifier = 6
+	area = prussia_area
+}
+gp_teu_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = baltic_area
+	area = samogitia_area
+	area = pomerania_area
+	area = mazovia_area
+}
+gp_teu_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = lithuania_area
+}
+
+# Lithuania: Aukstaitija, Samogitia and Black Ruthenia; then the Rus' lands of Gediminas and Algirdas; far: the steppe
+# frontier, Severia, Podolia and Livonia.
+gp_lit_core = {
+	preference_type = conquest
+	modifier = 6
+	area = lithuania_area
+	area = samogitia_area
+	area = black_ruthenia_area
+}
+gp_lit_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = white_ruthenia_area
+	area = polesia_area
+	area = volhynia_area
+	area = right_bank_ukraine_area
+	area = smolensk_area
+}
+gp_lit_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = left_bank_ukraine_area
+	area = severia_area
+	area = podolia_area
+	area = baltic_area
+}
+
+# Mazovian Piasts (Rawa, Czersk, Plock): Mazovia, then central Poland and the Prussian border.
+gp_maz_core = {
+	preference_type = conquest
+	modifier = 6
+	area = mazovia_area
+}
+gp_maz_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = central_poland_area
+	area = prussia_area
+}
+
+# Livonia (the Order's branch and Riga): the Baltic coast, then Courland-Samogitia and the Pskov border.
+gp_liv_core = {
+	preference_type = conquest
+	modifier = 6
+	area = baltic_area
+}
+gp_liv_sphere = {
+	preference_type = conquest
+	modifier = 1.5
+	area = samogitia_area
+	area = west_novgorod_area
+}
+
+# ================================================================================================
+# RUS' (vanilla: russia_conquer_region 25 for every country with its capital in the Russian region, novgorod_conquest 3)
+# ================================================================================================
+
+# Muscovy: the Rus' region is vanilla's; sphere: Smolensk, Nizhny Novgorod, Beloozero; far: Novgorod's north,
+# Severia, the Left Bank and Kazan.
+gp_mos_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = smolensk_area
+	area = nizhny_novgorod_area
+	area = beloozero_area
+}
+gp_mos_far = {
+	preference_type = conquest
+	modifier = 2
+	area = west_novgorod_area
+	area = east_novgorod_area
+	area = severia_area
+	area = left_bank_ukraine_area
+	area = kazan_area
+}
+
+# Novgorod: the republic's lands and the far north; then Tver, Totma, Vyatka (vanilla adds the Baltic/Karelia/Kola).
+gp_nov_core = {
+	preference_type = conquest
+	modifier = 6
+	area = west_novgorod_area
+	area = east_novgorod_area
+	area = beloozero_area
+	area = pomorye_area
+	area = arkhangelsk_area
+}
+gp_nov_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = tver_area
+	area = totma_area
+	area = vyatka_area
+}
+
+# Kyiv: the Right Bank, then the Left Bank, Polesia and Podolia.
+gp_kie_core = {
+	preference_type = conquest
+	modifier = 6
+	area = right_bank_ukraine_area
+}
+gp_kie_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = left_bank_ukraine_area
+	area = polesia_area
+	area = podolia_area
+}
+
+# Halych and Volhynia (the Kingdom of Rus'): Red Ruthenia and Volhynia, then Podolia, Polesia and Black Ruthenia.
+gp_hal_core = {
+	preference_type = conquest
+	modifier = 6
+	area = red_ruthenia_area
+	area = volhynia_area
+}
+gp_hal_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = podolia_area
+	area = polesia_area
+	area = black_ruthenia_area
+}
+
+# The Golden Horde: the steppe, then the Volga Bulgar lands; far: the northern Caucasus and the Ruthenian border.
+gp_glh_core = {
+	preference_type = conquest
+	modifier = 5
+	region = steppes_region
+}
+gp_glh_sphere = {
+	preference_type = conquest
+	modifier = 3
+	region = ural_region
+}
+gp_glh_far = {
+	preference_type = conquest
+	modifier = 2
+	area = northern_caucasus_area
+	area = left_bank_ukraine_area
+	area = severia_area
+	area = podolia_area
+}
+
+# ================================================================================================
+# CARPATHIA AND THE BALKANS (vanilla: byzantium_conquer_anatolia 5 / balkans 5 / italy 2.5)
+# ================================================================================================
+
+# Hungary: the kingdom of St Stephen; then Croatia, Slavonia, Bosnia, Serbia, Wallachia, Moldavia, Carniola;
+# far: Bulgaria, Lower Austria, Styria.
+gp_hun_core = {
+	preference_type = conquest
+	modifier = 6
+	area = north_alfold_area
+	area = south_alfold_area
+	area = transdanubia_area
+	area = slovakia_area
+	area = transylvania_area
+}
+gp_hun_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = croatia_area
+	area = slavonia_area
+	area = bosnia_area
+	area = serbia_area
+	area = wallachia_area
+	area = moldavia_area
+	area = slovenia_area
+}
+gp_hun_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = bulgaria_area
+	area = austria_area
+	area = styria_area
+}
+
+# Wallachia: the principality, then Moldavia, Transylvania and Dobruja.
+gp_wal_core = {
+	preference_type = conquest
+	modifier = 6
+	area = wallachia_area
+}
+gp_wal_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = moldavia_area
+	area = transylvania_area
+	area = bulgaria_area
+}
+
+# Moldavian principalities (Iasi, Baia, Barlad): Moldavia, then Wallachia and Pokuttia.
+gp_mol_core = {
+	preference_type = conquest
+	modifier = 6
+	area = moldavia_area
+}
+gp_mol_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = wallachia_area
+	area = podolia_area
+}
+
+# Byzantium: Thrace, Macedonia, the Morea, Epirus-Thessaly and the islands; then Bulgaria, Albania and the Asian shore;
+# far: Serbia, central Anatolia and Pontus.
+gp_byz_core = {
+	preference_type = conquest
+	modifier = 6
+	area = thrace_area
+	area = macedonia_area
+	area = morea_area
+	area = northern_greece_area
+	area = aegean_archipelago_area
+}
+gp_byz_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = bulgaria_area
+	area = albania_area
+	area = west_anatolia_area
+	area = marmara_area
+}
+gp_byz_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = serbia_area
+	area = central_anatolia_area
+	area = pontus_area
+}
+
+# Serbia: Rascia and Macedonia (Dusan's empire); then Albania, Thessaly, Bosnia, western Bulgaria; far: Thrace, the Morea.
+gp_ser_core = {
+	preference_type = conquest
+	modifier = 6
+	area = serbia_area
+	area = macedonia_area
+}
+gp_ser_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = albania_area
+	area = northern_greece_area
+	area = bosnia_area
+	area = bulgaria_area
+}
+gp_ser_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = thrace_area
+	area = morea_area
+}
+
+# Bulgaria: the tsardom, then Thrace, Macedonia and Wallachia.
+gp_bul_core = {
+	preference_type = conquest
+	modifier = 6
+	area = bulgaria_area
+}
+gp_bul_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = thrace_area
+	area = macedonia_area
+	area = wallachia_area
+}
+
+# Bosnia: the banate, then Croatia, Serbia and Slavonia (Tvrtko's crown of 1377).
+gp_bos_core = {
+	preference_type = conquest
+	modifier = 6
+	area = bosnia_area
+}
+gp_bos_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = croatia_area
+	area = serbia_area
+	area = slavonia_area
+}
+
+# Croatia: Croatia and Slavonia, then Bosnia and Carniola.
+gp_cro_core = {
+	preference_type = conquest
+	modifier = 6
+	area = croatia_area
+	area = slavonia_area
+}
+gp_cro_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = bosnia_area
+	area = slovenia_area
+}
+
+# Albanian and Epirote lords: Albania, then Macedonia and Epirus-Thessaly.
+gp_alb_core = {
+	preference_type = conquest
+	modifier = 6
+	area = albania_area
+}
+gp_alb_sphere = {
+	preference_type = conquest
+	modifier = 1.5
+	area = macedonia_area
+	area = northern_greece_area
+}
+
+# Achaea: the Morea, then Thessaly and the Aegean.
+gp_ach_core = {
+	preference_type = conquest
+	modifier = 6
+	area = morea_area
+}
+gp_ach_sphere = {
+	preference_type = conquest
+	modifier = 1.5
+	area = northern_greece_area
+	area = aegean_archipelago_area
+}
+
+# ================================================================================================
+# ANATOLIA, CAUCASUS, NEAR EAST (vanilla: ottoman_expansion_* added by date from 1337 on)
+# ================================================================================================
+
+# The Ottomans: Bithynia, the Aegean shore and Thrace; then the rest of Anatolia and the southern Balkans; far: the
+# western Balkans, Cilicia, Armenia, the Jazira and the Levant. The stage logic (share of the home region) replaces
+# vanilla's dates: the Balkans open once Anatolia is a quarter Ottoman, the Levant once it is half.
+gp_tur_core = {
+	preference_type = conquest
+	modifier = 6
+	area = marmara_area
+	area = west_anatolia_area
+	area = thrace_area
+}
+gp_tur_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = central_anatolia_area
+	area = cappadocia_area
+	area = pontus_area
+	area = bulgaria_area
+	area = macedonia_area
+	area = northern_greece_area
+}
+gp_tur_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = morea_area
+	area = serbia_area
+	area = bosnia_area
+	area = albania_area
+	area = cilicia_area
+	area = armenia_area
+	area = jazira_area
+	area = levant_area
+}
+
+# Trebizond: Pontus, then Lazica (Georgia) and the Armenian highlands.
+gp_tre_core = {
+	preference_type = conquest
+	modifier = 6
+	area = pontus_area
+}
+gp_tre_sphere = {
+	preference_type = conquest
+	modifier = 1.5
+	area = georgia_area
+	area = armenian_highlands_area
+}
+
+# Cilician Armenia: Cilicia, then the northern Levant and Cappadocia.
+gp_cil_core = {
+	preference_type = conquest
+	modifier = 6
+	area = cilicia_area
+}
+gp_cil_sphere = {
+	preference_type = conquest
+	modifier = 1.5
+	area = levant_area
+	area = cappadocia_area
+}
+
+# The Mamluks: Egypt, the Levant and Sinai; then the Hejaz (protection of the holy cities), Cyrenaica, the Jazira,
+# Cilicia; far: Yemen and the Red Sea trade, Iraq, Nubia.
+gp_mam_core = {
+	preference_type = conquest
+	modifier = 6
+	area = lower_egypt_area
+	area = upper_egypt_area
+	area = levant_area
+	area = sinai_area
+}
+gp_mam_sphere = {
+	preference_type = conquest
+	modifier = 3
+	area = hedjaz_area
+	area = cyrenaica_area
+	area = jazira_area
+	area = cilicia_area
+}
+gp_mam_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = north_yemen_area
+	area = iraq_arabi_area
+	region = nubia_region
+}
+
+# Yemen (Rasulids): both Yemens, then the Hejaz, Oman and the Najd.
+gp_yem_core = {
+	preference_type = conquest
+	modifier = 6
+	area = north_yemen_area
+	area = south_yemen_area
+}
+gp_yem_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = hedjaz_area
+	area = oman_area
+	area = najd_area
+}
+
+# Georgia: the kingdom, then Armenia, Shirvan, the northern Caucasus and the highlands; far: Pontus and Azerbaijan.
+gp_geo_core = {
+	preference_type = conquest
+	modifier = 6
+	area = georgia_area
+}
+gp_geo_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = armenia_area
+	area = shirvan_area
+	area = northern_caucasus_area
+	area = armenian_highlands_area
+}
+gp_geo_far = {
+	preference_type = conquest
+	modifier = 1.5
+	area = pontus_area
+	area = azerbaijan_area
+}
+
+# The Kartids of Herat: Khorasan, then Quhistan, Sistan, Mazandaran and Transoxiana.
+gp_krt_core = {
+	preference_type = conquest
+	modifier = 6
+	area = western_khorasan_area
+	area = eastern_khorasan_area
+}
+gp_krt_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = quhestan_area
+	area = sistan_area
+	area = mazandaran_area
+	area = transoxiana_area
+}
+
+# Chagatai: Transoxiana, Zhetysu and Khwarazm; then eastern Khorasan and Badakhshan.
+gp_chg_core = {
+	preference_type = conquest
+	modifier = 6
+	area = transoxiana_area
+	area = zhetysu_area
+	area = khwarazm_area
+}
+gp_chg_sphere = {
+	preference_type = conquest
+	modifier = 2
+	area = eastern_khorasan_area
+	area = badakhshan_area
+}
+
+# ================================================================================================
+# MAGHREB (vanilla: morocco_conquer_iberia 10)
+# ================================================================================================
+
+# Marinid Morocco: al-Maghrib al-Aqsa and the Sus, then the central Maghreb and the Sahara coast.
+gp_mor_core = {
+	preference_type = conquest
+	modifier = 6
+	area = morocco_area
+	area = sus_area
+}
+gp_mor_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = algiers_area
+	area = western_sahara_area
+}
+
+# Zayyanid Tlemcen: the central Maghreb, then Morocco, Ifriqiya and the high plateau.
+gp_tle_core = {
+	preference_type = conquest
+	modifier = 6
+	area = algiers_area
+}
+gp_tle_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = morocco_area
+	area = tunis_area
+	area = atlas_high_plateau
+}
+
+# Hafsid Tunis: Ifriqiya, then Tripolitania and the central Maghreb; far: Sicily, Sardinia, Cyrenaica.
+gp_tun_core = {
+	preference_type = conquest
+	modifier = 6
+	area = tunis_area
+}
+gp_tun_sphere = {
+	preference_type = conquest
+	modifier = 2.5
+	area = tripolitania_area
+	area = algiers_area
+}
+gp_tun_far = {
+	preference_type = conquest
+	modifier = 1
+	area = sicily_area
+	area = sardinia_area
+	area = cyrenaica_area
+}
