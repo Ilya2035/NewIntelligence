@@ -1,0 +1,332 @@
+﻿# =====================================================================================================
+# Concentrated Warfare - war stance effects (module ai_stance). Scope: country (this = the country).
+#
+# Ints (SPEC §7): 0 unknown, 1 offensive, 2 defensive, 3 waiting, 4 harassing.
+# Country variables:  cw_stance (AI), cw_stance_lock (AI, expiring 2 months: at most one change per lock),
+#                     cw_stance_changed (AI, expiring 1 month, armed only when the stance actually changes: the human
+#                     enemy's "intelligence delay" - balance review 15 §3.3, separate from the lock on purpose),
+#                     cw_enemy_stance (human), cw_enemy_stance_source (human, scope variable = enemy country),
+#                     cw_find_enemy_best (scratch, exists only while cw_find_main_enemy runs).
+# Country modifiers:  cw_stance_offensive / _defensive / _waiting / _harassing (main_menu/common/static_modifiers/
+#                     cw_country_modifiers.txt), AI only, re-applied monthly with months = 2 so they self-expire.
+# Entry point for every hook: cw_stance_update (cw_stance_on_actions.txt). Everything else is internal.
+#
+# Scope discipline: the effects are also called as scope:actor = { ... } / scope:recipient = { ... } from
+# on_war_declared, where root is NOT this country, so inside iterators we never use root - cw_find_main_enemy
+# saves scope:cw_self (= this) and every trigger/effect below refers to it.
+#
+# Deviation from SPEC §7 / §13: the player notification is the event cw_stance.1 (namespace cw_stance,
+# in_game/events/cw_stance_events.txt, owned by this module), not cw_events.3 in cw_events.txt [hq_core].
+# hq_core must NOT add a cw_events.3; SPEC §7/§13 and the file table are to be updated to cw_stance.1.
+# =====================================================================================================
+
+# -----------------------------------------------------------------------------------------------------
+# cw_stance_update - dispatcher (idempotent; safe to call from any hook for any eligible country)
+# -----------------------------------------------------------------------------------------------------
+cw_stance_update = {
+	if = {
+		# at peace: drop every stance artefact (modifiers, variables); also used by on_ending_war
+		limit = { at_war = no }
+		cw_clear_stance = yes
+	}
+	else_if = {
+		limit = { is_ai = yes }
+		cw_update_war_stance = yes
+	}
+	else = {
+		cw_update_player_enemy_stance = yes
+	}
+}
+
+# -----------------------------------------------------------------------------------------------------
+# cw_find_main_enemy - saves scope:cw_self (= this country) and scope:cw_enemy (the enemy war leader of
+# the war whose enemy leader has the largest military_strength). Civil wars and wars led by non-real
+# countries (rebels, pirates) are skipped. After the call scope:cw_enemy may NOT exist (only such wars) -
+# always test exists = scope:cw_enemy before using it.
+# The candidate test runs INSIDE the null-safe leader block (cw_consider_enemy_candidate), so no temporary scope
+# can leak from one war into the next (a war with a null leader link simply tests nothing).
+# Syntax: every_current_war / is_civil_war_for / is_an_attacker / attacker_leader / defender_leader
+# (research 04 §4.2), "link ?= { effects }" (scripted_effects/character_effects.txt:4 "owner ?= { if = ... }"),
+# military_strength comparisons (hre.txt:1793), set_variable value = scope.value (autocephalous_patriarchates.txt:422,
+# country_interactions/hre.txt:1797 "value = scope:actor.military_strength"), clear_saved_scope (_hardcoded.txt:222).
+# -----------------------------------------------------------------------------------------------------
+cw_find_main_enemy = {
+	save_scope_as = cw_self
+	# a stale scope:cw_enemy from an earlier country in the same effect chain must not survive
+	if = {
+		limit = { exists = scope:cw_enemy }
+		clear_saved_scope = cw_enemy
+	}
+	# scratch variable: strength of the best candidate so far (-1 = none yet); removed at the end
+	set_variable = {
+		name = cw_find_enemy_best
+		value = -1
+	}
+	every_current_war = {
+		limit = { NOT = { is_civil_war_for = scope:cw_self } }
+		# the enemy leader is the leader of the other side
+		if = {
+			limit = { is_an_attacker = scope:cw_self }
+			defender_leader ?= { cw_consider_enemy_candidate = yes }
+		}
+		else = {
+			attacker_leader ?= { cw_consider_enemy_candidate = yes }
+		}
+	}
+	remove_variable = cw_find_enemy_best
+}
+
+# Scope: a country (an enemy war leader). Records it as scope:cw_enemy when it is a real country and stronger than
+# the best candidate so far (strict ">": ties keep the earlier war's leader). ".var:" on a trigger right-hand side:
+# missions/generic_capital_economy_mission_pack.txt:115.
+cw_consider_enemy_candidate = {
+	if = {
+		limit = {
+			is_real_country = yes
+			military_strength > scope:cw_self.var:cw_find_enemy_best
+		}
+		save_scope_as = cw_enemy
+		scope:cw_self = {
+			set_variable = {
+				name = cw_find_enemy_best
+				value = scope:cw_enemy.military_strength
+			}
+		}
+	}
+}
+
+# -----------------------------------------------------------------------------------------------------
+# cw_update_war_stance - AI country at war (SPEC §7.1-7.5). Priority: harassing > offensive > waiting > defensive.
+# The decision triggers (cw_stance_triggers.txt) carry the dead bands: a stance is entered at its entry bound and
+# only left once the ratio crosses the exit bound, so parity wars do not flip at every lock expiry. They also hold
+# the fielded-strength term (army_size vs the enemy's, read live - no variable needed) and the offensive war-score
+# floor, both from balance review 15 §3.3.
+# -----------------------------------------------------------------------------------------------------
+cw_update_war_stance = {
+	# a country that was human earlier may still carry the player-side mirror variables (cheap checks)
+	cw_clear_player_enemy_stance = yes
+	cw_find_main_enemy = yes
+	if = {
+		limit = { exists = scope:cw_enemy }
+		if = {
+			limit = { cw_should_be_harassing = yes }
+			cw_try_switch_stance = { stance = harassing }
+		}
+		else_if = {
+			limit = { cw_should_be_offensive = yes }
+			cw_try_switch_stance = { stance = offensive }
+		}
+		else_if = {
+			limit = { cw_should_be_waiting = yes }
+			cw_try_switch_stance = { stance = waiting }
+		}
+		else = {
+			cw_try_switch_stance = { stance = defensive }
+		}
+	}
+	else = {
+		# only civil wars / rebel wars: no stance at all
+		cw_clear_ai_stance = yes
+	}
+}
+
+# -----------------------------------------------------------------------------------------------------
+# cw_try_switch_stance = { stance = offensive|defensive|waiting|harassing }
+# Hysteresis in time (SPEC §7.4): switch only when the desired stance differs from the current one AND no
+# cw_stance_lock exists; a switch sets the lock for 2 months AND arms cw_stance_changed for 1 month - the
+# human enemy's intelligence delay (cw_enemy_stance_is_readable reads "Unknown" only while it exists, not for
+# the whole lock; balance review 15 §3.3). Otherwise the current modifier is refreshed so it never lapses while
+# the country stays at war.
+# cw_stance_is_$stance$ are scripted triggers (cw_stance_triggers.txt); $-substitution builds the name
+# (scripted_effects/readme.txt pattern "my_argumented_effect_$type$").
+# -----------------------------------------------------------------------------------------------------
+cw_try_switch_stance = {
+	if = {
+		limit = {
+			NOT = { has_variable = cw_stance_lock }
+			NOT = { cw_stance_is_$stance$ = yes }
+		}
+		cw_set_stance = { stance = $stance$ }
+		# balance knob: 2 months (SPEC §3 cw_stance_lock_months). Literal on purpose: a named script value as a
+		# set_variable duration is never used in vanilla (research 04 §2.1 lists only literal days/months/years).
+		set_variable = {
+			name = cw_stance_lock
+			value = yes
+			months = 2
+		}
+		# intelligence delay: 1 month (cw_stance_values.txt, "hysteresis in time"). Expiring "months = 1" variable:
+		# scripted_effects/country_effects.txt:2644-2647.
+		set_variable = {
+			name = cw_stance_changed
+			value = yes
+			months = 1
+		}
+	}
+	else = {
+		cw_refresh_stance_modifier = yes
+	}
+}
+
+# -----------------------------------------------------------------------------------------------------
+# cw_set_stance = { stance = offensive|defensive|waiting|harassing }
+# Applies the matching country modifier (replacing the other three) and stores the id in var:cw_stance.
+# Does NOT touch the lock or cw_stance_changed - callers decide (cw_try_switch_stance sets both; debug/manual
+# callers may not).
+# add_country_modifier form: events/culture/cultural_event.txt:236 (months = N mode = replace).
+# -----------------------------------------------------------------------------------------------------
+cw_set_stance = {
+	cw_remove_stance_modifiers = yes
+	add_country_modifier = {
+		modifier = cw_stance_$stance$
+		months = 2
+		mode = replace
+	}
+	cw_set_stance_id_$stance$ = yes
+}
+
+# id writers (literal ints; keep in sync with cw_stance_id_* in cw_stance_values.txt)
+cw_set_stance_id_offensive = {
+	set_variable = { name = cw_stance value = 1 }
+}
+cw_set_stance_id_defensive = {
+	set_variable = { name = cw_stance value = 2 }
+}
+cw_set_stance_id_waiting = {
+	set_variable = { name = cw_stance value = 3 }
+}
+cw_set_stance_id_harassing = {
+	set_variable = { name = cw_stance value = 4 }
+}
+
+# Re-applies the modifier of the current var:cw_stance (duration reset to 2 months); no-op without a stance.
+cw_refresh_stance_modifier = {
+	if = {
+		limit = { cw_stance_is_offensive = yes }
+		add_country_modifier = { modifier = cw_stance_offensive months = 2 mode = replace }
+	}
+	else_if = {
+		limit = { cw_stance_is_defensive = yes }
+		add_country_modifier = { modifier = cw_stance_defensive months = 2 mode = replace }
+	}
+	else_if = {
+		limit = { cw_stance_is_waiting = yes }
+		add_country_modifier = { modifier = cw_stance_waiting months = 2 mode = replace }
+	}
+	else_if = {
+		limit = { cw_stance_is_harassing = yes }
+		add_country_modifier = { modifier = cw_stance_harassing months = 2 mode = replace }
+	}
+}
+
+# Removes whichever stance modifiers are present (guarded: no tooltip noise, no error for absent ones).
+cw_remove_stance_modifiers = {
+	if = {
+		limit = { has_country_modifier = cw_stance_offensive }
+		remove_country_modifier = cw_stance_offensive
+	}
+	if = {
+		limit = { has_country_modifier = cw_stance_defensive }
+		remove_country_modifier = cw_stance_defensive
+	}
+	if = {
+		limit = { has_country_modifier = cw_stance_waiting }
+		remove_country_modifier = cw_stance_waiting
+	}
+	if = {
+		limit = { has_country_modifier = cw_stance_harassing }
+		remove_country_modifier = cw_stance_harassing
+	}
+}
+
+# -----------------------------------------------------------------------------------------------------
+# cw_clear_stance - everything off (peace, or is_ai = no, SPEC §7). Split into the AI and the player half
+# so each branch of cw_stance_update can cheaply drop the other side's leftovers.
+# -----------------------------------------------------------------------------------------------------
+cw_clear_stance = {
+	cw_clear_ai_stance = yes
+	cw_clear_player_enemy_stance = yes
+}
+
+cw_clear_ai_stance = {
+	cw_remove_stance_modifiers = yes
+	if = {
+		limit = { has_variable = cw_stance }
+		remove_variable = cw_stance
+	}
+	if = {
+		limit = { has_variable = cw_stance_lock }
+		remove_variable = cw_stance_lock
+	}
+	if = {
+		limit = { has_variable = cw_stance_changed }
+		remove_variable = cw_stance_changed
+	}
+}
+
+cw_clear_player_enemy_stance = {
+	if = {
+		limit = { has_variable = cw_enemy_stance }
+		remove_variable = cw_enemy_stance
+	}
+	if = {
+		limit = { has_variable = cw_enemy_stance_source }
+		remove_variable = cw_enemy_stance_source
+	}
+}
+
+# -----------------------------------------------------------------------------------------------------
+# cw_update_player_enemy_stance - human country at war (SPEC §7, "cw_update_player_enemy_stance").
+# Same main-enemy search; cw_enemy_stance = enemy.var:cw_stance unless the enemy changed stance less than
+# 1 month ago (it still carries cw_stance_changed -> 0 unknown, the "intelligence delay"; NOT the 2-month
+# cw_stance_lock, balance review 15 §3.3) or the enemy is human / has no stance (0). cw_enemy_stance_source = the
+# enemy (for the plate tooltip).
+# Change detection (cw_player_enemy_stance_change_is_reportable, cw_stance_triggers.txt) runs on LAST month's
+# reading before it is overwritten: same main enemy as last month, a previous reading exists, the enemy's stance
+# is readable now and differs. A new or replaced main enemy and the first reading of a war therefore never
+# report a "change". Only with the game rule setting cw_stance_events_on (rule cw_rule_stance_events, off by
+# default) the notification event cw_stance.1 fires; it reads the NEW var:cw_enemy_stance for its text, hence
+# the reading is written first. No scratch variables are needed (the old persistent cw_enemy_stance_prev is gone).
+# -----------------------------------------------------------------------------------------------------
+cw_update_player_enemy_stance = {
+	# a human took over an AI country: drop the AI-only stance modifiers and variables (cheap checks)
+	cw_clear_ai_stance = yes
+	cw_find_main_enemy = yes
+	if = {
+		limit = { exists = scope:cw_enemy }
+		if = {
+			limit = { cw_player_enemy_stance_change_is_reportable = yes }
+			cw_record_player_enemy_stance = yes
+			trigger_event_non_silently = { id = cw_stance.1 }
+		}
+		else = {
+			cw_record_player_enemy_stance = yes
+		}
+	}
+	else = {
+		# no real enemy (civil war only): nothing to show
+		cw_clear_player_enemy_stance = yes
+	}
+}
+
+# Writes cw_enemy_stance_source = scope:cw_enemy and cw_enemy_stance = the enemy's stance id, or 0 (unknown) while
+# the enemy changed its stance less than 1 month ago (cw_stance_changed), is human or has no stance.
+# Requires scope:cw_enemy. set_variable value = scope:x (expedition_effects.txt:233) / value = scope:x.var:y
+# (research 04 §2.1 "scope:actor.owner.var:land_units_killed").
+cw_record_player_enemy_stance = {
+	set_variable = {
+		name = cw_enemy_stance_source
+		value = scope:cw_enemy
+	}
+	if = {
+		limit = {
+			scope:cw_enemy = { cw_enemy_stance_is_readable = yes }
+		}
+		set_variable = {
+			name = cw_enemy_stance
+			value = scope:cw_enemy.var:cw_stance
+		}
+	}
+	else = {
+		set_variable = { name = cw_enemy_stance value = 0 }
+	}
+}

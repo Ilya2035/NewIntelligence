@@ -1,0 +1,71 @@
+﻿###################################
+# Concentrated Warfare - decisions (module hq_core)
+#
+# Format: decisions/test_decisions.txt and generic_age_decisions.txt (decision_category, potential,
+# allow, ai_will_do, option = { name ai_chance effect }). Decision options have no trigger field in
+# vanilla, so the on/off state is shown through custom_tooltip lines in "allow" (block form:
+# generic_age_decisions.txt:14-19 / :290-296) and the two options are always offered - picking the one
+# that matches the current state is a harmless no-op.
+# Loc keys: cw_toggle_auto_hq.title / .desc / .a / .b (decisions/*_l_english.yml pattern) + the *_tt keys.
+###################################
+
+# "Entrust headquarters placement to the General Staff" (DESIGN.md 2.5): while the country variable
+# cw_auto_hq exists, the player's HQs are placed by the same script as the AI's (cw_ai_assign_hqs);
+# the AI-only cleanup above the limit is never applied to players.
+cw_toggle_auto_hq = {
+	decision_category = government_decisions
+
+	potential = {
+		is_ai = no
+		cw_is_real_country = yes
+	}
+
+	# Always passes; exactly one of the two lines is shown as fulfilled => tells the current state.
+	allow = {
+		OR = {
+			custom_tooltip = {
+				text = cw_auto_hq_is_on_tt
+				has_variable = cw_auto_hq
+			}
+			custom_tooltip = {
+				text = cw_auto_hq_is_off_tt
+				NOT = { has_variable = cw_auto_hq }
+			}
+		}
+	}
+
+	ai_will_do = {
+		value = 0
+	}
+
+	# a) switch automation ON and place HQs right away
+	option = {
+		name = cw_toggle_auto_hq.a
+		ai_chance = { value = 0 }
+		effect = {
+			custom_tooltip = {
+				text = cw_auto_hq_enable_tt
+				set_variable = cw_auto_hq
+				hidden_effect = {
+					cw_cache_limits = yes
+					cw_ai_assign_hqs = yes
+				}
+			}
+		}
+	}
+
+	# b) switch automation OFF (existing HQs stay where they are)
+	option = {
+		name = cw_toggle_auto_hq.b
+		ai_chance = { value = 0 }
+		effect = {
+			custom_tooltip = {
+				text = cw_auto_hq_disable_tt
+				if = {
+					limit = { has_variable = cw_auto_hq }
+					remove_variable = cw_auto_hq
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,4 @@
+# Vanilla files this mod overrides wholesale (EU5 1.4.7, game hash 47c12bd63e). Re-merge after every patch.
+# format: <relative path>  <md5 of vanilla file>  <lines>
+game/in_game/gui/single_unit_window.gui  0e6eb35ea9298cf60e44ed2e3e757ee1  5301
+game/in_game/common/location_ranks/00_default.txt  eac46655d8a16252ac3f316c0bc1ec5d  212

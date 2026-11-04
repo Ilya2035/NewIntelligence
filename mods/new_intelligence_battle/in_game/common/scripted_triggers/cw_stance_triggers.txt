@@ -1,0 +1,406 @@
+﻿# =====================================================================================================
+# Concentrated Warfare - war stance triggers (module ai_stance). Scope: country unless noted.
+# Trait keys verified in game/in_game/common/traits/00_ruler.txt and 01_general.txt (1.4.7).
+# Control flow: trigger_if / trigger_else_if / trigger_else (1036 / 54 / 596 vanilla uses, research 04 §3); a scripted
+# trigger whose body starts with trigger_if: scripted_triggers/00_clothing_triggers.txt:185 (portrait_muslim_trigger).
+# Thresholds: cw_stance_values.txt (static entry bounds per temperament + formula exit bounds for the dead bands, the
+# offensive war-score floor, the fielded-strength fraction and the waiting knobs).
+# =====================================================================================================
+
+# Countries the stance logic touches: real countries only (never rebels / pirates / mercenary hosts) and never
+# conquistador hosts - exactly the set the HQ rules cover, so this delegates to cw_is_real_country (hq_core,
+# scripted_triggers/cw_triggers.txt, same in_game stage). Final consistency pass: the former copy "NOT = { country_type
+# = army }" exempted every steppe horde (they are army-type countries, research 14 F1); hordes at war now get a stance.
+cw_stance_country_is_eligible = {
+	cw_is_real_country = yes
+}
+
+# ---- ruler temperament (traits/00_ruler.txt) -------------------------------------------------------------
+# Bold / reckless = traits carrying aggressiveness_modifier > 0, carefulness_modifier < 0 or a negative
+# win_war_chance_threshold (the AI-side "attacks at worse odds" flags):
+#   conqueror (+0.15 aggressiveness, -0.05 carefulness), expansionist (+0.10 / -0.05), greedy (+0.10),
+#   bold_fighter (+0.05 / -0.05, win chance -0.1), zealot (+0.05, win chance -0.1), malevolent (+0.05),
+#   drunkard (+0.05 / -0.10), naive (-0.10 carefulness, win chance -0.3).
+cw_ruler_is_bold = {
+	ruler ?= {
+		OR = {
+			has_trait = conqueror
+			has_trait = expansionist
+			has_trait = greedy
+			has_trait = bold_fighter
+			has_trait = zealot
+			has_trait = malevolent
+			has_trait = drunkard
+			has_trait = naive
+		}
+	}
+}
+
+# Cautious / slow = aggressiveness_modifier < 0, carefulness_modifier > 0 or win_war_chance_threshold > 0:
+#   craven (-0.15 aggressiveness, +0.10 carefulness, win chance +0.2), careful (+0.10 carefulness, win chance +0.05),
+#   calm (+0.05 carefulness), kind_hearted (-0.10 aggressiveness), benevolent (-0.05 aggressiveness),
+#   obsessive_perfectionist (win chance +0.07). tactical_genius is +0.05 / +0.05 -> neutral, deliberately in neither list.
+cw_ruler_is_cautious = {
+	ruler ?= {
+		OR = {
+			has_trait = craven
+			has_trait = careful
+			has_trait = calm
+			has_trait = kind_hearted
+			has_trait = benevolent
+			has_trait = obsessive_perfectionist
+		}
+	}
+}
+
+# ---- commander of the largest army (traits/01_general.txt: offensive_planner / defensive_planner) ----------
+# Self-contained (needs no saved scope): the engine's own "largest army" notion through the character trigger
+# is_leading_largest_army_of. any_character iterates this country's court only (a small list); the cheap tests
+# come first. prev = the country inside any_character.
+# CW TODO verify: is_leading_largest_army_of = prev inside any_character. Vanilla has exactly two script uses, both
+# "NOT = { is_leading_largest_army_of = root }" evaluated inside "ruler ?= { ... }" (auto_modifiers/country.txt:1251,
+# :1260); the loc entry has a "third" form, so a country argument is expected, but the list form with prev is untested.
+# Test: give an offensive_planner general to the largest army of an AI country at war, watch error.log for
+# 'is_leading_largest_army_of' and check that its offensive bar drops to cw_stance_offensive_bold (0.50).
+# Alternative, should it misbehave: ordered_army = { order_by = num_subunits max = 1 check_range_bounds = no
+# save_scope_as = cw_main_army } in the effect, then scope:cw_main_army = { leader ?= { has_trait = X } }
+# (unit.leader -> character link VERIFIED, research 02 §1). any_general (generated list, scripted_lists/
+# character_lists.txt:10-15) would drop the is_general test but has zero vanilla uses, so any_character stays.
+cw_main_army_leader_is_offensive = {
+	any_character = {
+		is_general = yes
+		has_trait = offensive_planner
+		is_leading_largest_army_of = prev
+	}
+}
+
+cw_main_army_leader_is_defensive = {
+	any_character = {
+		is_general = yes
+		has_trait = defensive_planner
+		is_leading_largest_army_of = prev
+	}
+}
+
+# Combined temperament (ruler OR commander of the largest army).
+cw_stance_temperament_is_bold = {
+	OR = {
+		cw_ruler_is_bold = yes
+		cw_main_army_leader_is_offensive = yes
+	}
+}
+
+cw_stance_temperament_is_cautious = {
+	OR = {
+		cw_ruler_is_cautious = yes
+		cw_main_army_leader_is_defensive = yes
+	}
+}
+
+# Net temperament for the offensive bar: a bold and a cautious signal at the same time cancel out (base bound),
+# mirroring the additive trait modifiers. Evaluated at most once per monthly decision.
+cw_stance_temperament_net_bold = {
+	cw_stance_temperament_is_bold = yes
+	NOT = { cw_stance_temperament_is_cautious = yes }
+}
+
+cw_stance_temperament_net_cautious = {
+	cw_stance_temperament_is_cautious = yes
+	NOT = { cw_stance_temperament_is_bold = yes }
+}
+
+# ---- current stance (var:cw_stance; ids per cw_stance_values.txt) ----------------------------------------
+# Guarded by has_variable so they are safe on countries that never had a stance.
+cw_stance_is_offensive = {
+	has_variable = cw_stance
+	var:cw_stance = 1
+}
+cw_stance_is_defensive = {
+	has_variable = cw_stance
+	var:cw_stance = 2
+}
+cw_stance_is_waiting = {
+	has_variable = cw_stance
+	var:cw_stance = 3
+}
+cw_stance_is_harassing = {
+	has_variable = cw_stance
+	var:cw_stance = 4
+}
+
+# ---- the enemy's stance as seen by a human player ------------------------------------------------------------
+# Scope: the ENEMY country. Readable = AI, has a stance and did not CHANGE it within the last month: cw_stance_changed is
+# the 1-month expiring "intelligence delay" variable that cw_try_switch_stance arms only on an actual change (balance
+# review 15 §3.3). It is deliberately NOT the 2-month cw_stance_lock: the lock also runs after every change, but reading
+# "Unknown" for the whole lock made an AI hovering near a threshold unreadable two months out of three.
+# Used by cw_record_player_enemy_stance and below.
+cw_enemy_stance_is_readable = {
+	is_ai = yes
+	has_variable = cw_stance
+	NOT = { has_variable = cw_stance_changed }
+}
+
+# Scope: the human country, right after cw_find_main_enemy (needs scope:cw_enemy), evaluated BEFORE the new reading is
+# written - var:cw_enemy_stance / var:cw_enemy_stance_source still hold LAST month's reading. The notification event
+# is due only when: the rule setting is on, the main enemy is the same country as last month (a new or replaced enemy
+# changed nothing), a previous reading exists, the enemy's stance is readable now (its cw_stance_changed has expired, i.e.
+# one month after the change) and differs from that reading (0 -> known counts: that is the moment our intelligence
+# catches up; known -> 0 never fires).
+# Syntax: var:x = scope:y object equality (country_interactions/bribe_vote.txt:19); var:x compared with scope:y.var:z
+# (generic_actions/holy_war_war_actions.txt:193, international_organizations/union.txt:413).
+cw_player_enemy_stance_change_is_reportable = {
+	has_game_rule = cw_stance_events_on
+	has_variable = cw_enemy_stance_source
+	has_variable = cw_enemy_stance
+	var:cw_enemy_stance_source = scope:cw_enemy
+	scope:cw_enemy = { cw_enemy_stance_is_readable = yes }
+	NOT = { var:cw_enemy_stance = scope:cw_enemy.var:cw_stance }
+}
+
+# ---- stance decision triggers (SPEC §7.2-7.3, balance review 15 §3.3) ---------------------------------------
+# All of these REQUIRE scope:cw_self (= this country) and scope:cw_enemy (the enemy war leader), both saved
+# by the scripted effect cw_find_main_enemy. Only evaluate them right after it (cw_update_war_stance does).
+
+# War scope: this war is fought AGAINST the main enemy (opposite sides) and is no civil war. "is_in_war = X" alone is
+# only a participation test (research 04 §4.2): the main enemy may fight on OUR side in another concurrent war
+# (IO / alliance war) whose score and length must not be read as the war against it.
+# is_an_attacker / is_a_defender with a country argument: _hardcoded.txt:1903-1912, assume_fort_command.txt:152.
+# (is_on_opposite_sides exists in trigger_localization/war_triggers.txt:147 but has no vanilla script use.)
+cw_war_is_against_main_enemy = {
+	NOT = { is_civil_war_for = scope:cw_self }
+	OR = {
+		AND = {
+			is_an_attacker = scope:cw_self
+			is_a_defender = scope:cw_enemy
+		}
+		AND = {
+			is_a_defender = scope:cw_self
+			is_an_attacker = scope:cw_enemy
+		}
+	}
+}
+
+# Losing badly: exhausted, or a deep negative war score in the war against the main enemy.
+cw_is_losing_badly = {
+	OR = {
+		war_exhaustion >= cw_stance_losing_war_exhaustion
+		any_current_war = {
+			cw_war_is_against_main_enemy = yes
+			war_score_of_country = {
+				country = scope:cw_self
+				value <= cw_stance_losing_warscore
+			}
+		}
+	}
+}
+
+# -- strength-ratio tests with a dead band (cw_stance_values.txt): the ENTRY bound to enter a stance, the EXIT bound
+#    (entry - cw_stance_offensive_band / entry + cw_stance_harassing_band) to keep it. The temperament picks the bound;
+#    cautious first so that a cautious court never attacks at parity.
+cw_strength_reaches_offensive = {
+	trigger_if = {
+		limit = { cw_stance_temperament_net_cautious = yes }
+		relative_military_strength = {
+			target = scope:cw_enemy
+			value >= cw_stance_offensive_cautious
+		}
+	}
+	trigger_else_if = {
+		limit = { cw_stance_temperament_net_bold = yes }
+		relative_military_strength = {
+			target = scope:cw_enemy
+			value >= cw_stance_offensive_bold
+		}
+	}
+	trigger_else = {
+		relative_military_strength = {
+			target = scope:cw_enemy
+			value >= cw_stance_offensive_base
+		}
+	}
+}
+
+cw_strength_holds_offensive = {
+	trigger_if = {
+		limit = { cw_stance_temperament_net_cautious = yes }
+		relative_military_strength = {
+			target = scope:cw_enemy
+			value >= cw_stance_offensive_exit_cautious
+		}
+	}
+	trigger_else_if = {
+		limit = { cw_stance_temperament_net_bold = yes }
+		relative_military_strength = {
+			target = scope:cw_enemy
+			value >= cw_stance_offensive_exit_bold
+		}
+	}
+	trigger_else = {
+		relative_military_strength = {
+			target = scope:cw_enemy
+			value >= cw_stance_offensive_exit_base
+		}
+	}
+}
+
+# Harassing bar: only a cautious signal moves it (a bold one does not make the AI stand and die), SPEC §7.2.
+cw_strength_reaches_harassing = {
+	trigger_if = {
+		limit = { cw_stance_temperament_is_cautious = yes }
+		relative_military_strength = {
+			target = scope:cw_enemy
+			value <= cw_stance_harassing_cautious
+		}
+	}
+	trigger_else = {
+		relative_military_strength = {
+			target = scope:cw_enemy
+			value <= cw_stance_harassing_base
+		}
+	}
+}
+
+cw_strength_holds_harassing = {
+	trigger_if = {
+		limit = { cw_stance_temperament_is_cautious = yes }
+		relative_military_strength = {
+			target = scope:cw_enemy
+			value <= cw_stance_harassing_exit_cautious
+		}
+	}
+	trigger_else = {
+		relative_military_strength = {
+			target = scope:cw_enemy
+			value <= cw_stance_harassing_exit_base
+		}
+	}
+}
+
+# Strength branch of the harassing decision with the dead band (kept separate: trigger_if directly inside an OR has
+# no vanilla precedent, a scripted trigger inside an OR is ordinary).
+cw_strength_ratio_says_harassing = {
+	trigger_if = {
+		limit = { cw_stance_is_harassing = yes }
+		cw_strength_holds_harassing = yes
+	}
+	trigger_else = {
+		cw_strength_reaches_harassing = yes
+	}
+}
+
+# -- fielded-strength term (balance review 15 §3.1/§3.3): relative_military_strength is POTENTIAL strength, so an AI whose
+#    field army was just destroyed keeps its ratio for months. army_size = "men in the Army" (loc ARMY_SIZE_TRIGGER, the
+#    regiments in the field) compared with the main enemy's: at most cw_stance_fielded_harassing_ratio of it -> harassing,
+#    kept while at most the exit fraction. The comparison form is VERIFIED vanilla and needs no stored variable:
+#    "army_size > { value = scope:actor.army_size multiply = 2 }" (country_interactions/default_on_creditor.txt:151-158;
+#    casus_belli/cb_recover_defaulted_debt.txt:38-45 with root.army_size), "<= {" block form (bribe_vote.txt:78),
+#    "army_size > 0" (country_interactions/lend_unit_to_ally.txt:6). An enemy with no field army gives no signal
+#    (otherwise two empty-handed countries would read 0 <= 0).
+cw_fielded_reaches_harassing = {
+	scope:cw_enemy = { army_size > 0 }
+	army_size <= {
+		value = scope:cw_enemy.army_size
+		multiply = cw_stance_fielded_harassing_ratio
+	}
+}
+
+cw_fielded_holds_harassing = {
+	scope:cw_enemy = { army_size > 0 }
+	army_size <= {
+		value = scope:cw_enemy.army_size
+		multiply = cw_stance_fielded_harassing_exit_ratio
+	}
+}
+
+# Fielded branch of the harassing decision with the dead band (same shape as the ratio branch above).
+cw_fielded_strength_says_harassing = {
+	trigger_if = {
+		limit = { cw_stance_is_harassing = yes }
+		cw_fielded_holds_harassing = yes
+	}
+	trigger_else = {
+		cw_fielded_reaches_harassing = yes
+	}
+}
+
+# 4 - Harassing: losing badly, heavily outnumbered in potential strength (<= 1:2, 1:1.5 for cautious temperaments; stays
+# until 0.38 / 0.45), or a tiny field army (<= half the enemy's men in the field; stays until 0.55 x).
+cw_should_be_harassing = {
+	OR = {
+		cw_is_losing_badly = yes
+		cw_strength_ratio_says_harassing = yes
+		cw_fielded_strength_says_harassing = yes
+	}
+}
+
+# Ratio branch of the offensive decision with the dead band: entered at the entry bound, kept down to the exit bound.
+cw_strength_ratio_says_offensive = {
+	trigger_if = {
+		limit = { cw_stance_is_offensive = yes }
+		cw_strength_holds_offensive = yes
+	}
+	trigger_else = {
+		cw_strength_reaches_offensive = yes
+	}
+}
+
+# War-score floor of the offensive decision (balance review 15 §3.3): this country's war score in the war against the
+# main enemy is at least cw_stance_offensive_min_warscore (-10). Same war_score_of_country form as cw_is_losing_badly;
+# "the war score of root" in the maintainer's wording = scope:cw_self here, because the effects are also run as
+# scope:actor = { ... } / scope:recipient = { ... } from on_war_declared where root is not this country.
+cw_offensive_warscore_allows = {
+	any_current_war = {
+		cw_war_is_against_main_enemy = yes
+		war_score_of_country = {
+			country = scope:cw_self
+			value >= cw_stance_offensive_min_warscore
+		}
+	}
+}
+
+# 1 - Offensive: clearly stronger (>= ~1.3:1; parity for bold, 1.5:1 for cautious temperaments; kept down to 0.53 /
+# 0.46 / 0.56) AND not losing the war against the main enemy (war score >= -10) - a destroyed field army keeps the
+# potential-strength ratio, the war score does not.
+cw_should_be_offensive = {
+	cw_offensive_warscore_allows = yes
+	cw_strength_ratio_says_offensive = yes
+}
+
+# This country is on the ATTACKING side of the war against the main enemy (and it is no civil war).
+cw_is_attacker_against_main_enemy = {
+	any_current_war = {
+		is_an_attacker = scope:cw_self
+		is_a_defender = scope:cw_enemy
+		NOT = { is_civil_war_for = scope:cw_self }
+	}
+}
+
+# The war against the main enemy is younger than cw_stance_young_war_years (war_length_in_years: trigger_localization/
+# war_triggers.txt:55; as a value country_interactions/intervene_in_subject_war.txt:152).
+cw_main_war_is_young = {
+	any_current_war = {
+		cw_war_is_against_main_enemy = yes
+		war_length_in_years < cw_stance_young_war_years
+	}
+}
+
+# 3 - Waiting = attacker AND (young war OR under-strength) - the implemented reading, kept as is in the tuning pass.
+# In words: neither of the above, this country is on the ATTACKING side of the war against the main enemy and EITHER
+# that war is young OR its army is still below cw_stance_waiting_army_size_percentage (0.8) of its expected size
+# (army_size_percentage = current / expected men, loc ARMY_SIZE_PERCENTAGE_TRIGGER; vanilla "army_size_percentage < 0.8"
+# in events/religion/orthodox_icon_events.txt:11) -> gather forces / reinforce first. Maintainer's reading of the balance
+# review (15 §3.3): the two signals are alternatives, so a reinforcing attacker reads "Waiting" in an older war too.
+# Defenders fall through to Defensive ("оборонительная война дома", DESIGN §3.3): an invaded AI at parity should hold
+# its forts, not idle with the waiting bonuses.
+# CW TODO verify: SPEC §7.3 also wants "allies in the war with their capital far away" as a waiting signal;
+# any_country_together_in_war_with has a single vanilla use with unverified argument syntax (_hardcoded.txt:5896),
+# so it is not used. Candidate to test in game:
+#   any_country_together_in_war_with = { capital ?= { NOT = { continent = scope:cw_self.capital.continent } } }
+cw_should_be_waiting = {
+	cw_is_attacker_against_main_enemy = yes
+	OR = {
+		cw_main_war_is_young = yes
+		army_size_percentage < cw_stance_waiting_army_size_percentage
+	}
+}
+# 2 - Defensive is the remainder (no trigger needed).

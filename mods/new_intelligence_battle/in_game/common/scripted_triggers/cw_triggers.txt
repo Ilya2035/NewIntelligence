@@ -1,0 +1,251 @@
+﻿###################################
+# Concentrated Warfare - scripted triggers (module hq_core)
+#
+# Scope conventions:
+#   "country" triggers are evaluated with THIS = country.
+#   "unit"    triggers are evaluated with THIS = army (unit). Called from every_army / ordered_army /
+#             any_army the root is STILL the country (research 02 section 1), so unit-relative logic
+#             uses owner / unit_location / prev, never root.
+# Scripted trigger grammar: country_triggers.txt (plain trigger lists); trigger_if / trigger_else
+# (unit_abilities/promote_to_farari.txt:21-28) for variables that may not exist yet.
+###################################
+
+# ---- country --------------------------------------------------------------------------------
+
+# A real country. Excludes rebels / pirates / mercenary hosts (is_real_country, used by vanilla monthly
+# trackers, country_monthly.txt:303) and conquistador hosts. Those are never touched by the HQ rules
+# (SPEC section 15); rebels only get cw_rebel_disorder from their own monthly branch (cw_on_actions.txt).
+# DEVIATION from SPEC sections 5 / 15 ("NOT = { country_type = army }"; research 14 F1 / R1, maintainer decision):
+# country_type = army is NOT "conquistador hosts only" - every steppe horde is an army-type country
+# (main_menu/setup/1337/10_countries.txt: GLH "type = army" with 740 locations; government_reforms/steppe_horde.txt:14,22
+# require country_type = army), so the SPEC form exempted the Golden Horde, Chagatai, the Jalayirids, ... from the limits,
+# the penalty and the AI placement, while DESIGN.md 2.3 explicitly counts "the Horde" among the giants the mod covers.
+# Conquistador hosts are the only army-type countries created during play (events/colonization/conquistador.txt:45-53:
+# create_army_country_in_location + subject_type = subject_type:conquistador), so they are excluded by their SUBJECT
+# TYPE: "is_subject_type = conquistador" is written verbatim by vanilla (main_menu/common/scripted_triggers/
+# 00_coa_triggers.txt:32, next to colonial_nation / trade_company; 296 is_subject_type uses in_game); the key is
+# in_game/common/subject_types/conquistador.txt. The alternative "country_type = army AND is_subject = yes" was
+# rejected: a horde that is or becomes somebody's tributary / vassal would drop out of the whole system too, while
+# a conquistador host is a subject by construction. Landless army-type placeholder tags (TIM, CHB, ...) pass the
+# test but own no armies, so every pass is a no-op for them. Also used by cw_stance_country_is_eligible (ai_stance) and
+# cw_on_capital_taken (warscore_rules).
+# CW TODO verify (docs/TESTING.md E11): in 1337 the Golden Horde (GLH) must show cw_hq_limit = 2 (imperial slot, 740
+# locations) in its army builder and carry cw_no_hq on its non-HQ stacks; a conquistador host spawned by Castile in
+# the Age of Discovery gets neither.
+cw_is_real_country = {
+	is_real_country = yes
+	NOT = { is_subject_type = conquistador }
+}
+
+# The AI, or a player who enabled automation (decision cw_toggle_auto_hq), gets HQs placed by script.
+cw_hq_automation_active = {
+	OR = {
+		is_ai = yes
+		has_variable = cw_auto_hq
+	}
+}
+
+# Country has an overseas theatre: owns an overseas location (game concept: another continent whose
+# sub-continent does not border the capital's continent) or keeps an expedition of
+# cw_min_subunits_for_ai_hq+ regiments on overseas ground. Gates the colonial HQ unit type.
+# Cheap-first ordering: the owned-location scan exits at the first overseas location.
+cw_has_overseas_theatre = {
+	OR = {
+		any_owned_location = { is_overseas_for_owner = yes }
+		any_army = {
+			num_subunits >= cw_min_subunits_for_ai_hq
+			unit_location = { would_be_overseas_for = prev.owner }
+		}
+	}
+}
+
+# Free HOME slot (country). Engine counter on the left, named script value on the right
+# (pattern: var:celestial_authority > celestial_authority_very_strong_bonus, laws/20_middle_kingdom.txt:11).
+# cw_hq_limit is cheap (age + num_locations + six engine triggers), so it is read live.
+cw_has_free_hq_slot = {
+	total_sub_unit_type_count:cw_hq < cw_hq_limit
+}
+
+# Free COLONIAL slot (country). The colonial limit walks the owned-location list (cw_limit_values.txt),
+# so it is NOT evaluated here: the limit cached once per pass by cw_cache_limits (cw_colonial_hq_limit_v,
+# refreshed monthly, every 15 days at war, at war start / end, new age and after every player click) is
+# compared with the LIVE engine counter. Engine value vs var: disasters/french_wars_religion.txt:110
+# (religious_unity >= var:target_religious_unity_variable). Before the first cache (never for real
+# countries: cw_game_start_country / the first pulse seed it) the answer is "no".
+# Used by cw_ai_assign_hqs, cw_ai_relocate_hqs, cw_loc_add_colonial_hq and the GUI button
+# cw_sgui_loc_add_colonial_hq (module gui_windows) - cheap enough for a per-frame is_valid.
+cw_has_free_colonial_hq_slot = {
+	trigger_if = {
+		limit = { has_variable = cw_colonial_hq_limit_v }
+		total_sub_unit_type_count:cw_hq_colonial < var:cw_colonial_hq_limit_v
+	}
+	trigger_else = {
+		always = no
+	}
+}
+
+# More colonial HQs than the cached limit allows (AI cleanup gate). Same cached-limit form.
+cw_colonial_hqs_above_limit = {
+	trigger_if = {
+		limit = { has_variable = cw_colonial_hq_limit_v }
+		total_sub_unit_type_count:cw_hq_colonial > var:cw_colonial_hq_limit_v
+	}
+	trigger_else = {
+		always = no
+	}
+}
+
+# ---- unit (army) ----------------------------------------------------------------------------
+
+# Army carries a home headquarters regiment (any_sub_unit + sub_unit_type: unit_effects.txt:5-10).
+cw_unit_has_home_hq = {
+	any_sub_unit = { sub_unit_type = unit_type:cw_hq }
+}
+
+# Army carries a colonial headquarters regiment.
+cw_unit_has_colonial_hq = {
+	any_sub_unit = { sub_unit_type = unit_type:cw_hq_colonial }
+}
+
+# Army carries a headquarters of either type.
+cw_unit_has_hq = {
+	any_sub_unit = {
+		OR = {
+			sub_unit_type = unit_type:cw_hq
+			sub_unit_type = unit_type:cw_hq_colonial
+		}
+	}
+}
+
+# Army currently carries one of the three "no headquarters" penalty variants (combat + siege malus). The siege-only
+# tier (cw_no_hq_siege_only, colonial HQ at home) and cw_rebel_disorder are NOT no-HQ penalties: cw_battle_recheck_unit
+# reads this trigger as "was already penalised at the last pass".
+cw_unit_has_hq_penalty = {
+	OR = {
+		has_unit_modifier = cw_no_hq
+		has_unit_modifier = cw_no_hq_mild
+		has_unit_modifier = cw_no_hq_harsh
+	}
+}
+
+# Units the HQ rules never touch (penalty neither applied nor removed), SPEC section 15:
+#   navies, exiled stacks, prisoner stacks - NOTHING else. In particular there is NO mercenary exemption
+# (maintainer decision, research 15 section 2.4): a hired company that besieged at full ability without a
+# headquarters would be an unlimited pool of organised siege armies for gold, against DESIGN.md 2.2 (only rebels
+# and pirates go unpunished). Hired companies follow the same rules as every other army of the hirer; the script
+# placement merely ranks them last (after regulars and levy hosts).
+# Deviation from SPEC: "is_lent_unit = yes" is only verified in MERCENARY scope (any_hired_mercenary /
+# every_hired_mercenary, generic_actions/return_lent_unit.txt:6,25) and cannot be written in unit scope.
+# Lent units need no exemption anyway: recalling them destroys and recreates the unit
+# (return_lent_unit.txt:28-29), so our modifiers never survive the hand-back.
+# CW TODO verify (research 15 T2.7): can add_subunit put an HQ into a hired company? If the engine refuses, give
+# merc-only stacks the siege-only tier (cw_no_hq_siege_only) instead of the full penalty - still no exemption.
+cw_unit_is_exempt = {
+	OR = {
+		is_army = no
+		is_exiled = yes
+		has_only_prisoners = yes
+	}
+}
+
+# The army stands on ground that is overseas for ITS OWNER (not for the location's owner).
+# would_be_overseas_for takes the country explicitly (form_colonial_nation.txt:12); inside
+# unit_location = { } the previous scope is the army, hence prev.owner.
+cw_unit_is_overseas = {
+	unit_location = { would_be_overseas_for = prev.owner }
+}
+
+# "Organized" (no modifier at all; DESIGN.md 2.4, research 15 section 2.4): at least cw_min_subunits_organized
+# regiments - the HQ plus two others, so "HQ + one regiment" is no siege detachment - AND the RIGHT headquarters
+# for the ground the army stands on:
+#   - a home HQ (cw_hq) organizes anywhere;
+#   - a colonial HQ (cw_hq_colonial) organizes only on overseas ground.
+# Cheapest test first (regiment count), then the early-exit regiment scans, the location test last.
+cw_unit_is_organized = {
+	num_subunits >= cw_min_subunits_organized
+	OR = {
+		cw_unit_has_home_hq = yes
+		AND = {
+			cw_unit_has_colonial_hq = yes
+			cw_unit_is_overseas = yes
+		}
+	}
+}
+
+# The "wrong headquarters" tier (cw_no_hq_siege_only): big enough to be organized, but its only HQ is colonial and it
+# stands on non-overseas ground - it fights at full strength and cannot besiege there, so colonial HQs are no use as
+# extra siege armies at home. A stack below the size floor is unorganized whatever HQ it carries: the three tiers
+# form a ladder (organized > siege-only > penalised); drop the first line to make "colonial HQ at home" size-blind.
+cw_unit_has_colonial_hq_at_home = {
+	num_subunits >= cw_min_subunits_organized
+	cw_unit_has_home_hq = no
+	cw_unit_has_colonial_hq = yes
+	cw_unit_is_overseas = no
+}
+
+# The penalty tier: neither organized nor the siege-only case => one of the cw_no_hq variants. Used where the
+# three-way split of cw_update_unit_organization has to be reproduced in a trigger (hint-flag refresh).
+cw_unit_is_unorganized = {
+	cw_unit_is_organized = no
+	cw_unit_has_colonial_hq_at_home = no
+}
+
+# Common eligibility for a script-placed HQ (AI / automation): a real field army on LAND that is not busy.
+# Embarked stacks are skipped (their unit_location is a sea zone; changing the regiments of an embarked
+# unit is risky, research 02 section 14.5 / return_lent_unit.txt:28-31). is_land is a location trigger
+# (casus_belli/anti_piracy.txt:15). Cheap triggers first (research 04 section 5), the regiment scans last.
+cw_eligible_for_any_hq = {
+	is_army = yes
+	in_combat = no
+	in_retreat = no
+	num_subunits >= cw_min_subunits_for_ai_hq
+	unit_location = { is_land = yes }
+	cw_unit_is_exempt = no
+}
+
+# Candidate for a HOME headquarters: eligible, standing on home (non-overseas) ground and without a home HQ.
+# An army whose only HQ is a colonial one brought home IS a candidate (siege-only there, cw_unit_is_organized):
+# the AI strips that colonial HQ in the same pass (cw_ai_relocate_hqs), an automated player keeps it until he
+# disbands it from the army tab.
+cw_eligible_for_home_hq = {
+	cw_eligible_for_any_hq = yes
+	cw_unit_has_home_hq = no
+	unit_location = { NOT = { would_be_overseas_for = prev.owner } }
+}
+
+# Candidate for a COLONIAL headquarters: eligible, standing on overseas ground and without ANY HQ (a home HQ
+# organizes an army overseas as well, so such an army needs no colonial one).
+cw_eligible_for_colonial_hq = {
+	cw_eligible_for_any_hq = yes
+	cw_unit_has_hq = no
+	unit_location = { would_be_overseas_for = prev.owner }
+}
+
+# A "stranded" HOME HQ (AI relocation, cw_ai_relocate_hqs): the HQ sits in a tiny land stack that is not
+# fighting - a split-off fragment, a demobilised levy host, a lone 100-man staff. Below cw_min_subunits_organized
+# such a stack is unorganized anyway, so the HQ does nothing there. Cheap tests first.
+cw_unit_has_stranded_home_hq = {
+	num_subunits < cw_min_subunits_for_ai_hq
+	in_combat = no
+	unit_location = { is_land = yes }
+	cw_unit_has_home_hq = yes
+}
+
+# Same for a colonial HQ on overseas ground (one on home ground is "misplaced", below).
+cw_unit_has_stranded_colonial_hq = {
+	num_subunits < cw_min_subunits_for_ai_hq
+	in_combat = no
+	unit_location = { is_land = yes }
+	cw_unit_is_overseas = yes
+	cw_unit_has_colonial_hq = yes
+}
+
+# A "misplaced" colonial HQ (AI relocation): a colonial HQ in an army of ANY size that stands on non-overseas LAND,
+# where it organizes nothing (siege-only tier) while it blocks a theatre slot and the home pass. Never at sea:
+# a crossing between theatres must not cost the HQ (same rule as cw_cleanup_excess_hqs).
+cw_unit_has_misplaced_colonial_hq = {
+	in_combat = no
+	unit_location = { is_land = yes }
+	cw_unit_is_overseas = no
+	cw_unit_has_colonial_hq = yes
+}

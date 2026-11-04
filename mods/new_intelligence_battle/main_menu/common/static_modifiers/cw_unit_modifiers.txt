@@ -1,0 +1,78 @@
+﻿###################################
+# Concentrated Warfare - unit (army) modifiers
+# Applied by script (see in_game/common/scripted_effects/cw_effects.txt).
+# Design rule: an HQ gives NO bonus; only the ABSENCE of an HQ is penalised.
+###################################
+
+# Army without a headquarters regiment: cannot really besiege, fights at roughly half effectiveness.
+# Balance (research 15 section 1.2, DESIGN.md 2.2): the fighting value of an HQ-less regiment relative to an
+# organised one is E = (1 + d) * (1 + m) / (1 + |d|); -20 % discipline / -25 % morale give E = 0.50 - the
+# author's "about 50 %" target (the earlier -30/-30 gave 0.38). A thousand unorganised men still beat 250
+# organised ones comfortably and lose to a thousand. The siege half is unchanged pending T1.3 (research 15 1.4).
+cw_no_hq = {
+	game_data = {
+		category = unit
+	}
+	siege_ability = -0.9			# sieges ~10x slower -> no practical occupation
+	assault_ability = -0.5			# storming forts almost useless
+	discipline = -0.2				# unorganised troops deal less damage (and take more)
+	land_morale_modifier = -0.25	# ...and break sooner
+}
+
+# Army with a COLONIAL headquarters operating on an overseas continent (not the capital's continent).
+# Small logistics-flavoured bonuses only; nothing at home.
+cw_expeditionary = {
+	game_data = {
+		category = unit
+	}
+	land_unit_attrition = -0.15
+	army_movement_speed = 0.1
+	land_morale_recovery = 0.1
+}
+
+# Variants used by the "HQ penalty" game rule (mild / harsh); the script picks one of the three.
+# Combat terms: mild E = 0.74 (loses an equal fight narrowly), harsh E = 0.38 (research 15 section 1.2);
+# the siege / assault terms are the same across all three variants.
+cw_no_hq_mild = {
+	game_data = {
+		category = unit
+	}
+	siege_ability = -0.9
+	assault_ability = -0.5
+	discipline = -0.1
+	land_morale_modifier = -0.1
+}
+
+cw_no_hq_harsh = {
+	game_data = {
+		category = unit
+	}
+	siege_ability = -0.9
+	assault_ability = -0.5
+	discipline = -0.3
+	land_morale_modifier = -0.3
+}
+
+# Army whose ONLY headquarters is a colonial one and which stands on non-overseas ground (home continent or a
+# sub-continent bordering it): the siege half of the standard penalty alone. It fights at full strength but cannot
+# besiege at home, so a coloniser cannot ship its colonial HQs home as extra siege armies (research 15 section 2.4,
+# DESIGN.md 2.4). Applied by cw_update_unit_organization (cw_effects.txt); never varies with the game rule.
+cw_no_hq_siege_only = {
+	game_data = {
+		category = unit
+	}
+	siege_ability = -0.9
+	assault_ability = -0.5
+}
+
+# Rebel armies (is_rebel_country = yes): the combat half of the standard penalty and NO siege malus, refreshed by the
+# monthly pulse (cw_rebel_disorder_country). Rebels and unorganised government stacks then fight at parity while
+# the rebels still occupy at normal speed and stay a threat (DESIGN.md 2.2, research 15 section 1.3). Pirates and
+# mercenary-company countries are untouched.
+cw_rebel_disorder = {
+	game_data = {
+		category = unit
+	}
+	discipline = -0.2
+	land_morale_modifier = -0.25
+}

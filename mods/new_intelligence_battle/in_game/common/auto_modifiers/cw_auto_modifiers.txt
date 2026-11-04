@@ -1,0 +1,33 @@
+﻿# Concentrated Warfare - country auto modifiers (module warscore_rules, SPEC section 9).
+# Format: game/in_game/common/auto_modifiers/readme.txt (research 03 section 3.1); type / category default to country,
+# requires_real defaults to yes. Loc: AUTO_MODIFIER_NAME_cw_isolated_tradition_auto / AUTO_MODIFIER_DESC_cw_isolated_tradition_auto.
+
+# Isolated military tradition: countries of the Americas fight with a mild discipline malus until they embrace Pike and
+# Shot or reform their war host (decision cw_reform_war_host sets the variable cw_reformed_host). Any government type: the
+# former government_type = tribe clause hit 1 of the 20 largest American polities (Tenochtitlan, the Tarascans and Mayapan
+# are monarchies; research 15 section 6) and was dropped in the balance review (section 7, P3). Colonial nations and
+# conquistador hosts of a non-American overlord are exempt: they fight with their overlord's tradition.
+# Gated by game rule cw_rule_native_penalty (setting cw_native_penalty_on), so it can be switched off entirely.
+# The HQ half of the handicap (no extra HQ slots) is read through the scripted trigger cw_has_isolated_tradition
+# (main_menu/common/scripted_triggers/cw_warscore_triggers.txt - menu stage, because the main_menu HQ limit values read
+# it; in_game sees it too) - KEEP THIS potential_trigger IDENTICAL to that trigger.
+cw_isolated_tradition_auto = {
+	potential_trigger = {
+		has_game_rule = cw_native_penalty_on						# cheapest test first (scripted_triggers/exploration_triggers.txt:8-11 form)
+		is_real_country = yes
+		capital ?= { continent = continent:america }				# building_types/unique_buildings.txt:1243 (any government type, see above)
+		OR = {														# not the subject of a non-American overlord (colonial nation / conquistador host)
+			is_subject = no											# advances/country_son.txt:37
+			overlord ?= { capital ?= { continent = continent:america } }	# customizable_localization/country_ranks.txt:26 form; a tributary of an American overlord still counts
+		}
+		NOT = { has_embraced_institution = institution:pike_and_shot }	# advances/0_age_of_discovery.txt:439 form
+		NOT = { has_variable = cw_reformed_host }
+	}
+
+	alert = no		# SPEC section 9: silent. The modifier tooltip and the decision explain it; flip to yes to show it in the alert bar.
+
+	# Balance knob. Vanilla natives are already structurally weak (institutions, tribesmen levies, few forts - research 10
+	# section 5), so keep this mild. Vanilla precedent for a country-level discipline malus: static_modifiers/country.txt
+	# bad_discipline (-0.05); discipline is a unit-category type accepted in country modifier blocks (conquistador_country reform).
+	discipline = -0.05
+}

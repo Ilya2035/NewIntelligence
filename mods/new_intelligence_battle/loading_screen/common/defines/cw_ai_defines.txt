@@ -1,0 +1,105 @@
+﻿# Concentrated Warfare - AI define overrides (module ai_stance). EU5 1.4.7.
+# Goal: fewer, larger AI stacks; allies and subjects stick together; wait for reinforcements; asymmetric
+# behaviour earlier when outnumbered. Base = EXACTLY the conservative tier of docs/research/06 §12 (26 keys, nothing
+# added); the balance review (docs/research/15 §5 and §7 P2) then hedged the outnumbered ratio, held the "passivity
+# trio" at vanilla and softened the supply split - see the per-key comments. The concentration group is unchanged.
+# Deliberately NOT included (stalemate-prone or unverified, reserved for a future "strong" game-rule tier,
+# research 06 §11.6 / §2.5):
+#   HUNT_ARMIES_DESIRED_STRENGTH_MULT, BATTLE_WIN_CHANCE_ENEMY_BIAS, CARPET_SIEGE_REQUIRED_WIN_CHANCE,
+#   AI_TERRAIN_RETREAT_THRESHOLD, AI_SUPPLY_LIMIT_TARGET, AI_FRONTAGE_FILL_TARGET (§2.5 proposes 1.10 but marks the
+#   clamping behaviour UNVERIFIED; the earlier 1.0 of this file was an untested extra lever and is gone).
+# War score defines (NWar) live in cw_war_defines.txt (module warscore_rules).
+# Partial per-key override of a vanilla define block from a mod file is standard Jomini behaviour but only
+# INFERRED for EU5 (research 06 §2.13): docs/TESTING.md E1 - CARPET_SIEGE_MAX_ARMIES is the visible canary.
+#
+# EVERY key this file overrides - the value set here and the vanilla 1.4.7 value with its line in
+# game/loading_screen/common/defines/00_defines.txt (all 26 re-verified against that file on 2026-11-04).
+# KEEP IN SYNC with the game rule setting cw_ai_concentration_off (main_menu/common/game_rules/cw_game_rules.txt,
+# module warscore_rules): its defines = { NAI = { ... } } block must restore the "vanilla" column of EXACTLY these
+# keys - this table is its source of truth, same order, nothing more (AI_SUPPLY_LIMIT_TARGET is not overridden here
+# and does not belong there). The two keys marked "= vanilla" are overridden with the vanilla value on purpose
+# (see their comments) and therefore STAY in the list.
+#
+#   key                                              mod      vanilla  line
+#   RATIO_OVER_SUPPLY_TARGET_TO_SPLIT                1.5      1.3      1026
+#   AI_LAND_ARMY_MERGE_THRESHOLD                     0.95     0.80     1137
+#   HUNT_ARMIES_WIN_CHANCE_SPLIT                     1.0      0.99     997
+#   HUNT_ARMIES_MAX_SPLINTERS                        2        6        998
+#   HUNT_ARMIES_AI_MAX_NUM_OBJECTIVES                3        5        1004
+#   CARPET_SIEGE_MAX_ARMIES                          4        10       1021
+#   AI_CARPET_SIEGE_MAX_ARMIES_FACTOR                0.05     0.1      1593
+#   MAX_RECRUIT_DISTANCE                             6        10       1037
+#   AI_REASSIGN_UNIT_THRESHOLD                       1.6      1.33     1403
+#   CARPET_SIEGE_CONFRONT_FACTOR                     0.3      0.5      1017
+#   AI_SUPPORT_ARMIES_DESIRED_STRENGTH_FACTOR        0.33     0.33     1592   (= vanilla)
+#   AI_ENEMY_STRENGTH_NO_SUPPORT_ARMIES_FACTOR       2        2        1591   (= vanilla)
+#   AI_AWAIT_REINFORCING_ARMY_DISTANCE_MAX           60       35       1131
+#   AI_AWAIT_REINFORCING_ARMY_DISTANCE_MIN           30       20       1132
+#   AI_WAIT_FOR_JOINING_UNIT_STRENGTH_THRESHOLD      0.2      0.33     1135
+#   AI_PERFORMANCE_ATTACH_UNIT_MAX_DISTANCE          350      200      838
+#   AI_ATTACH_MIN_FRONTAGE_ROOM                      0.5      1.0      1139
+#   AI_REINFORCE_ONGOING_BATTLE_DISTANCE             4        2        1133
+#   AI_REINFORCE_BATTLE_DISTANCE_LIMIT               5        3        1587
+#   AI_REINFORCE_BATTLE_STRENGTH_TRESHOLD            0.7      0.55     1589   (vanilla spelling "TRESHOLD")
+#   AI_CALL_ALLY_STRENGTH_BALANCE_THRESHOLD          0.85     0.75     1435
+#   HEAVILY_OUTNUMBERED_RATIO                        0.45     0.40     1109
+#   OUTNUMBERED_BATTLE_ADVANTAGE                     0.5      0.60     1110
+#   AI_ENEMY_LAND_SUPREMACY_THRESHOLD                2        3        1402
+#   AI_RECOVER_MORALE_THRESHOLD                      70       66       1121
+#   AI_TRANSPORT_STRENGTH_THRESHOLD_PER_DISTANCE     0.0003   0.0004   828
+
+NAI = {
+	# --- stack size, splitting, merging (research 06 §2.1) - the concentration group, unchanged by the balance review ---
+	RATIO_OVER_SUPPLY_TARGET_TO_SPLIT = 1.5				# 1.3  (l.1026): tolerate larger stacks before splitting in half (no "split at 130%" churn).
+														#                1.8 in the first draft: stacks at 180% of the supply target bleed attrition in
+														#                mountains / deserts (supply_limit 15, max_attrition 10 - review 15 §5), hence 1.5
+	AI_LAND_ARMY_MERGE_THRESHOLD = 0.95					# 0.80 (l.1137): idle armies below 95% frontage fill merge with co-located armies
+	HUNT_ARMIES_WIN_CHANCE_SPLIT = 1.0					# 0.99 (l.997) : never split a hunting army just because the win chance is high
+	HUNT_ARMIES_MAX_SPLINTERS = 2						# 6    (l.998) : belt and braces with the above
+	HUNT_ARMIES_AI_MAX_NUM_OBJECTIVES = 3				# 5    (l.1004): at most 3 hunting groups at once
+	CARPET_SIEGE_MAX_ARMIES = 4							# 10   (l.1021): at most 4 siege detachments (1 main army + up to 4 extra HQs)
+	AI_CARPET_SIEGE_MAX_ARMIES_FACTOR = 0.05			# 0.1  (l.1593): fewer siege detachments per location to siege
+	MAX_RECRUIT_DISTANCE = 6							# 10   (l.1037): reinforcements appear next to the main army and merge sooner
+
+	# --- objective assignment and churn (§2.2) ---
+	AI_REASSIGN_UNIT_THRESHOLD = 1.6					# 1.33 (l.1403): a new objective needs 60% more score to steal a unit - less marching back and forth
+
+	# --- sieges and the covering force (§2.3-2.4) ---
+	CARPET_SIEGE_CONFRONT_FACTOR = 0.3					# 0.5  (l.1017): siege detachments avoid battle, the main army fights
+	AI_SUPPORT_ARMIES_DESIRED_STRENGTH_FACTOR = 0.33	# 0.33 (l.1592): = VANILLA on purpose. The first draft used 0.5 (research 06 §2.4: half the army
+														#                as covering force); the balance review (15 §5) returned it: with only HQ armies able
+														#                to siege, idling half the army feeds the white-peace risk (YEARS_SINCE_LAST_WAR_ACTION
+														#                _BEFORE_WHITE_PEACE = 3). Concentration comes from the split/merge keys above, not
+														#                from idling. Kept as an explicit override so the key stays in the OFF-rule list and
+														#                the T4.4 re-tune is a one-number edit.
+	AI_ENEMY_STRENGTH_NO_SUPPORT_ARMIES_FACTOR = 2		# 2    (l.1591): = VANILLA on purpose, same reason: a covering force kept at 2-3x superiority only
+														#                slowed sieges in wars already won (the first draft used 3). Explicit for the OFF list.
+
+	# --- cooperation with allies and subjects (§2.5) ---
+	AI_AWAIT_REINFORCING_ARMY_DISTANCE_MAX = 60			# 35   (l.1131): wait for collaborating armies from further away...
+	AI_AWAIT_REINFORCING_ARMY_DISTANCE_MIN = 30			# 20   (l.1132): ...and resume moving once they are this close
+	AI_WAIT_FOR_JOINING_UNIT_STRENGTH_THRESHOLD = 0.2	# 0.33 (l.1135): wait even for smaller joining units
+	AI_PERFORMANCE_ATTACH_UNIT_MAX_DISTANCE = 350		# 200  (l.838) : allied units travel further to attach (explicit pathfinding cost - watch performance_degradation.log)
+	AI_ATTACH_MIN_FRONTAGE_ROOM = 0.5					# 1.0  (l.1139): attach even as reserve depth
+	AI_REINFORCE_ONGOING_BATTLE_DISTANCE = 4			# 2    (l.1133): nearby armies pile into the decisive battle...
+	AI_REINFORCE_BATTLE_DISTANCE_LIMIT = 5				# 3    (l.1587): ...from up to 5 locations away
+	AI_REINFORCE_BATTLE_STRENGTH_TRESHOLD = 0.7			# 0.55 (l.1589): keep reinforcing until the own side holds 70% of the battle (decisive superiority)
+	AI_CALL_ALLY_STRENGTH_BALANCE_THRESHOLD = 0.85		# 0.75 (l.1435): call allies into wars more often
+
+	# --- asymmetric warfare when outnumbered (§2.7; the engine-side "harassing" mode) ---
+	HEAVILY_OUTNUMBERED_RATIO = 0.45					# 0.40 (l.1109): outnumbered behaviour kicks in a little earlier. Hedged down from the first draft's
+														#                0.5: the StrengthBalance semantics are UNVERIFIED - if it is a fraction like
+														#                relative_military_strength, 0.5 = parity and every slightly weaker AI would stop
+														#                contesting the field (review 15 §5 / §8, test T5.1). The mod's own harassing stance
+														#                (cw_stance_values.txt, 0.33) carries the flavour.
+	OUTNUMBERED_BATTLE_ADVANTAGE = 0.5					# 0.60 (l.1110): when outnumbered only pick off stacks of at most 50% of own strength
+	AI_ENEMY_LAND_SUPREMACY_THRESHOLD = 2				# 3    (l.1402): in defensive wars hang back and defend already at 2x enemy land strength
+
+	# --- tempo (§2.6) ---
+	AI_RECOVER_MORALE_THRESHOLD = 70					# 66   (l.1121): rest below 70% morale - fewer half-broken attacks ("waiting"). 75 in the first draft
+														#                was more resting = more time without sieges (review 15 §5); HQ-less armies have a lower
+														#                max morale but the threshold is a percentage, so there is no interaction with cw_no_hq.
+
+	# --- overseas (§2.9) ---
+	AI_TRANSPORT_STRENGTH_THRESHOLD_PER_DISTANCE = 0.0003	# 0.0004 (l.828): colonial powers ship troops with somewhat smaller transport fleets
+}

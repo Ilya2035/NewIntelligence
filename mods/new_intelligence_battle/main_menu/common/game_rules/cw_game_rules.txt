@@ -1,0 +1,157 @@
+﻿# Concentrated Warfare - game rules (module warscore_rules, SPEC section 10).
+# Format: game/main_menu/common/game_rules/_game_rules.info and 00_game_rules.txt (research 03 section 4.1).
+#
+# * Every setting carries flag = general_rule, otherwise the rule is invisible in the game-rules UI
+#   (in_game/gui/game_rules.gui only lists settings flagged general_rule / flavour_rule / multiplayer_rule).
+# * Every setting also carries a flag named like itself. Vanilla script tests settings with has_game_rule = <setting key>
+#   (e.g. has_game_rule = institution_spawn_random_city, a setting WITHOUT a self-named flag), and vanilla also adds
+#   self-named flags (country_change_allowed, byz_name_*, timeout_*), so has_game_rule = cw_* resolves either way.
+# * Loc keys: rule_<rule key>, setting_<setting key>, setting_<setting key>_desc.
+
+# 1. Strength of the "army without headquarters" penalty.
+#    Read by hq_core (cw_update_army_organization): has_game_rule = cw_hq_penalty_mild / cw_hq_penalty_harsh pick the
+#    unit modifier cw_no_hq_mild / cw_no_hq_harsh instead of cw_no_hq.
+cw_rule_hq_penalty = {
+	default = cw_hq_penalty_standard
+
+	cw_hq_penalty_standard = {
+		flag = cw_hq_penalty_standard
+		flag = general_rule
+	}
+	cw_hq_penalty_mild = {
+		flag = cw_hq_penalty_mild
+		flag = general_rule
+	}
+	cw_hq_penalty_harsh = {
+		flag = cw_hq_penalty_harsh
+		flag = general_rule
+	}
+}
+
+# 2. AI stack concentration (define overrides in loading_screen/common/defines/cw_ai_defines.txt).
+cw_rule_ai_concentration = {
+	default = cw_ai_concentration_on
+
+	cw_ai_concentration_on = {
+		flag = cw_ai_concentration_on
+		flag = general_rule
+	}
+	# Off: restore the vanilla 1.4.7 value of EXACTLY the NAI keys that cw_ai_defines.txt overrides (values and line numbers
+	# from game/loading_screen/common/defines/00_defines.txt, re-checked 1.4.7). The list mirrors cw_ai_defines.txt
+	# one-to-one and in the same order (26 keys) - keep the two files in sync so a diff between them is trivial.
+	# AI_SUPPLY_LIMIT_TARGET and AI_FRONTAGE_FILL_TARGET are deliberately absent from BOTH files: the mod never overrides
+	# them (cw_ai_defines.txt header, "Deliberately NOT included").
+	# CW TODO verify: defines = { } inside a game-rule setting is documented in _game_rules.info but used nowhere in vanilla
+	# (research 03 sections 4.1 and 6.9). Test: pick this setting, start a game and watch whether an AI hunting army splits
+	# into more than 2 stacks again (HUNT_ARMIES_MAX_SPLINTERS 2 -> 6). If the block is ignored the setting is harmless:
+	# the mod values simply stay in force.
+	cw_ai_concentration_off = {
+		defines = {
+			NAI = {
+				# --- stack size, splitting, merging ---
+				RATIO_OVER_SUPPLY_TARGET_TO_SPLIT = 1.3						# l.1026
+				AI_LAND_ARMY_MERGE_THRESHOLD = 0.80							# l.1137
+				HUNT_ARMIES_WIN_CHANCE_SPLIT = 0.99							# l.997
+				HUNT_ARMIES_MAX_SPLINTERS = 6								# l.998
+				HUNT_ARMIES_AI_MAX_NUM_OBJECTIVES = 5						# l.1004
+				CARPET_SIEGE_MAX_ARMIES = 10								# l.1021
+				AI_CARPET_SIEGE_MAX_ARMIES_FACTOR = 0.1						# l.1593
+				MAX_RECRUIT_DISTANCE = 10									# l.1037
+				# --- objective assignment and churn ---
+				AI_REASSIGN_UNIT_THRESHOLD = 1.33							# l.1403
+				# --- sieges and the covering force ---
+				CARPET_SIEGE_CONFRONT_FACTOR = 0.5							# l.1017
+				AI_SUPPORT_ARMIES_DESIRED_STRENGTH_FACTOR = 0.33			# l.1592
+				AI_ENEMY_STRENGTH_NO_SUPPORT_ARMIES_FACTOR = 2				# l.1591
+				# --- cooperation with allies and subjects ---
+				AI_AWAIT_REINFORCING_ARMY_DISTANCE_MAX = 35					# l.1131
+				AI_AWAIT_REINFORCING_ARMY_DISTANCE_MIN = 20					# l.1132
+				AI_WAIT_FOR_JOINING_UNIT_STRENGTH_THRESHOLD = 0.33			# l.1135
+				AI_PERFORMANCE_ATTACH_UNIT_MAX_DISTANCE = 200				# l.838
+				AI_ATTACH_MIN_FRONTAGE_ROOM = 1.0							# l.1139
+				AI_REINFORCE_ONGOING_BATTLE_DISTANCE = 2					# l.1133
+				AI_REINFORCE_BATTLE_DISTANCE_LIMIT = 3						# l.1587
+				AI_REINFORCE_BATTLE_STRENGTH_TRESHOLD = 0.55				# l.1589 (vanilla spelling "TRESHOLD")
+				AI_CALL_ALLY_STRENGTH_BALANCE_THRESHOLD = 0.75				# l.1435
+				# --- asymmetric warfare when outnumbered ---
+				HEAVILY_OUTNUMBERED_RATIO = 0.40							# l.1109
+				OUTNUMBERED_BATTLE_ADVANTAGE = 0.60							# l.1110
+				AI_ENEMY_LAND_SUPREMACY_THRESHOLD = 3						# l.1402
+				# --- tempo ---
+				AI_RECOVER_MORALE_THRESHOLD = 66							# l.1121
+				# --- overseas ---
+				AI_TRANSPORT_STRENGTH_THRESHOLD_PER_DISTANCE = 0.0004		# l.828
+			}
+		}
+		flag = cw_ai_concentration_off
+		flag = general_rule
+	}
+}
+
+# 3. War score rework (define overrides in loading_screen/common/defines/cw_war_defines.txt + the capital bonus).
+#    Script side: on_action cw_on_capital_taken fires only with has_game_rule = cw_warscore_on.
+#    Not rule-gated (static data): the per-rank local_war_score_efficiency in location_ranks/00_default.txt (city -0.15,
+#    megalopolis -0.25 only; villages and towns keep the vanilla peace efficiency since the balance review, research 15 section 4.5).
+cw_rule_warscore = {
+	default = cw_warscore_on
+
+	cw_warscore_on = {
+		flag = cw_warscore_on
+		flag = general_rule
+	}
+	# Off: restore the vanilla 1.4.7 value of EXACTLY the NWar keys that cw_war_defines.txt overrides (10 keys, same order;
+	# values and lines from game/loading_screen/common/defines/00_defines.txt - keep the two files key-for-key in sync).
+	# CW TODO verify: same defines = { } mechanism as above. Test: with this setting the location panel "War Score of <capital>"
+	# should show the vanilla +5 capital term instead of +15.
+	cw_warscore_off = {
+		defines = {
+			NWar = {
+				WAR_WORTH_BASE = 2							# l.2685
+				WAR_WORTH_COUNTRY_CAPITAL = 5				# l.2693
+				WAR_WORTH_PROVINCE_CAPITAL = 1				# l.2694
+				WAR_WORTH_PORT = 1							# l.2695
+				WAR_WORTH_BUILDING_SCALE = 0.025			# l.2688 (the mod keeps the vanilla value since the balance review; listed to stay key-for-key)
+				WAR_WORTH_BUILDING_CAP = 10					# l.2689
+				WAR_WORTH_POPULATION_SCALE = 0.02			# l.2690
+				WAR_WORTH_POPULATION_CAP = 4				# l.2691
+				WAR_WORTH_DEVELOPMENT_MIN = -1				# l.2700 (the mod raises it to -0.25 because BASE 0.5 - 1 would go below zero)
+				OCCUPATION_VALUE_SCALE = 2.0				# l.2669
+			}
+		}
+		flag = cw_warscore_off
+		flag = general_rule
+	}
+}
+
+# 4. Native penalty "isolated military tradition" (in_game/common/auto_modifiers/cw_auto_modifiers.txt, scripted trigger
+#    cw_has_isolated_tradition in main_menu/common/scripted_triggers/cw_warscore_triggers.txt - menu stage, because the
+#    main_menu HQ limit values read it -, decision in_game/common/decisions/cw_native_decisions.txt).
+#    Script reads has_game_rule = cw_native_penalty_on.
+cw_rule_native_penalty = {
+	default = cw_native_penalty_on
+
+	cw_native_penalty_on = {
+		flag = cw_native_penalty_on
+		flag = general_rule
+	}
+	cw_native_penalty_off = {
+		flag = cw_native_penalty_off
+		flag = general_rule
+	}
+}
+
+# 5. Event "enemy changed its war stance" (cw_stance.1 in in_game/events/cw_stance_events.txt, module ai_stance; the
+#    SPEC name "cw_events.3" was replaced). Off by default: the top-bar plate is the
+#    primary signal and the event would fire often. Script reads has_game_rule = cw_stance_events_on.
+cw_rule_stance_events = {
+	default = cw_stance_events_off
+
+	cw_stance_events_off = {
+		flag = cw_stance_events_off
+		flag = general_rule
+	}
+	cw_stance_events_on = {
+		flag = cw_stance_events_on
+		flag = general_rule
+	}
+}

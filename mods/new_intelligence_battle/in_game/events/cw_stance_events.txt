@@ -1,0 +1,74 @@
+﻿namespace = cw_stance
+
+# =====================================================================================================
+# Concentrated Warfare - war stance events (module ai_stance).
+#
+# cw_stance.1 - "The enemy has changed its war stance" (human player notification).
+# Fired by cw_update_player_enemy_stance (cw_stance_effects.txt) when var:cw_enemy_stance changes to a known
+# value (1-4) and the game rule setting cw_stance_events_on is active (rule cw_rule_stance_events, module
+# warscore_rules; OFF by default - the top-bar plate is the primary signal). Timing: the enemy can change its
+# stance at most once per 2 months (its cw_stance_lock) and the change becomes readable one month after it
+# happened (its 1-month cw_stance_changed, the intelligence delay - balance review 15 §3.3), so this fires at
+# most once per 2 months per enemy, one month late.
+# root = the human country; scope:cw_enemy = the enemy whose stance changed (saved in immediate from the
+# scope variable cw_enemy_stance_source, pattern holy_war_effects.txt:33 var:x = { save_scope_as = y }).
+# interface_lock = no: informational, never pauses the game (events/readme.txt:63; research 11 §2.6).
+# Description picked per stance through first_valid / triggered_desc (events/readme.txt:21-31).
+# Localization (module localize): cw_stance.1.t, cw_stance.1.d (fallback), cw_stance.1.d.offensive,
+# cw_stance.1.d.defensive, cw_stance.1.d.waiting, cw_stance.1.d.harassing, cw_stance.1.a; texts may use
+# [cw_enemy.GetName] (pattern [target_country.GetName], colonial_federation_events_l_english.yml:4).
+# =====================================================================================================
+cw_stance.1 = {
+	type = country_event
+	title = cw_stance.1.t
+	desc = {
+		first_valid = {
+			triggered_desc = {
+				trigger = { var:cw_enemy_stance = 1 }	# ids: cw_stance_id_* in cw_stance_values.txt
+				desc = cw_stance.1.d.offensive
+			}
+			triggered_desc = {
+				trigger = { var:cw_enemy_stance = 2 }
+				desc = cw_stance.1.d.defensive
+			}
+			triggered_desc = {
+				trigger = { var:cw_enemy_stance = 3 }
+				desc = cw_stance.1.d.waiting
+			}
+			triggered_desc = {
+				trigger = { var:cw_enemy_stance = 4 }
+				desc = cw_stance.1.d.harassing
+			}
+			triggered_desc = {
+				desc = cw_stance.1.d
+			}
+		}
+	}
+	outcome = neutral
+	# CW TODO verify: interface_lock is documented in events/readme.txt:63 ("Event pauses the game when fired in
+	# single player. Default: yes") but no vanilla event sets it; if error.log reports an unknown key, delete this
+	# line (the event then pauses the game like any other).
+	interface_lock = no
+
+	illustration_tags = {
+		10 = armed
+		10 = exterior
+	}
+
+	# re-checked at fire time: the effect only fires it when these hold, so a failure means stale data
+	trigger = {
+		is_ai = no
+		at_war = yes
+		has_game_rule = cw_stance_events_on
+		has_variable = cw_enemy_stance
+		has_variable = cw_enemy_stance_source
+	}
+
+	immediate = {
+		var:cw_enemy_stance_source = { save_scope_as = cw_enemy }
+	}
+
+	option = {
+		name = cw_stance.1.a
+	}
+}

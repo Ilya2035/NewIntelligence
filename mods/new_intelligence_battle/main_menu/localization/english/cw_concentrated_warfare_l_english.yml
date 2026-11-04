@@ -1,0 +1,217 @@
+﻿l_english:
+ # =====================================================================================================
+ # New Intelligence: Battle (internal prefix cw_) - English localization (Russian is the mod's primary language; keep both files in sync).
+ # Format (research 11 §3): UTF-8 BOM, "l_english:" on line 1, one leading space per key, no version numbers.
+ # Nesting $key$ (nominative labels only), concept links [key|e] / [key|E] (capitalized), format codes
+ # #T #W #V #G #R #bold ... #!, text icons @hint! @warning_icon! @arrow_bonus_tier_N!, line breaks \n.
+ # The regiment names cw_hq / cw_hq_colonial are compared by the GUI as strings (Localize), so they must stay
+ # unique among unit type names.
+ # =====================================================================================================
+
+ ### Unit types (in_game/common/unit_types/cw_headquarters.txt): <key> = name, <key>_desc = description
+ cw_hq: "Army Headquarters"
+ cw_hq_desc: "The officer corps of a field army: a staff of one hundred officers. It grants no bonus; only an [army|e] with a headquarters (and at least two more regiments) can [siege|e] and occupy at full speed and fight at full strength, while an army without one suffers the $STATIC_MODIFIER_NAME_cw_no_hq$ penalty. The number of headquarters is limited by [age|e] and by the size of the country."
+ cw_hq_colonial: "Colonial Headquarters"
+ cw_hq_colonial_desc: "A headquarters raised for an [overseas|e] theater. It organizes an army only overseas, where it replaces a regular headquarters and grants the small $STATIC_MODIFIER_NAME_cw_expeditionary$ bonus. At home an army led only by a colonial headquarters fights normally but cannot conduct a proper siege ($STATIC_MODIFIER_NAME_cw_no_hq_siege_only$). Separate limit per overseas theater, at most four. Recruitable only in overseas possessions."
+ cw_hq_construction_demand: "Headquarters Construction"
+ cw_hq_maintenance_demand: "Headquarters Upkeep"
+
+ ### Unit limit breakdown lines (desc = "KEY" in cw_limit_values.txt; the engine prints them as "$KEY$: $VALUE|+=2$")
+ CW_HQ_LIMIT_IMPERIAL: "Imperial staff (300 or more owned locations)"
+ CW_HQ_LIMIT_AGE_AND_SIZE: "Additional headquarters (by age, capped at one per 75 owned locations)"
+ CW_HQ_LIMIT_CAP: "Maximum (cap of 5)"
+ CW_HQ_LIMIT_MIN: "Minimum (always at least one)"
+ CW_COLONIAL_HQ_LIMIT_THEATRE_EUROPE: "Overseas theater: Europe"
+ CW_COLONIAL_HQ_LIMIT_THEATRE_ASIA: "Overseas theater: Asia"
+ CW_COLONIAL_HQ_LIMIT_THEATRE_AFRICA: "Overseas theater: Africa"
+ CW_COLONIAL_HQ_LIMIT_THEATRE_AMERICA: "Overseas theater: America"
+ CW_COLONIAL_HQ_LIMIT_THEATRE_OCEANIA: "Overseas theater: Oceania"
+ CW_COLONIAL_HQ_LIMIT_LARGE_THEATRE: "Large theater (25+ locations there owned by us or by a subject, Age of Reformation or later)"
+ CW_COLONIAL_HQ_LIMIT_HUGE_THEATRE: "Vast theater (60+ locations there owned by us or by a subject, Age of Absolutism or later)"
+ CW_COLONIAL_HQ_LIMIT_CAP: "Maximum (cap of 4)"
+ CW_HQ_LIMIT_ISOLATED: "Isolated military tradition (no additional headquarters)"
+
+ ### Army modifiers (main_menu/common/static_modifiers/cw_unit_modifiers.txt)
+ # The three penalty variants share one name: the GUI recognizes any of them by name, the strength shows in the numbers.
+ STATIC_MODIFIER_NAME_cw_no_hq: "Army without Headquarters"
+ STATIC_MODIFIER_DESC_cw_no_hq: "This army has no [cw_headquarters|e]: it cannot conduct a proper [siege|e] and fights without coordination. Place a headquarters or merge it into an army that already has one."
+ STATIC_MODIFIER_NAME_cw_no_hq_mild: "Army without Headquarters"
+ STATIC_MODIFIER_DESC_cw_no_hq_mild: "$STATIC_MODIFIER_DESC_cw_no_hq$\nMild variant of the penalty: discipline −10%, morale −10% (game rule $rule_cw_rule_hq_penalty$, setting $setting_cw_hq_penalty_mild$)."
+ STATIC_MODIFIER_NAME_cw_no_hq_harsh: "Army without Headquarters"
+ STATIC_MODIFIER_DESC_cw_no_hq_harsh: "$STATIC_MODIFIER_DESC_cw_no_hq$\nHarsh variant of the penalty: discipline −30%, morale −30% (game rule $rule_cw_rule_hq_penalty$, setting $setting_cw_hq_penalty_harsh$)."
+ # The siege-only tier and the rebel modifier carry DIFFERENT names on purpose: the GUI's penalty marker recognizes the no-HQ penalty by its exact name.
+ STATIC_MODIFIER_NAME_cw_no_hq_siege_only: "Army without Headquarters (sieges only)"
+ STATIC_MODIFIER_DESC_cw_no_hq_siege_only: "Only a [cw_colonial_headquarters|e] leads this army at home, and a colonial headquarters organizes an army only in an [overseas|e] theater. The army fights normally but cannot conduct a proper [siege|e] here. Place a regular headquarters or take the army back overseas."
+ STATIC_MODIFIER_NAME_cw_rebel_disorder: "Rebel Disorder"
+ STATIC_MODIFIER_DESC_cw_rebel_disorder: "A rebel host fights without a proper officer corps: it deals less damage and breaks sooner, but it occupies at normal speed."
+ STATIC_MODIFIER_NAME_cw_expeditionary: "Expeditionary Corps"
+ STATIC_MODIFIER_DESC_cw_expeditionary: "A [cw_colonial_headquarters|e] leads this army on an [overseas|e] continent: less attrition, faster marches and quicker morale recovery. The bonus does not apply on the home continent."
+
+ ### War stances - country modifiers of AI countries (main_menu/common/static_modifiers/cw_country_modifiers.txt);
+ # visible on the enemy's behavioral modifiers tooltip
+ STATIC_MODIFIER_NAME_cw_stance_offensive: "War Stance: Offensive"
+ STATIC_MODIFIER_DESC_cw_stance_offensive: "Clearly stronger than its main enemy, this country seeks the decisive battle and accepts risk."
+ STATIC_MODIFIER_NAME_cw_stance_defensive: "War Stance: Defensive"
+ STATIC_MODIFIER_DESC_cw_stance_defensive: "Roughly matched with its main enemy, this country holds its forts and home territory."
+ STATIC_MODIFIER_NAME_cw_stance_waiting: "War Stance: Waiting"
+ STATIC_MODIFIER_DESC_cw_stance_waiting: "This country is the attacker but not ready yet: the war is young or its army is still under strength. It gathers its forces, reinforces faster and waits for allies before committing."
+ STATIC_MODIFIER_NAME_cw_stance_harassing: "War Stance: Harassing"
+ STATIC_MODIFIER_DESC_cw_stance_harassing: "Heavily outnumbered or losing badly, this country avoids the main enemy army, raids and besieges forts in its rear."
+
+ ### Auto modifier (in_game/common/auto_modifiers/cw_auto_modifiers.txt)
+ AUTO_MODIFIER_NAME_cw_isolated_tradition_auto: "Isolated Military Tradition"
+ AUTO_MODIFIER_DESC_cw_isolated_tradition_auto: "Our war host knows neither a permanent staff nor the pike-and-shot drill of the Old World. This ends when we embrace the [institution|e] $pike_and_shot$ or reform the war host (decision $cw_reform_war_host.title$). While the tradition lasts there are no additional headquarters slots."
+
+ ### Events (in_game/events/cw_events.txt - cw_events.N; in_game/events/cw_stance_events.txt - cw_stance.1)
+ cw_events.1.title: "A New Headquarters Slot"
+ cw_events.1.desc: "Our officer corps has grown: from now on we may field more [cw_headquarters|e]. Headquarters available in total: [ROOT.ScriptValue('cw_hq_limit')|V0].\n\nA new headquarters can be placed from the #W $CW_HQ_TAB$#! tab of the army window or by recruiting a $cw_hq$ regiment in the army builder."
+ cw_events.1.a: "Appoint the staff."
+ cw_events.2.title: "An Army Has Lost Its Headquarters"
+ cw_events.2.desc: "The officer corps of [cw_army.GetName] has been destroyed. Until a new [cw_headquarters|e] is assigned, the army besieges at a fraction of its speed and fights poorly."
+ cw_events.2.desc_generic: "One of our armies has lost its officer corps. Until a new [cw_headquarters|e] is assigned, it besieges at a fraction of its speed and fights poorly."
+ cw_events.2.a: "Reorganize."
+ cw_stance.1.t: "Enemy War Stance Changed"
+ cw_stance.1.d: "Our spies report that [cw_enemy.GetName] has changed its approach to the war."
+ cw_stance.1.d.offensive: "Our spies report that [cw_enemy.GetName] has gone on the offensive and seeks a decisive battle."
+ cw_stance.1.d.defensive: "Our spies report that [cw_enemy.GetName] has taken a defensive stance, holding its forts and home territory."
+ cw_stance.1.d.waiting: "Our spies report that [cw_enemy.GetName] is waiting, gathering forces and reinforcements before it commits."
+ cw_stance.1.d.harassing: "Our spies report that [cw_enemy.GetName] avoids our main army and resorts to raids and sieges in our rear."
+ cw_stance.1.a: "Noted."
+
+ ### Decisions (in_game/common/decisions/cw_decisions.txt, cw_native_decisions.txt)
+ cw_toggle_auto_hq.title: "Entrust Headquarters Placement to the General Staff"
+ cw_toggle_auto_hq.desc: "The general staff will place our [cw_headquarters|e] on its own, by the same rules the AI uses: every month the free slots go to the largest armies (regular headquarters at home, colonial ones overseas). Surplus headquarters are not disbanded. Automatic placement can be switched off again at any time with this same decision."
+ cw_toggle_auto_hq.a: "Let the staff handle it."
+ cw_toggle_auto_hq.b: "Take back control."
+ cw_auto_hq_is_on_tt: "Headquarters placement is currently automated"
+ cw_auto_hq_is_off_tt: "Headquarters placement is currently manual"
+ cw_auto_hq_enable_tt: "Headquarters will be placed automatically from now on (free slots are filled immediately)"
+ cw_auto_hq_disable_tt: "Headquarters placement returns to manual control (existing headquarters stay)"
+ cw_reform_war_host.title: "Reform the War Host"
+ cw_reform_war_host.desc: "Our warriors still fight as isolated war bands, as their forefathers did. By adopting a permanent staff and the lessons of foreign armies we end the isolated military tradition: the discipline malus disappears and our armies gain additional headquarters slots."
+ cw_reform_war_host.a: "Reform it."
+ cw_reform_war_host_tt: "Our war host adopts a permanent staff: the isolated military tradition ends and headquarters slots open up"
+
+ ### Hint (in_game/common/scriptable_hints/cw_hints.txt; format hints_l_english.yml:387-391)
+ hint_cw_army_without_hq: "Army without Headquarters"
+ hint_cw_army_without_hq_hint_text: "$hint_cw_army_without_hq_hint_text_1$\n\n$hint_cw_army_without_hq_hint_text_2$"
+ hint_cw_army_without_hq_hint_text_1: "One of our [armies|e] has no [cw_headquarters|e] and suffers the $STATIC_MODIFIER_NAME_cw_no_hq$ penalty: its sieges crawl and it is markedly weaker in battle."
+ hint_cw_army_without_hq_hint_text_2: "#T Recommended Actions:#!\n@arrow_bonus_tier_3! Open the army window and place a headquarters from the #W $CW_HQ_TAB$#! tab, if a slot is free.\n@arrow_bonus_tier_2! Merge the army into one that already has a headquarters.\n@hint! The number of headquarters is limited by [age|e] and by the size of the country. Free slots are shown in the $CW_OVERVIEW_TITLE$ window (click the war-stance plate under the alert bar)."
+
+ ### Game rules (main_menu/common/game_rules/cw_game_rules.txt): rule_<rule>, setting_<setting>, setting_<setting>_desc
+ rule_cw_rule_hq_penalty: "Headquarters Penalty"
+ setting_cw_hq_penalty_standard: "Standard"
+ setting_cw_hq_penalty_standard_desc: "Armies without a headquarters get the standard penalty: siege ability −90%, assault ability −50%, discipline −20%, morale −25%."
+ setting_cw_hq_penalty_mild: "Mild"
+ setting_cw_hq_penalty_mild_desc: "Armies without a headquarters get a milder penalty: siege ability −90%, assault ability −50%, discipline −10%, morale −10%."
+ setting_cw_hq_penalty_harsh: "Harsh"
+ setting_cw_hq_penalty_harsh_desc: "Armies without a headquarters get a harsher penalty: siege ability −90%, assault ability −50%, discipline −30%, morale −30%."
+ rule_cw_rule_ai_concentration: "AI Army Concentration"
+ setting_cw_ai_concentration_on: "On"
+ setting_cw_ai_concentration_on_desc: "The AI keeps fewer but larger armies, waits for allies before battle and switches to asymmetric warfare earlier (modified AI army defines)."
+ setting_cw_ai_concentration_off: "Off"
+ setting_cw_ai_concentration_off_desc: "The default AI army behavior defines are restored."
+ rule_cw_rule_warscore: "Warscore Rework"
+ setting_cw_warscore_on: "On"
+ setting_cw_warscore_on_desc: "Occupation warscore and peace cost come mostly from cities and the capital; villages are worth almost nothing. Taking the enemy capital grants a one-off bonus to warscore."
+ setting_cw_warscore_off: "Off"
+ setting_cw_warscore_off_desc: "The default war-worth defines are restored and the capital bonus is disabled (the rank-based peace prices stay)."
+ rule_cw_rule_native_penalty: "Isolated Military Tradition (Native Penalty)"
+ setting_cw_native_penalty_on: "On"
+ setting_cw_native_penalty_on_desc: "Countries of the Americas (except subjects of an Old World power, such as colonial nations) suffer a mild discipline malus and get no additional headquarters slots until they embrace the $pike_and_shot$ institution or reform their war host."
+ setting_cw_native_penalty_off: "Off"
+ setting_cw_native_penalty_off_desc: "No penalty for the countries of the Americas."
+ rule_cw_rule_stance_events: "Enemy War Stance Events"
+ setting_cw_stance_events_off: "Off"
+ setting_cw_stance_events_off_desc: "You are not notified by an event when an enemy changes its war stance (the plate under the alert bar still shows it)."
+ setting_cw_stance_events_on: "On"
+ setting_cw_stance_events_on_desc: "An event informs you when an enemy at war with you changes its war stance."
+
+ ### Game concepts (main_menu/common/game_concepts/cw_concepts.txt); alias keys cw_colonial_hq / cw_war_stances
+ game_concept_cw_headquarters: "Headquarters"
+ game_concept_cw_headquarters_desc: "A 100-man officer corps regiment. Only an [army|e] with a headquarters and at least two more regiments is organized: it can [siege|e], occupy [locations|e] at full speed and fight at full strength. There is no bonus for having one, only the $STATIC_MODIFIER_NAME_cw_no_hq$ penalty for lacking it. The number of headquarters is limited by [age|e] and by the number of own locations: one always, an imperial one at 300 or more own locations, plus by age (Discovery 1, Reformation 2, Absolutism 3, Revolutions 4) but never more than one per 75 own locations; five in total at most."
+ game_concept_cw_colonial_headquarters: "Colonial Headquarters"
+ game_concept_cw_colonial_hq: "Colonial Headquarters"
+ game_concept_cw_colonial_headquarters_desc: "A separate [cw_headquarters|e] pool granted per [overseas|e] continent (theater): from the Age of Discovery one per theater where we own at least 5 locations or keep an army of 3+ regiments, one more at 25 locations there, ours or our subjects' (Age of Reformation), and at 60 (Age of Absolutism), four in total at most. A colonial headquarters organizes an army only while it is overseas, where it also grants the small $STATIC_MODIFIER_NAME_cw_expeditionary$ bonus; at home such an army fights normally but cannot besiege ($STATIC_MODIFIER_NAME_cw_no_hq_siege_only$) until it receives a regular headquarters."
+ game_concept_cw_war_stance: "War Stance"
+ game_concept_cw_war_stances: "War Stances"
+ game_concept_cw_war_stance_desc: "The current posture of an AI country at war: $CW_STANCE_1$, $CW_STANCE_2$, $CW_STANCE_3$, $CW_STANCE_4$ or $CW_STANCE_0$. The stance is recalculated monthly from the strength ratio against the main enemy, the traits of the ruler and the commander and the course of the war, and changes at most once every two months. The plate under the alert bar shows the stance of our main enemy; for a month after a change our intelligence reports $CW_STANCE_0$."
+
+ ### Subject military stance (in_game/common/subject_military_stances/cw_stances.txt; pattern military_l_english.yml:15-37)
+ cw_escort_military_stance: "Escort"
+ cw_escort_military_stance_desc: "The [subject|e] will shadow our main army and cover our sieges instead of operating on its own."
+ cw_escort_military_stance_desc_all: "All our [subjects|e] will shadow our main army and cover our sieges instead of operating on their own."
+
+ ### War stance plate (in_game/gui/cw_war_stance_plate.gui)
+ # CW_PLATE_ENEMY: the GUI appends the flag and the country name after the label - do not embed the name here.
+ # CW_STANCE_0_TT: never embeds the enemy name (the source variable may be unset while unknown); the other
+ # stance tooltips do not need it either - the "Main enemy" row of the same tooltip shows it.
+ CW_PLATE_TITLE: "Enemy:"
+ CW_PLATE_TT: "Enemy war stance"
+ CW_PLATE_OPEN: "Open the $CW_OVERVIEW_TITLE$ overview"
+ CW_PLATE_ENEMY: "Main enemy:"
+ CW_STANCE_0: "Unknown"
+ CW_STANCE_1: "Offensive"
+ CW_STANCE_2: "Defensive"
+ CW_STANCE_3: "Waiting"
+ CW_STANCE_4: "Harassing"
+ CW_STANCE_0_TT: "#T $CW_STANCE_0$#!\nThe enemy's [cw_war_stance|e] is unknown: it changed recently and our intelligence has not caught up yet (reports arrive within a month), or the enemy is led by a human player."
+ CW_STANCE_1_TT: "#T $CW_STANCE_1$#!\nThe enemy seeks a decisive battle: expect its main army to advance and keep your forces concentrated."
+ CW_STANCE_2_TT: "#T $CW_STANCE_2$#!\nThe enemy holds its forts and home territory and waits for us to attack."
+ CW_STANCE_3_TT: "#T $CW_STANCE_3$#!\nThe enemy is waiting: it gathers forces and allies and reinforces its regiments faster before acting."
+ CW_STANCE_4_TT: "#T $CW_STANCE_4$#!\nThe enemy avoids our main army: it strikes small detachments and besieges forts in our rear."
+
+ ### Headquarters overview window (in_game/gui/cw_hq_overview.gui)
+ # CW_HQ_SLOTS / CW_HQ_COLONIAL_SLOTS are used both here (label above the counter) and on the army tab, where the GUI
+ # prints the "used/limit" numbers right after the label - the labels themselves must not contain numbers.
+ CW_OVERVIEW_TITLE: "Headquarters"
+ CW_OVERVIEW_HINT: "A [cw_headquarters|E] is a 100-man officer corps regiment. Only an army with a headquarters and at least two more regiments is organized: it besieges and fights at full strength; an army without one suffers the $STATIC_MODIFIER_NAME_cw_no_hq$ penalty.\nPlace a headquarters from the #W $CW_HQ_TAB$#! tab of the army window or recruit a $cw_hq$ regiment in the army builder; merged armies simply add up their headquarters. There is always at least one headquarters, an imperial one at 300 or more own locations, and more by [age|e], but never more than one per 75 own locations; five in total at most. [cw_colonial_headquarters|E] are granted separately for each overseas theater and organize an army only overseas: at home an army with a colonial headquarters fights normally but cannot besiege."
+ CW_HQ_SLOTS: "Headquarters:"
+ CW_HQ_SLOTS_TT: "#T Headquarters Limit#!\nOne headquarters always, an imperial one at 300 or more own [locations|e], plus additional ones - the lower of two numbers:\n@arrow_bonus_tier_2! by [age|e]: Discovery 1, Reformation 2, Absolutism 3, Revolutions 4;\n@arrow_bonus_tier_2! by size: 1 per 75 own locations.\nFive in total at most. While $AUTO_MODIFIER_NAME_cw_isolated_tradition_auto$ is active there are no additional slots. The full breakdown is in the limit tooltip of the $cw_hq$ regiment in the army builder."
+ CW_HQ_COLONIAL_SLOTS: "Colonial headquarters:"
+ CW_HQ_COLONIAL_SLOTS_TT: "#T Colonial Headquarters Limit#!\nAvailable from the Age of Discovery. One per [overseas|e] continent (theater) where we own at least 5 locations or keep an army of 3+ regiments; one more at 25 locations there, ours or our subjects' (Age of Reformation), and at 60 (Age of Absolutism). Four in total at most."
+ CW_AUTO_HQ_ON: "Headquarters placement: entrusted to the General Staff"
+ CW_AUTO_HQ_OFF: "Headquarters placement: manual"
+ CW_AUTO_HQ_TT: "When automatic placement is on, our headquarters are distributed every month among the largest armies by the same rules the AI uses: regular ones at home, colonial ones overseas (one per theater). Surplus headquarters are not disbanded. The decision $cw_toggle_auto_hq.title$ toggles the same switch."
+ CW_OVERVIEW_COL_ARMY: "Army"
+ CW_OVERVIEW_COL_LOCATION: "Location"
+ CW_OVERVIEW_COL_SIZE: "Regiments"
+ CW_OVERVIEW_COL_HQ: "Headquarters"
+ CW_OVERVIEW_HAS_HQ_TT: "This army has a headquarters"
+ CW_OVERVIEW_HAS_COLONIAL_HQ_TT: "This army has a colonial headquarters (organizes the army only overseas)"
+ CW_OVERVIEW_NO_HQ_TT: "No headquarters: the army suffers the $STATIC_MODIFIER_NAME_cw_no_hq$ penalty"
+ CW_OVERVIEW_EMPTY: "No armies"
+ CW_CLOSE: "Close"
+
+ ### Headquarters tab of the army window (in_game/gui/single_unit_window.gui)
+ CW_TAB_ACTIONS: "Actions"
+ CW_HQ_TAB: "Headquarters"
+ CW_HQ_PRESENT: "An army with a headquarters is here (organized)"
+ CW_HQ_ABSENT: "No headquarters: the army is unorganized and penalized"
+ CW_HQ_COLONIAL_PRESENT: "Colonial headquarters, army overseas (organized)"
+ CW_HQ_OVERSEAS: "Overseas theater"
+ CW_HQ_ADD: "Place headquarters here"
+ CW_HQ_ADD_TT: "Form a headquarters regiment in the largest own unorganized army without a regular headquarters at this location - including an army at home whose only headquarters is colonial (uses one free headquarters slot)"
+ CW_HQ_ADD_COLONIAL: "Place colonial headquarters here"
+ CW_HQ_ADD_COLONIAL_TT: "Form a colonial headquarters regiment in the largest own army without one at this overseas location (uses one free colonial slot)"
+ CW_HQ_REMOVE: "Disband headquarters"
+ CW_HQ_REMOVE_TT: "Disband the headquarters regiment(s) of the largest own army with a headquarters at this location; the army loses its organization and is penalized"
+
+ ### Headquarters tab - status rows and tooltips added with the review fixes (module gui_army_tab). The status rows
+ ### are evaluated per army (regiment / modifier data models); CW_HQ_ABSENT_LOC is the only location-scoped row.
+ ### CW_HQ_ABSENT is no longer referenced by the tab (CW_HQ_PENALTY_TEXT was removed). CW_HQ_COLONIAL_AT_HOME is a
+ ### location-scoped row as well (cw_sgui_loc_has_colonial_hq_at_home).
+ CW_HQ_NO_HQ: "No headquarters: the army is not organized"
+ CW_HQ_LONE: "Too few regiments for the headquarters (at least two others are needed): the army is not organized, the penalty applies"
+ CW_HQ_PENALISED: "Penalty in force: $STATIC_MODIFIER_NAME_cw_no_hq$ (refreshed by the next organization check)"
+ CW_HQ_COLONIAL_AT_HOME: "Colonial headquarters at home: the army fights normally but cannot besiege (place a regular headquarters)"
+ CW_HQ_SIEGE_ONLY: "Siege restriction in force: $STATIC_MODIFIER_NAME_cw_no_hq_siege_only$ (refreshed by the next organization check)"
+ CW_HQ_ABSENT_LOC: "No headquarters army at this location: this army is not organized"
+ CW_HQ_EXEMPT: "Exiled army: the headquarters rules do not apply"
+ CW_HQ_AT_SEA: "Embarked army: a headquarters can be placed or disbanded after landing"
+ CW_HQ_PENALTY_INFO: "An army without a [cw_headquarters|e] gets the $STATIC_MODIFIER_NAME_cw_no_hq$ modifier; the exact numbers depend on the game rule $rule_cw_rule_hq_penalty$ (hover to see all three variants; the modifier icon on the army shows the values in force): standard - siege ability −90%, assault ability −50%, discipline −20%, morale −25%; mild - discipline −10%, morale −10%; harsh - discipline −30%, morale −30% (siege and assault as in standard). A regular headquarters lifts the penalty anywhere, a colonial one only overseas (at home such an army fights normally but cannot besiege), and the army must contain at least two more regiments: a headquarters without other regiments, or with a single regiment, occupies nothing."
+ CW_HQ_SLOTS_TAB_TT: "$CW_HQ_SLOTS_TT$\n\nThe counter is refreshed by the monthly organization check, by the buttons of this tab and when a war starts or ends; a headquarters recruited in the army builder or lost in battle shows up at the next check."
+ CW_HQ_COLONIAL_SLOTS_TAB_TT: "$CW_HQ_COLONIAL_SLOTS_TT$\n\nThe counter is refreshed by the monthly organization check, by the buttons of this tab and when a war starts or ends. Headquarters above the limit (a theater was lost) are kept, but no new one can be placed."
+ CW_HQ_ADD_RULES_TT: "$CW_HQ_ADD_TT$.\nExiled and prisoner-only stacks are exempt from the headquarters rules and cannot receive one."
+ CW_HQ_ADD_COLONIAL_RULES_TT: "$CW_HQ_ADD_COLONIAL_TT$.\nThe free colonial slot is checked again when you click, so a click may do nothing if the counter above has not been refreshed yet. Exiled and prisoner-only stacks are exempt."
+ CW_HQ_REMOVE_WARNING_TT: "$CW_HQ_REMOVE_TT$.\nRegular headquarters regiments are disbanded first, colonial ones on a later click; an army consisting of nothing but headquarters is disbanded entirely."

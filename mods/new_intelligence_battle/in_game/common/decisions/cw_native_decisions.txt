@@ -1,0 +1,47 @@
+﻿# Concentrated Warfare - native decisions (module warscore_rules, SPEC section 9).
+# Format: research 11 section 4.1 (game/in_game/common/decisions/generic_age_decisions.txt).
+# Loc keys: cw_reform_war_host.title / cw_reform_war_host.desc / cw_reform_war_host.a, cw_reform_war_host_tt.
+
+# Reform the war host: ends the "isolated military tradition" handicap (auto modifier cw_isolated_tradition_auto in
+# auto_modifiers/cw_auto_modifiers.txt and scripted trigger cw_has_isolated_tradition in
+# main_menu/common/scripted_triggers/cw_warscore_triggers.txt both test NOT has_variable = cw_reformed_host).
+# The triggers used below live in the main_menu stage (the HQ limit values there need them); in_game sees them - vanilla
+# in_game files use menu-stage scripted triggers the same way (e.g. laws/01_common.txt, on_action/_hardcoded.txt).
+cw_reform_war_host = {
+	decision_category = government_decisions		# decision_categories/base_decision_categories.txt:12
+
+	potential = {
+		cw_has_isolated_tradition = yes				# shown only while the handicap is active; never again afterwards
+	}
+
+	allow = {
+		cw_can_reform_war_host = yes				# Age of Reformation, OR professional_armies / new_world embraced, OR >= 60 locations
+	}
+
+	# AI: take it as soon as it is allowed, so strong AI natives reform too (SPEC section 9).
+	# INFERRED: the AI takes a decision when ai_will_do > 0 and allow passes (vanilla pattern: value = -10 + conditional add,
+	# canal_construction.txt:30 uses a direct if = { } inside ai_will_do).
+	ai_will_do = {
+		value = 0
+		if = {
+			limit = { cw_can_reform_war_host = yes }
+			add = 100
+		}
+	}
+
+	illustration_tags = {						# tags used by vanilla decisions: regular / exterior / interior / happy / angry / armed
+		10 = exterior
+		10 = armed
+	}
+
+	option = {
+		name = cw_reform_war_host.a
+		ai_chance = { value = 100 }
+		effect = {
+			custom_tooltip = {
+				text = cw_reform_war_host_tt			# "Our war host adopts a permanent staff: the isolated military tradition ends"
+				set_variable = cw_reformed_host		# flag form, as vanilla set_variable = court_wants_free_trade (flavor_BYZ.txt:4350)
+			}
+		}
+	}
+}

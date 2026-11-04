@@ -1,0 +1,86 @@
+﻿###################################
+# Concentrated Warfare - balance knobs and helper values (module hq_core)
+#
+# Static values are referenced by name wherever a number is accepted (_script_values.info), e.g.
+# "num_subunits >= cw_min_subunits_for_ai_hq" (RHS named value: conquistadors.txt:78 uses
+# potential_army_size < conquistador_max_target_army_size).
+# The limits themselves (cw_hq_limit, cw_colonial_hq_limit) live in
+# main_menu/common/script_values/cw_limit_values.txt, next to vanilla's unit limits.
+###################################
+
+# ---- knobs ---------------------------------------------------------------------------------
+
+# Smallest army (regiments) the AI / automation considers worth a headquarters.
+# Overseas AI stacks are supply-limited and small (research 10 section 10.8) - keep this <= 3.
+# Also mirrored as a literal "3" in cw_limit_values.txt (expeditionary free slot) - keep in sync.
+# Below this size an HQ counts as "stranded" and the AI moves it (cw_ai_relocate_hqs); a country with
+# NO home HQ at all gets one regardless of size (cw_initial_hq_grant).
+cw_min_subunits_for_ai_hq = 3
+
+# An army counts as "organized" only with the right HQ AND at least this many regiments, i.e. the HQ plus at
+# least two other regiments (research 15 section 2.4 / 7, DESIGN.md 2.4): a lone HQ or "HQ + one regiment" is
+# not a siege detachment and cannot occupy anything. Same floor as cw_min_subunits_for_ai_hq on purpose.
+cw_min_subunits_organized = 3
+
+# War-stance hysteresis (module ai_stance): a stance may change at most once per this many months.
+cw_stance_lock_months = 2
+
+# Peace-time cadence of the HQ bookkeeping (SPEC section 5): the monthly pulse does the full pass
+# only every N months while at peace. NOTE: cw_effects.txt writes the literal "months = 3" in
+# set_variable (a named value inside a set_variable duration is unverified) - keep both in sync.
+cw_peace_cadence_months = 3
+
+# ---- helpers (unit scope) --------------------------------------------------------------------
+
+# Regiments an army must ALREADY have for the HQ that is being added to make it organized
+# (= cw_min_subunits_organized - 1). Used right after add_subunit by cw_home_hq_added / cw_colonial_hq_added
+# when the new regiment is not visible to num_subunits yet (cw_effects.txt header). subtract: _script_values.info.
+cw_min_subunits_before_hq = {
+	value = cw_min_subunits_organized
+	subtract = 1
+}
+
+# ---- helpers (country scope) -----------------------------------------------------------------
+
+# Free home HQ slots = limit - current count (total_sub_unit_type_count:<unit_type>, country value,
+# government_reforms/country_specific.txt:1969). Never negative. cw_hq_limit is cheap, read live.
+cw_hq_free_slots = {
+	value = cw_hq_limit
+	subtract = total_sub_unit_type_count:cw_hq
+	min = 0
+}
+
+# Free colonial HQ slots = CACHED limit - live count. The colonial limit walks the owned-location
+# list, so script never evaluates it directly: cw_cache_limits stores it in cw_colonial_hq_limit_v
+# once per pass (review finding, SPEC rule "army loops only"). Reading a variable inside a script value,
+# guarded by exists = var:X: script_values/economy_satisfaction_target.txt:5; "subtract = <value ref>":
+# subtract = scope:maintenance (verified by grep), var: being the same kind of reference.
+# 0 until the first cache (cw_game_start_country / the first monthly pulse).
+cw_colonial_hq_free_slots = {
+	value = 0
+	if = {
+		limit = { exists = var:cw_colonial_hq_limit_v }
+		value = var:cw_colonial_hq_limit_v
+		subtract = total_sub_unit_type_count:cw_hq_colonial
+		min = 0
+	}
+}
+
+# Home HQs above the limit (ages do not shrink, but owned-location counts and the native-tradition
+# rule can); used by the AI-only cleanup.
+cw_hq_excess = {
+	value = total_sub_unit_type_count:cw_hq
+	subtract = cw_hq_limit
+	min = 0
+}
+
+# Colonial HQs above the CACHED limit (theatres can disappear when land is lost). 0 until the first cache.
+cw_colonial_hq_excess = {
+	value = 0
+	if = {
+		limit = { exists = var:cw_colonial_hq_limit_v }
+		value = total_sub_unit_type_count:cw_hq_colonial
+		subtract = var:cw_colonial_hq_limit_v
+		min = 0
+	}
+}

@@ -1,0 +1,2 @@
+﻿gui/cw_war_stance_plate.gui = cw_war_stance_plate
+gui/cw_hq_overview.gui = cw_hq_overview_window

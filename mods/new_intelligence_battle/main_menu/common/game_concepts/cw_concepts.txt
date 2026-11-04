@@ -1,0 +1,27 @@
+﻿# Concentrated Warfare - game concepts (module warscore_rules, SPEC section 1).
+# Grammar: game/main_menu/common/game_concepts/00_game_concepts.txt (research 11 section 5.1):
+#   texture resolves to game/main_menu/gfx/interface/icons/<texture>.dds (vanilla overseas = { texture = "flat_icons/overseas" }),
+#   alias = { ... } lists alternative link words.
+# Usage in text: [cw_headquarters|e], [cw_colonial_headquarters|e] (or [cw_colonial_hq|e]), [cw_war_stance|e] (or [cw_war_stances|e])
+# (Russian: [Concept('cw_headquarters', 'штаба')|e] for inflected forms).
+# Loc keys: game_concept_<key> and game_concept_<key>_desc, plus game_concept_<alias> for each alias word
+# (vanilla has game_concept_unit_modifier AND game_concept_unit_modifiers for the alias).
+
+# No alias here on purpose: "cw_hq" is already the key of the headquarters UNIT TYPE (in_game/common/unit_types/cw_headquarters.txt)
+# and of its name loc key ($cw_hq$, compared as a string by the GUI). No vanilla concept key or alias shares a name with a
+# unit-type key (key-set intersection of unit_types/*.txt and 00_game_concepts.txt is empty), so whether the concept-link
+# resolver and the unit loc key can coexist is unverified - and the mod's text never needs [cw_hq|e]: it writes
+# [cw_headquarters|e] for the concept and $cw_hq$ for the regiment. (The unused loc keys game_concept_cw_hq were removed in the localization pass.)
+cw_headquarters = {
+	texture = "character_roles/general"		# officer corps -> vanilla general-role icon; placeholder until the mod ships its own art (DESIGN section 9)
+}
+
+cw_colonial_headquarters = {
+	alias = { cw_colonial_hq }
+	texture = "flat_icons/overseas"			# same icon as the vanilla [overseas|e] concept the colonial HQ depends on
+}
+
+cw_war_stance = {
+	alias = { cw_war_stances }
+	texture = "flat_icons/objectives"		# strategic objectives icon
+}

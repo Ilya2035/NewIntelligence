@@ -1,0 +1,57 @@
+﻿# Concentrated Warfare - scripted triggers of module warscore_rules (native penalty, SPEC section 9).
+# All triggers are COUNTRY scope.
+#
+# Stage: main_menu (NOT in_game) on purpose. cw_has_isolated_tradition is read by the HQ limit script values in
+# main_menu/common/script_values/cw_limit_values.txt (module hq_core; vanilla keeps every unit limit in that stage), and
+# the stages load loading_screen -> main_menu -> in_game (research 09 section 2): a main_menu value must never depend on a
+# trigger that only exists in the later in_game stage (an unknown-trigger error there would break every HQ unit limit).
+# Vanilla precedent for exactly this layout:
+#   * main_menu/common/scripted_triggers/00_coa_triggers.txt:348 'government_type = government_type:monarchy',
+#     :355 'has_reform = government_reform:revolutionary_republic', :510 'religion = religion:orthodox' - menu-stage
+#     scripted triggers freely reference in_game database objects (as institution:pike_and_shot does below);
+#   * 13 in_game files consume those menu-stage triggers (customizable_localization/countries.txt, laws/01_common.txt,
+#     on_action/_hardcoded.txt, events/DHE/flavor_IRE.txt ...), so the in_game callers of this file
+#     (decisions/cw_native_decisions.txt, the inlined potential mirror in auto_modifiers/cw_auto_modifiers.txt) resolve
+#     as well - mounted stages are cumulative (research 09 section 2, common/<db> folders are read from any stage).
+# CW TODO verify: after loading a game grep error.log for cw_has_isolated_tradition / cw_is_american_native /
+# cw_can_reform_war_host (docs/TESTING.md E10). An unknown-trigger line would mean the stage move did not take;
+# fallback = move cw_limit_values.txt to in_game/common/script_values/ instead.
+
+# A country rooted in the Americas: capital on continent:america and not the subject of a non-American overlord (colonial
+# nations and conquistador hosts fight with their overlord's tradition; a tributary of an American overlord still counts).
+# Any government type: the former government_type = tribe clause (trigger cw_is_american_tribe) hit 1 of the 20 largest
+# American polities - Tenochtitlan, the Tarascans and Mayapan are monarchies (research 15 section 6) - and was dropped in
+# the balance review (research 15 section 7, P3).
+# "america" is ONE continent key (north/south America are sub_continent keys, research 10 section 1.1).
+cw_is_american_native = {
+	capital ?= { continent = continent:america }			# building_types/unique_buildings.txt:1243
+	OR = {
+		is_subject = no										# advances/country_son.txt:37 - independent: the overlord test below only matters for subjects
+		overlord ?= { capital ?= { continent = continent:america } }	# overlord ?= { }: customizable_localization/country_ranks.txt:26, on_action/appanage_monthly.txt:27
+	}
+}
+
+# "Isolated military tradition" - the mild, removable native handicap is active.
+# Used by the HQ limit values (hq_core): no extra HQ slots while this is true (SPEC section 3).
+# This MUST stay identical to potential_trigger of cw_isolated_tradition_auto in
+# in_game/common/auto_modifiers/cw_auto_modifiers.txt: no vanilla auto modifier references a scripted trigger, so the
+# conditions are inlined there and mirrored here (and inlined twice more in main_menu/common/script_values/cw_limit_values.txt).
+cw_has_isolated_tradition = {
+	has_game_rule = cw_native_penalty_on					# game rule off -> never active; cheapest test first
+	is_real_country = yes									# rebels / pirates / mercenaries never count
+	cw_is_american_native = yes								# capital in the Americas, not a colonial nation / conquistador host of an Old World power
+	NOT = { has_embraced_institution = institution:pike_and_shot }	# institution/age_3_discovery_institutions.txt:100 - the age-3 military institution ends the isolation by itself
+	NOT = { has_variable = cw_reformed_host }				# set by decision cw_reform_war_host (in_game/common/decisions/cw_native_decisions.txt)
+}
+
+# May the war host be reformed right now? allow-condition of decision cw_reform_war_host (SPEC section 9).
+# SPEC says "age 4, OR institution embraced, OR >= 60 locations"; pike_and_shot itself already removes the handicap
+# without a decision, so "institution embraced" is read as the OTHER military / contact institutions.
+cw_can_reform_war_host = {
+	OR = {
+		current_age_or_later = { age = age_4_reformation }			# decisions/generic_age_decisions.txt:428 - contact with the Old World is a century old by now
+		has_embraced_institution = institution:professional_armies	# age-2 military institution: a standing-army tradition already exists
+		has_embraced_institution = institution:new_world			# age-3 institution spread by the colonisers' trade: sustained contact
+		num_locations >= 60											# an Aztec / Inca-tier empire can afford a staff tradition of its own (advances/country_ayu.txt:82 form)
+	}
+}

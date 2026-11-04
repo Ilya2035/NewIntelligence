@@ -1,0 +1,41 @@
+﻿# Concentrated Warfare - war score define overrides (module warscore_rules). Vanilla 1.4.7 value and line of
+# game/loading_screen/common/defines/00_defines.txt in every comment (research 05 sections 1.2, 7.4, 8.1; values re-tuned
+# after the balance review, research 15 sections 4.5 and 7).
+# "War worth" of a location feeds BOTH the occupation war score and the peace cost, so this is the primary lever:
+# rural locations (little tax base / population / buildings) drop to ~1 (vanilla ~2.4), cities keep their value and the capital
+# is the prize - but not the whole war: at 15 (+10 one-off bonus, scripted_effects/cw_warscore_effects.txt) the capital is
+# ~40-55 % of a 20-location minor's worth instead of the one-siege 95 % that 30 gave (research 15 section 4.2). Because the
+# same worth prices the peace deal, villages are NOT made cheaper a second time: location_ranks/00_default.txt keeps the
+# vanilla peace efficiency for villages and towns and only taxes cities / megalopolises.
+# Game rule cw_rule_warscore = cw_warscore_off (main_menu/common/game_rules/cw_game_rules.txt) restores EXACTLY the keys
+# below - keep the two lists key-for-key in sync (10 keys, same order).
+# Visible canary for the partial-override mechanism (docs/TESTING.md E1): "War Score of <capital>" ~ +15 instead of +5.
+
+NWar = {
+	WAR_WORTH_BASE = 0.5							# 2.0   (l.2685): flat value every location had - the main reason villages were worth occupying.
+													#                 0.5 rather than 0.3 (research 15 section 4.3): villages stay ~0 for the occupation score
+													#                 but are not near-free in a peace deal, and BASE absorbs the development floor (MIN below)
+	WAR_WORTH_COUNTRY_CAPITAL = 15					# 5     (l.2693): the capital is the prize: ~8-12 % of a kingdom's worth, ~40-55 % of a minor's (research 15
+													#                 section 4.2). 30 made every state of <= 30 locations a one-siege kill together with the +10 bonus.
+	WAR_WORTH_PROVINCE_CAPITAL = 2					# 1     (l.2694)
+	WAR_WORTH_PORT = 2								# 1     (l.2695): DELIBERATE (DESIGN section 4 "port 1 -> 2"): a harbour is an urban / trade signal, so a
+													#                 coastal village WITH a port is worth ~2.5 (about one vanilla village) while a village without
+													#                 one stays around 1. Ports are a subset of coastal locations (is_port vs is_coastal, research 05
+													#                 section 6). Knob: set to 1 if carpet-sieging a coastline still yields too much (TESTING E1 readout).
+	WAR_WORTH_BUILDING_SCALE = 0.025				# 0.025 (l.2688): VANILLA VALUE on purpose (research 15 section 4.5): a raised scale (0.05 before the balance
+													#                 review) inflated every village that has a building; the raised CAP below is the city lever
+													#                 (caps raise cities, not villages). Listed so the decision is explicit and the OFF rule stays key-for-key.
+	WAR_WORTH_BUILDING_CAP = 15						# 10    (l.2689): urban signals weigh more...
+	WAR_WORTH_POPULATION_SCALE = 0.03				# 0.02  (l.2690): ...and so does population
+	WAR_WORTH_POPULATION_CAP = 6					# 4     (l.2691)
+	# Development term = clamp(WAR_WORTH_DEVELOPMENT_SCALE * (location development - TAKER's average development), MIN, MAX)
+	# (l.2699 comment). With the vanilla floor of -1 and BASE lowered to 0.5, a low-development village taken by a developed
+	# country would end at 0.5 + ~0.2 - 1 < 0: engine behaviour for a non-positive worth is unknown (research 05 section 7.4;
+	# a negative peace cost could even LOWER a treaty total and negative occupation contributions distort the occupation
+	# share). The floor is raised so that BASE + MIN stays > 0 for every location: worst case 0.5 - 0.25 = +0.25 before the
+	# tax / population / building terms. SCALE and MAX stay vanilla (0.05 / 5).
+	WAR_WORTH_DEVELOPMENT_MIN = -0.25				# -1    (l.2700): see above; keep BASE + this > 0 whenever BASE is tuned (TESTING E1 readout)
+	OCCUPATION_VALUE_SCALE = 1.3					# 2.0   (l.2669): fewer valuable locations -> require a larger share of them for 100 % occupation score:
+													#                 1 / 1.3 = 77 % of the worth (vanilla 50 %, the former 1.5 = 67 %) = capital + cities + most
+													#                 towns (research 15 section 4.2)
+}

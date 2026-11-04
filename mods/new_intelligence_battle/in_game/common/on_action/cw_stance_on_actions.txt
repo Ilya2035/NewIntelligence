@@ -1,0 +1,71 @@
+﻿# =====================================================================================================
+# Concentrated Warfare - war stance hooks (module ai_stance).
+# Vanilla on_action keys only receive an on_actions = { } list (lists of same-named on_actions merge across
+# files, research 04 §1.4); all logic sits in our own cw_stance_* on_actions with a cheap trigger.
+# Entry point everywhere: the scripted effect cw_stance_update (cw_stance_effects.txt), which is idempotent:
+#   AI at war -> cw_update_war_stance, human at war -> cw_update_player_enemy_stance, at peace -> cw_clear_stance.
+# Cost: per eligible country one at_war test; at war one small every_current_war loop plus a few triggers.
+# No location or country loops anywhere (research 04 §5).
+# =====================================================================================================
+
+monthly_country_pulse = {
+	on_actions = { cw_stance_monthly }
+}
+
+on_war_declared = {
+	on_actions = { cw_stance_on_war_declared }
+}
+
+on_join_war = {
+	on_actions = { cw_stance_on_join_war }
+}
+
+on_ending_war = {
+	on_actions = { cw_stance_on_war_end }
+}
+
+# root = country, monthly (country_monthly.txt:2). The pulse also visits non-real countries, hence the gate.
+cw_stance_monthly = {
+	trigger = { cw_stance_country_is_eligible = yes }
+	effect = { cw_stance_update = yes }
+}
+
+# root = country (ambiguous: never compared with scope:actor in vanilla), scope:actor = declarer,
+# scope:recipient = target, scope:war = the new war (_hardcoded.txt:2395). Evaluate both sides explicitly;
+# the effect is idempotent so a possible second firing per participant is harmless.
+cw_stance_on_war_declared = {
+	effect = {
+		scope:actor ?= {
+			if = {
+				limit = { cw_stance_country_is_eligible = yes }
+				cw_stance_update = yes
+			}
+		}
+		scope:recipient ?= {
+			if = {
+				limit = { cw_stance_country_is_eligible = yes }
+				cw_stance_update = yes
+			}
+		}
+	}
+}
+
+# root = the joining country, scope:war = war (_hardcoded.txt:1875).
+cw_stance_on_join_war = {
+	trigger = { cw_stance_country_is_eligible = yes }
+	effect = { cw_stance_update = yes }
+}
+
+# root = country, fired once per side (_hardcoded.txt:2039-2052 "Fires for both winner and loser as root scope").
+# CLEAR ONLY: when the country is at peace now, every stance artefact goes. No re-evaluation on this hook - whether
+# the ending war is still listed among the current wars at this moment is unverified, and a full dispatcher run could
+# pick the dying war's leader as main enemy, switch the stance and arm a fresh 2-month lock on stale data. A country
+# still at war with someone else is re-evaluated by cw_stance_monthly within 30 days; if at_war is still yes here
+# because the ending war is still counted, that same pulse performs the clear (SPEC §7 "clear when at_war = no").
+cw_stance_on_war_end = {
+	trigger = {
+		cw_stance_country_is_eligible = yes
+		at_war = no
+	}
+	effect = { cw_clear_stance = yes }
+}

@@ -1,0 +1,122 @@
+﻿###################################
+# Concentrated Warfare - events (module hq_core), SPEC section 13
+#
+# Grammar: in_game/events/readme.txt. Several namespaces in one file are fine
+# (hidden_events_for_ai_conquest.txt declares twelve). All events here are fired from script
+# (trigger_event_* in cw_effects.txt), never from an on_action events list, so no "orphan" flag is needed.
+# interface_lock = no: informational events must not pause a single-player game (readme.txt:63).
+# CW TODO verify: "interface_lock" is documented in events/readme.txt:63 only - ZERO vanilla or DLC events
+# use it (grep over the whole game tree; research 11 section 2.6 "only ONE vanilla event uses it" is wrong).
+# On first load grep error.log for "interface_lock" and "cw_events"; if the key is rejected, delete the
+# two "interface_lock = no" lines (the events then pause the game, the vanilla default).
+###################################
+
+namespace = cw_events
+
+# ---------------------------------------------------------------------------------------------
+# cw_events.1 - a new home headquarters slot is available (player only).
+# Fired by cw_player_notifications when cw_hq_limit grew (new age, another 75 owned locations, the
+# 300-location imperial slot, reformed war host). Loc may show the limit as [ROOT.ScriptValue('cw_hq_limit')|V0].
+# ---------------------------------------------------------------------------------------------
+cw_events.1 = {
+	type = country_event
+	title = cw_events.1.title
+	desc = cw_events.1.desc
+	outcome = positive
+	interface_lock = no
+
+	trigger = {
+		is_ai = no
+		cw_is_real_country = yes
+	}
+
+	option = {
+		name = cw_events.1.a
+	}
+}
+
+# ---------------------------------------------------------------------------------------------
+# cw_events.2 - one of our armies lost its headquarters in battle (player only, max once per 30 days).
+# Fired by cw_battle_recheck_unit with the army saved as scope:cw_army. If the scope did not survive
+# the hand-over, the largest HQ-less army is picked here and a generic text is shown.
+# ---------------------------------------------------------------------------------------------
+cw_events.2 = {
+	type = country_event
+	title = cw_events.2.title
+	desc = {
+		first_valid = {
+			triggered_desc = {
+				trigger = { exists = scope:cw_army }
+				desc = cw_events.2.desc
+			}
+			triggered_desc = {
+				desc = cw_events.2.desc_generic
+			}
+		}
+	}
+	outcome = negative
+	interface_lock = no
+
+	trigger = {
+		is_ai = no
+	}
+
+	immediate = {
+		if = {
+			limit = { NOT = { exists = scope:cw_army } }
+			ordered_army = {
+				limit = {
+					cw_unit_is_exempt = no
+					cw_unit_has_hq = no
+				}
+				order_by = num_subunits
+				max = 1
+				check_range_bounds = no
+				save_scope_as = cw_army
+			}
+		}
+	}
+
+	option = {
+		name = cw_events.2.a
+	}
+}
+
+namespace = cw_tick
+
+# ---------------------------------------------------------------------------------------------
+# cw_tick.1 - hidden 15-day war ticker (SPEC section 5). Started by cw_start_war_ticker when a war
+# begins (and re-armed by every monthly pulse at war, so a dead chain restarts within a month); re-fires
+# itself every 15 days while at_war = yes. Duplicate chains are prevented by the self-expiring variable
+# cw_tick_scheduled (14 days): a second start attempt inside that window fails the trigger. Order inside
+# immediate matters: the next tick is queued BEFORE the guard is (re)set so the queued event passes its
+# own trigger whenever the engine evaluates it.
+# Each tick caches the limits (one colonial-limit evaluation per 15 days) and runs the full HQ pass.
+# Hidden-event pattern: hidden_events_for_ai_conquest.txt:4-11 (title/desc = empty_text).
+# ---------------------------------------------------------------------------------------------
+cw_tick.1 = {
+	type = country_event
+	title = empty_text
+	desc = empty_text
+	hidden = yes
+	outcome = neutral
+
+	trigger = {
+		cw_is_real_country = yes
+		at_war = yes
+		NOT = { has_variable = cw_tick_scheduled }
+	}
+
+	immediate = {
+		cw_cache_limits = yes
+		cw_run_hq_pass = yes
+		trigger_event_silently = {
+			id = cw_tick.1
+			days = 15
+		}
+		set_variable = {
+			name = cw_tick_scheduled
+			days = 14
+		}
+	}
+}

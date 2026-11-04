@@ -1,0 +1,140 @@
+﻿###################################
+# Concentrated Warfare - on_action hooks (module hq_core), SPEC section 5
+#
+# Same-named on_actions MERGE across files (vanilla itself splits on_winning_war / on_ending_war
+# between _hardcoded.txt and religious_order_conquest.txt; DLC d009_tlemcen.txt does the same).
+# Rule: under a VANILLA key only ever add "on_actions = { cw_x }"; all triggers and effects live in
+# our own cw_* on_actions. Module ai_stance hooks the same vanilla keys from its own file.
+# Folder is "on_action" (singular); "on_actions/" is silently ignored.
+###################################
+
+# ---- vanilla keys: append-only --------------------------------------------------------------
+
+monthly_country_pulse = {				# root = country (also non-real countries -> filtered in cw_monthly_pulse / cw_monthly_rebel_pulse)
+	on_actions = { cw_monthly_pulse cw_monthly_rebel_pulse }
+}
+
+on_game_started_after_lobby = {			# vanilla body is empty; global scope -> every_country loop (one-off)
+	on_actions = { cw_on_game_start }
+}
+
+on_new_age = {							# root = country, fired for every active country
+	on_actions = { cw_on_new_age }
+}
+
+on_war_declared = {						# root = country; scope:actor = declarer, scope:recipient = target, scope:war
+	on_actions = { cw_on_war_start }
+}
+
+on_join_war = {							# root = joining country; scope:war
+	on_actions = { cw_on_war_start }
+}
+
+on_ending_war = {						# root = country, fires ONCE PER SIDE; scope:winner / scope:loser / scope:war
+	on_actions = { cw_on_war_end }
+}
+
+on_battle_won = {						# root = actor; scope:actor = winning unit, scope:target = losing unit (_hardcoded.txt:3200-3209)
+	on_actions = { cw_on_battle }
+}
+
+# on_battle_lost is deliberately NOT hooked (deviation from SPEC section 5, review finding): it carries the
+# same two units as on_battle_won with the roles swapped (_hardcoded.txt:3328 header; its inline comments at
+# :3339-3340 even disagree about which unit is the loser), so hooking both re-checked every battle twice.
+# cw_on_battle re-checks BOTH scope:actor and scope:target from the winner-side hook.
+# CW TODO verify: if some battle outcome ends without on_battle_won firing (both units destroyed?), add
+# "on_battle_lost = { on_actions = { cw_on_battle } }" back - the double re-check is then by design.
+
+on_command_gained = {					# root = character, scope:unit = unit
+	on_actions = { cw_on_command }
+}
+
+on_revolt_start = {						# root = targeted country; scope:target = the rebel country that declares the war (_hardcoded.txt:1263-1264)
+	on_actions = { cw_on_revolt_start }
+}
+
+on_civil_war_start = {					# same scopes for pretender / estate civil wars (_hardcoded.txt:1123-1124)
+	on_actions = { cw_on_revolt_start }
+}
+
+# ---- our on_actions ------------------------------------------------------------------------
+
+# Monthly bookkeeping. The cheap trigger skips rebels, pirates, mercenary hosts and conquistador hosts
+# (cw_is_real_country - steppe hordes are army-type countries too but stay IN, research 14 F1) before any army loop
+# runs (research 04 section 5).
+cw_monthly_pulse = {
+	trigger = { cw_is_real_country = yes }
+	effect = { cw_monthly_pulse_effect = yes }
+}
+
+# Rebel countries (is_rebel_country = yes: generic_actions/war_of_the_roses_actions.txt:50,57). The ONLY work the
+# mod does for them: refresh cw_rebel_disorder on every rebel army once a month (DESIGN.md 2.2, research 15 1.3) -
+# no limits, no HQ placement, no organization pass. Pirates and mercenary-company countries fail the trigger
+# and stay untouched.
+cw_monthly_rebel_pulse = {
+	trigger = { is_rebel_country = yes }
+	effect = { cw_rebel_disorder_country = yes }
+}
+
+# A revolt / civil war breaks out: the new rebel country gets cw_rebel_disorder at once instead of at the next
+# monthly pulse (rebel hosts usually fight within days of rising). The effect guards is_rebel_country itself, so
+# a civil war declared by a proper country changes nothing.
+# CW TODO verify: do the rebel armies already exist when on_revolt_start / on_civil_war_start fire? If not this
+# is a harmless no-op and the monthly pulse covers them within a month.
+cw_on_revolt_start = {
+	effect = {
+		scope:target ?= { cw_rebel_disorder_country = yes }
+	}
+}
+
+# One-off at game start: every real country gets its first HQ (vanilla uses every_country here too,
+# _hardcoded.txt:54-56). Never put every_country into a periodic pulse.
+cw_on_game_start = {
+	effect = {
+		every_country = {
+			limit = { cw_is_real_country = yes }
+			cw_game_start_country = yes
+		}
+	}
+}
+
+# New age: refresh limits, AI takes new slots, player is told (cw_events.1).
+cw_on_new_age = {
+	trigger = { cw_is_real_country = yes }
+	effect = { cw_new_age_country = yes }
+}
+
+# War starts: both named parties and the root (joiner) get an immediate HQ pass and the 15-day ticker.
+# Idempotent - see cw_war_start_country. Whether on_war_declared fires once or once per participant is
+# unverified, hence scope:actor / scope:recipient are addressed explicitly; participants pulled in without
+# a hook are caught by the monthly pulse, which also (re)starts the ticker while at war.
+cw_on_war_start = {
+	effect = {
+		scope:actor ?= { cw_war_start_country = yes }
+		scope:recipient ?= { cw_war_start_country = yes }
+		root = { cw_war_start_country = yes }
+	}
+}
+
+# War ends (per side): drop the peace cooldown so the next monthly pulse does a full pass.
+cw_on_war_end = {
+	trigger = { cw_is_real_country = yes }
+	effect = { cw_war_end_country = yes }
+}
+
+# After a battle: re-check only the two units involved - no loops (research 04 section 5.3).
+# Navies, non-real owners and exempt stacks are filtered inside cw_battle_recheck_unit; "?=" skips a
+# losing unit that no longer exists (stack-wiped).
+cw_on_battle = {
+	effect = {
+		scope:actor ?= { cw_battle_recheck_unit = yes }
+		scope:target ?= { cw_battle_recheck_unit = yes }
+	}
+}
+
+# A commander took over a unit (often right after a merge / split by the player): re-check that unit.
+cw_on_command = {
+	effect = {
+		scope:unit ?= { cw_recheck_unit = yes }
+	}
+}

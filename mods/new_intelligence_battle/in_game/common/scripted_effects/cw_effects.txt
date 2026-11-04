@@ -1,0 +1,1095 @@
+﻿###################################
+# Concentrated Warfare - scripted effects (module hq_core)
+#
+# Scope conventions (see cw_triggers.txt): "country" effects run with THIS = country, "unit" effects
+# with THIS = army. Inside every_army / ordered_army the ROOT is still the calling country, so unit
+# effects reach their country through "owner" (unit.owner link, _hardcoded.txt:3216), never root -
+# the battle hooks call them on units that belong to a different country than root.
+#
+# Verified building blocks (file:line in vanilla / the research docs):
+#   ordered_army = { limit order_by = num_subunits max check_range_bounds = no ... }  parliament.txt:1262-1273
+#   order_by = { value = X  if = { limit = { ... } add = N } }  (score block)        religion/hellenism_religion.txt:292-307
+#   ordered_sub_unit = { limit = { sub_unit_type = unit_type:X } max = N destroy_subunit = yes }
+#                                                                                  DHE/flavor_GEN.txt:1577-1583
+#   add_subunit = unit_type:X (unit)                                               000_johan_debug.txt:419
+#   add_unit_modifier = { modifier = X years = N mode = replace }                  parliament.txt:1268-1272
+#   remove_unit_modifier = X                                                       000_johan_debug.txt:293
+#   destroy_subunit = yes (sub_unit) / destroy_unit = yes (unit)                   unit_effects.txt:39-54
+#   set_variable = { name = X value = <script value> }                             disasters/reform_society.txt:30-33
+#   set_variable = { name = X days/months = N } (self-expiring cooldown)            improve_cultural_view.txt:75-78
+#   set_local_variable = { name = X value = V } / local_var:X in a limit /
+#   change_local_variable = { name = X add = N } / remove_local_variable = X        country_effects.txt:1548-1550,
+#                                                                                  situations/guelphs_and_ghibellines.txt:226-236,
+#                                                                                  international_organization_effects.txt:769-806
+#   any_army = { count >= N ... } / any_owned_location = { count >= N ... }        DHE/flavor_ENG.txt:22838-22839,
+#                                                                                  DHE/flavor_decisions_rus.txt:512-515
+#   any_subject_or_below = { any_owned_location = { count >= N ... } }             flavor_HAB.txt:182 (trigger), hre.txt:2079 (nested list)
+#   is_rebel_country = yes (country trigger)                                       generic_actions/war_of_the_roses_actions.txt:50,57
+#   every_army = { if = { limit = { ... } ... } }  ("every army that ...")          conquistador.txt:108; no vanilla every_army carries a limit
+#   trigger_event_non_silently / trigger_event_silently = { id = X [days = N] }   research 04 section 1.6
+#   scripted-effect arguments $name$ inside prefixed keys                           country_effects.txt:237 (unit_type:$type$)
+#
+# Regiment visibility: whether add_subunit / destroy_subunit are visible to any_sub_unit / num_subunits /
+# total_sub_unit_type_count inside the same effect chain is unverified (CW TODO verify: watch the overview
+# counters right after a click). No helper depends on it: a STRIP decides the resulting state from the regiment
+# list BEFORE the regiment goes (does another HQ stay behind? is the army still big enough afterwards?), and an
+# ADD tests both readings - the live count if the new HQ is already visible, otherwise the count the army had
+# before it (cw_min_subunits_before_hq) - so a deferred regiment update cannot leave a stale modifier.
+###################################
+
+# =============================================================================================
+# 1. Counters cached as country variables for the GUI (read as GetVariable('cw_hq_limit_v').GetValue)
+# =============================================================================================
+# country scope. The ONLY place that evaluates cw_colonial_hq_limit (owned-location walk) in script;
+# every trigger / value of this module reads cw_colonial_hq_limit_v back (review finding). Runs before
+# every HQ pass: monthly pulse, 15-day war tick, war start / end, new age, player clicks, decision.
+cw_cache_limits = {
+	set_variable = {
+		name = cw_hq_limit_v
+		value = cw_hq_limit
+	}
+	set_variable = {
+		name = cw_hq_count_v
+		value = total_sub_unit_type_count:cw_hq
+	}
+	set_variable = {
+		name = cw_colonial_hq_limit_v
+		value = cw_colonial_hq_limit
+	}
+	set_variable = {
+		name = cw_colonial_hq_count_v
+		value = total_sub_unit_type_count:cw_hq_colonial
+	}
+}
+
+# =============================================================================================
+# 2. Organization: the "no headquarters" penalty and the expeditionary bonus
+# =============================================================================================
+
+# unit scope. Applies the penalty variant chosen by the game rule cw_rule_hq_penalty
+# (module warscore_rules; has_game_rule tests the SETTING key, game_triggers.txt:1-10).
+# Default setting cw_hq_penalty_standard => cw_no_hq. Duration 1 year, refreshed every pass with
+# mode = replace, so the modifier dies by itself a year after the mod stops refreshing it.
+cw_apply_no_hq_penalty = {
+	if = {
+		limit = { owner ?= { has_game_rule = cw_hq_penalty_mild } }
+		add_unit_modifier = {
+			modifier = cw_no_hq_mild
+			years = 1
+			mode = replace
+		}
+	}
+	else_if = {
+		limit = { owner ?= { has_game_rule = cw_hq_penalty_harsh } }
+		add_unit_modifier = {
+			modifier = cw_no_hq_harsh
+			years = 1
+			mode = replace
+		}
+	}
+	else = {
+		add_unit_modifier = {
+			modifier = cw_no_hq
+			years = 1
+			mode = replace
+		}
+	}
+}
+
+# unit scope. Removes whichever penalty variant is present (the rule cannot change mid-campaign,
+# but a save may be loaded with a different rule set - remove all three to be safe).
+cw_remove_no_hq_penalty = {
+	if = {
+		limit = { has_unit_modifier = cw_no_hq }
+		remove_unit_modifier = cw_no_hq
+	}
+	if = {
+		limit = { has_unit_modifier = cw_no_hq_mild }
+		remove_unit_modifier = cw_no_hq_mild
+	}
+	if = {
+		limit = { has_unit_modifier = cw_no_hq_harsh }
+		remove_unit_modifier = cw_no_hq_harsh
+	}
+}
+
+# unit scope. Removes the siege-only tier (colonial HQ on non-overseas ground, cw_unit_has_colonial_hq_at_home).
+cw_remove_siege_only_penalty = {
+	if = {
+		limit = { has_unit_modifier = cw_no_hq_siege_only }
+		remove_unit_modifier = cw_no_hq_siege_only
+	}
+}
+
+# unit scope. Flags a HUMAN owner for the "army without HQ" scripted hint (cw_hints.txt). AI countries
+# never read the flag, so they never get it (review finding).
+cw_flag_owner_army_without_hq = {
+	owner ?= {
+		if = {
+			limit = { is_ai = no }
+			set_variable = cw_has_army_without_hq
+		}
+	}
+}
+
+# unit scope. An exempt army (exiled, prisoners-only) must carry none of our modifiers: an army that
+# BECOMES exempt would otherwise keep a stale penalty / bonus until its 1-year expiry (review finding).
+cw_clear_unit_modifiers = {
+	if = {
+		limit = { cw_unit_has_hq_penalty = yes }
+		cw_remove_no_hq_penalty = yes
+	}
+	cw_remove_siege_only_penalty = yes
+	if = {
+		limit = { has_unit_modifier = cw_expeditionary }
+		remove_unit_modifier = cw_expeditionary
+	}
+}
+
+# ---- the three organization states (unit scope). Each setter removes every modifier of the other states, so no
+# variant (cw_no_hq / _mild / _harsh / _siege_only, cw_expeditionary) can outlive the state it belongs to; the adds
+# use years = 1 + mode = replace (refreshed every pass, dies by itself a year after the mod stops refreshing it).
+# None of them reads the regiment list - the CALLER decides the state (live list in the passes, pre-change facts
+# in the add / strip helpers, see the header).
+
+# Organized without the expeditionary bonus: a home HQ anywhere (or a colonial HQ that is no longer the leading
+# one). No modifier at all.
+cw_set_unit_organized_home = {
+	cw_remove_no_hq_penalty = yes
+	cw_remove_siege_only_penalty = yes
+	if = {
+		limit = { has_unit_modifier = cw_expeditionary }
+		remove_unit_modifier = cw_expeditionary
+	}
+}
+
+# Organized by a colonial HQ on overseas ground: the small cw_expeditionary bonus only (SPEC section 6).
+cw_set_unit_organized_expeditionary = {
+	cw_remove_no_hq_penalty = yes
+	cw_remove_siege_only_penalty = yes
+	add_unit_modifier = {
+		modifier = cw_expeditionary
+		years = 1
+		mode = replace
+	}
+}
+
+# Big enough, but its only HQ is colonial and it stands on non-overseas ground: the siege-only tier
+# (full combat strength, no sieges - DESIGN.md 2.4). Never varies with the game rule.
+cw_set_unit_siege_only = {
+	cw_remove_no_hq_penalty = yes
+	if = {
+		limit = { has_unit_modifier = cw_expeditionary }
+		remove_unit_modifier = cw_expeditionary
+	}
+	add_unit_modifier = {
+		modifier = cw_no_hq_siege_only
+		years = 1
+		mode = replace
+	}
+}
+
+# Unorganized: the penalty variant of the game rule; a human owner is flagged for the "army without HQ" hint
+# (the flag is reset by cw_update_army_organization / the player helpers).
+cw_set_unit_unorganized = {
+	cw_remove_siege_only_penalty = yes
+	if = {
+		limit = { has_unit_modifier = cw_expeditionary }
+		remove_unit_modifier = cw_expeditionary
+	}
+	cw_apply_no_hq_penalty = yes
+	cw_flag_owner_army_without_hq = yes
+}
+
+# unit scope. Brings ONE army's modifiers in line with its HQ status from the LIVE regiment list (SPEC section 6,
+# DESIGN.md 2.4, research 15 section 2.4). Caller guarantees cw_unit_is_exempt = no. Three tiers:
+#   organized  (>= cw_min_subunits_organized regiments AND a home HQ, or a colonial HQ on overseas ground): no
+#              modifier; cw_expeditionary only while a colonial HQ leads it on overseas ground
+#   siege-only (big enough, only a colonial HQ, non-overseas ground): cw_no_hq_siege_only
+#   penalised  (everything else: no HQ, or too small whatever HQ it carries): the cw_no_hq variant of the game rule
+cw_update_unit_organization = {
+	if = {
+		limit = { cw_unit_is_organized = yes }
+		if = {
+			limit = {
+				cw_unit_has_colonial_hq = yes
+				cw_unit_is_overseas = yes
+			}
+			cw_set_unit_organized_expeditionary = yes
+		}
+		else = {
+			cw_set_unit_organized_home = yes
+		}
+	}
+	else_if = {
+		limit = { cw_unit_has_colonial_hq_at_home = yes }
+		cw_set_unit_siege_only = yes
+	}
+	else = {
+		cw_set_unit_unorganized = yes
+	}
+}
+
+# country scope. Monthly / event-driven pass over ALL own armies (navies are never visited: every_army).
+# Performance: one iteration per army, each with an early-exit regiment scan (any_sub_unit); the exempt
+# test runs anyway, so branching on it (exempt => clear stale modifiers) costs nothing extra.
+cw_update_army_organization = {
+	if = {
+		limit = { has_variable = cw_has_army_without_hq }
+		remove_variable = cw_has_army_without_hq
+	}
+	every_army = {
+		if = {
+			limit = { cw_unit_is_exempt = yes }
+			cw_clear_unit_modifiers = yes
+		}
+		else = {
+			cw_update_unit_organization = yes
+		}
+	}
+}
+
+# country scope (player helpers). Drops the hint flag as soon as no non-exempt army is in the penalty tier (the
+# siege-only tier is not "without headquarters") - one army scan per click, so the "Army Without Headquarters"
+# hint disappears right after the player places the missing HQ instead of at the next pass (review finding).
+cw_refresh_army_without_hq_flag = {
+	if = {
+		limit = {
+			has_variable = cw_has_army_without_hq
+			NOT = {
+				any_army = {
+					cw_unit_is_exempt = no
+					cw_unit_is_unorganized = yes
+				}
+			}
+		}
+		remove_variable = cw_has_army_without_hq
+	}
+}
+
+# unit scope. Re-check a single unit handed over by an on_action (scope:unit, scope:actor, scope:target).
+# Guards: armies of real countries only; exempt stacks untouched.
+cw_recheck_unit = {
+	if = {
+		limit = {
+			is_army = yes
+			owner ?= { cw_is_real_country = yes }
+			cw_unit_is_exempt = no
+		}
+		cw_update_unit_organization = yes
+	}
+}
+
+# unit scope. Battle hook variant: before the re-check, detect "this army just lost its headquarters"
+# = no HQ now, but no penalty modifier either (i.e. it was organized at the last pass), and tell a human
+# owner once per month (cw_events.2). The saved scope cw_army is used by the event text.
+# Known false positive: a brand-new army that fights before its first monthly pass (accepted, throttled).
+cw_battle_recheck_unit = {
+	if = {
+		limit = {
+			is_army = yes
+			owner ?= { cw_is_real_country = yes }
+			cw_unit_is_exempt = no
+		}
+		if = {
+			limit = {
+				cw_unit_has_hq = no
+				cw_unit_has_hq_penalty = no
+				owner ?= {
+					is_ai = no
+					NOT = { has_variable = cw_hq_lost_notice }
+				}
+			}
+			save_scope_as = cw_army
+			owner = {
+				set_variable = {
+					name = cw_hq_lost_notice
+					days = 30
+				}
+				trigger_event_non_silently = { id = cw_events.2 }
+			}
+		}
+		cw_update_unit_organization = yes
+	}
+}
+
+# =============================================================================================
+# 3. Placing and removing HQ regiments
+# =============================================================================================
+
+# unit scope. Right after add_subunit = unit_type:cw_hq on an army that had NO HQ (every caller checks that).
+# Organized iff it now holds >= cw_min_subunits_organized regiments; as the new regiment may or may not be visible
+# yet (header), both readings are tested: visible => the live count, not visible => the count the army had before
+# the add (cw_min_subunits_before_hq). An army that stays too small keeps the penalty until it grows - the AI
+# placement only picks armies of >= cw_min_subunits_for_ai_hq, so this concerns players' clicks and the initial /
+# re-grant of a lost last HQ.
+cw_home_hq_added = {
+	if = {
+		limit = {
+			OR = {
+				AND = {
+					cw_unit_has_home_hq = yes
+					num_subunits >= cw_min_subunits_organized
+				}
+				AND = {
+					cw_unit_has_home_hq = no
+					num_subunits >= cw_min_subunits_before_hq
+				}
+			}
+		}
+		cw_set_unit_organized_home = yes
+	}
+	else = {
+		cw_set_unit_unorganized = yes
+	}
+}
+
+# unit scope. Right after add_subunit = unit_type:cw_hq_colonial on an army that had NO HQ: the same size test;
+# big enough on overseas ground => organized with the expeditionary bonus, big enough on home ground => siege-only
+# (SPEC section 6 / DESIGN.md 2.4), otherwise the penalty stays.
+cw_colonial_hq_added = {
+	if = {
+		limit = {
+			OR = {
+				AND = {
+					cw_unit_has_colonial_hq = yes
+					num_subunits >= cw_min_subunits_organized
+				}
+				AND = {
+					cw_unit_has_colonial_hq = no
+					num_subunits >= cw_min_subunits_before_hq
+				}
+			}
+		}
+		if = {
+			limit = { cw_unit_is_overseas = yes }
+			cw_set_unit_organized_expeditionary = yes
+		}
+		else = {
+			cw_set_unit_siege_only = yes
+		}
+	}
+	else = {
+		cw_set_unit_unorganized = yes
+	}
+}
+
+# unit scope, argument type = cw_hq | cw_hq_colonial. Destroys ONE regiment of that type (ordered_sub_unit + limit +
+# max + destroy_subunit: DHE/flavor_GEN.txt:1577-1583) - the one-regiment form of vanilla's
+# destroy_every_sub_unit_of_type (unit_effects.txt:39-54: every_sub_unit + destroy_subunit, or destroy_unit when
+# nothing else is left), which would also take a second HQ of the same type out of a merged army.
+cw_destroy_one_sub_unit_of_type = {
+	ordered_sub_unit = {
+		limit = { sub_unit_type = unit_type:$type$ }
+		max = 1
+		check_range_bounds = no
+		destroy_subunit = yes
+	}
+}
+
+# unit scope. Removes ONE home HQ per call (review finding): a merged army holding two HQs keeps the other one
+# (DESIGN.md 2.5 - the surplus HQ is disbanded one per click / one per cleanup slot); if the HQ is the army's only
+# regiment the whole unit is destroyed (a lone 100-man staff is no army). The resulting state is decided from the
+# regiment list BEFORE the strip (header): the army keeps num_subunits - 1 regiments, so it is still big enough
+# only if it had MORE than cw_min_subunits_organized; then a colonial HQ on overseas ground => organized with the
+# expeditionary bonus, a second home HQ => organized, a colonial HQ at home => siege-only, otherwise the penalty
+# right away (SPEC section 6). Callers guarantee cw_unit_has_home_hq = yes.
+cw_strip_home_hq_from_unit = {
+	if = {
+		# the HQ is the only regiment => no army left
+		limit = { num_subunits <= 1 }
+		destroy_unit = yes
+	}
+	else_if = {
+		limit = {
+			num_subunits > cw_min_subunits_organized
+			cw_unit_has_colonial_hq = yes
+			cw_unit_is_overseas = yes
+		}
+		cw_destroy_one_sub_unit_of_type = { type = cw_hq }
+		cw_set_unit_organized_expeditionary = yes
+	}
+	else_if = {
+		limit = {
+			num_subunits > cw_min_subunits_organized
+			any_sub_unit = {
+				count >= 2
+				sub_unit_type = unit_type:cw_hq
+			}
+		}
+		cw_destroy_one_sub_unit_of_type = { type = cw_hq }
+		cw_set_unit_organized_home = yes
+	}
+	else_if = {
+		# not overseas (first branch failed), no second home HQ: only the colonial HQ stays behind
+		limit = {
+			num_subunits > cw_min_subunits_organized
+			cw_unit_has_colonial_hq = yes
+		}
+		cw_destroy_one_sub_unit_of_type = { type = cw_hq }
+		cw_set_unit_siege_only = yes
+	}
+	else = {
+		cw_destroy_one_sub_unit_of_type = { type = cw_hq }
+		cw_set_unit_unorganized = yes
+	}
+}
+
+# unit scope. Same for ONE colonial HQ: a second colonial HQ on overseas ground => organized with the bonus, a home
+# HQ => organized (the bonus goes with the last colonial HQ), a second colonial HQ at home => siege-only, otherwise
+# the penalty. Callers guarantee cw_unit_has_colonial_hq = yes.
+cw_strip_colonial_hq_from_unit = {
+	if = {
+		limit = { num_subunits <= 1 }
+		destroy_unit = yes
+	}
+	else_if = {
+		limit = {
+			num_subunits > cw_min_subunits_organized
+			cw_unit_is_overseas = yes
+			any_sub_unit = {
+				count >= 2
+				sub_unit_type = unit_type:cw_hq_colonial
+			}
+		}
+		cw_destroy_one_sub_unit_of_type = { type = cw_hq_colonial }
+		cw_set_unit_organized_expeditionary = yes
+	}
+	else_if = {
+		limit = {
+			num_subunits > cw_min_subunits_organized
+			cw_unit_has_home_hq = yes
+		}
+		cw_destroy_one_sub_unit_of_type = { type = cw_hq_colonial }
+		cw_set_unit_organized_home = yes
+	}
+	else_if = {
+		limit = {
+			num_subunits > cw_min_subunits_organized
+			any_sub_unit = {
+				count >= 2
+				sub_unit_type = unit_type:cw_hq_colonial
+			}
+		}
+		cw_destroy_one_sub_unit_of_type = { type = cw_hq_colonial }
+		cw_set_unit_siege_only = yes
+	}
+	else = {
+		cw_destroy_one_sub_unit_of_type = { type = cw_hq_colonial }
+		cw_set_unit_unorganized = yes
+	}
+}
+
+# country scope, argument continent = europe | asia | africa | america | oceania. Called by cw_ai_assign_hqs
+# with the pass-local counter local_var:cw_col_free = free colonial slots (set once per pass from the cached
+# limit, decremented per placed HQ, so the five calls never overshoot whatever the engine counter does).
+# How many HQ armies may stand on this theatre ("fewer HQ armies on C than the theatre allows"):
+#   1 always; 2 with >= 25 locations there from the Age of Reformation; 3 with >= 60 from the Age of Absolutism,
+#   counting our own overseas land OR the land of any subject at any depth (the AI holds its colonies through
+#   colonial nations, research 14 F6 / R6) - the same tiers that grant the slots in cw_colonial_hq_limit (keep the
+#   two in sync), so the AI can actually use its 2nd / 3rd theatre slot (DESIGN.md 2.4: "two colonial armies for
+#   America via the 25-location threshold"). Deviation from the SPEC section 6 wording "no HQ army present on C",
+#   which made those tiers dead code for the AI (review finding).
+# Cost order: the army scans (early exit) run before the owned-location counts, which only run once an HQ
+# army already stands on the theatre. "HQ army" = any HQ type (a home HQ taken overseas also counts).
+# Then the largest eligible army on the continent gets a colonial HQ: regulars first, levy hosts next,
+# mercenary-only stacks last (score block, hellenism_religion.txt:292-307); max = 1 per theatre per pass.
+cw_ai_assign_colonial_hq_on = {
+	if = {
+		# cheapest test first: a slot left in this pass? (one-line form: international_organization_effects.txt:774)
+		limit = { local_var:cw_col_free > 0 }
+		if = {
+			limit = {
+				NOT = { capital ?= { continent = continent:$continent$ } }
+				OR = {
+					# first HQ army on the theatre
+					NOT = {
+						any_army = {
+							unit_location = {
+								continent = continent:$continent$
+								would_be_overseas_for = prev.owner
+							}
+							cw_unit_has_hq = yes
+						}
+					}
+					# second: large theatre
+					AND = {
+						current_age_or_later = { age = age_4_reformation }
+						NOT = {
+							any_army = {
+								count >= 2
+								unit_location = {
+									continent = continent:$continent$
+									would_be_overseas_for = prev.owner
+								}
+								cw_unit_has_hq = yes
+							}
+						}
+						OR = {
+							any_owned_location = {
+								count >= 25
+								continent = continent:$continent$
+								is_overseas_for_owner = yes
+							}
+							any_subject_or_below = {
+								any_owned_location = {
+									count >= 25
+									continent = continent:$continent$
+								}
+							}
+						}
+					}
+					# third: vast theatre
+					AND = {
+						current_age_or_later = { age = age_5_absolutism }
+						NOT = {
+							any_army = {
+								count >= 3
+								unit_location = {
+									continent = continent:$continent$
+									would_be_overseas_for = prev.owner
+								}
+								cw_unit_has_hq = yes
+							}
+						}
+						OR = {
+							any_owned_location = {
+								count >= 60
+								continent = continent:$continent$
+								is_overseas_for_owner = yes
+							}
+							any_subject_or_below = {
+								any_owned_location = {
+									count >= 60
+									continent = continent:$continent$
+								}
+							}
+						}
+					}
+				}
+			}
+			ordered_army = {
+				limit = {
+					unit_location = { continent = continent:$continent$ }
+					cw_eligible_for_colonial_hq = yes
+				}
+				order_by = {
+					value = num_subunits
+					if = {
+						limit = { has_regulars = yes }
+						add = 1000
+					}
+					else_if = {
+						limit = { has_levies = yes }
+						add = 500
+					}
+				}
+				max = 1
+				check_range_bounds = no
+				add_subunit = unit_type:cw_hq_colonial
+				cw_colonial_hq_added = yes
+				# one slot used up for the rest of this pass (the local variable lives on the country object,
+				# re-entered through the owner link: guelphs_and_ghibellines.txt:231-236 does it through root)
+				owner = {
+					change_local_variable = {
+						name = cw_col_free
+						add = -1
+					}
+				}
+			}
+		}
+	}
+}
+
+# country scope (AI, or a player with cw_auto_hq). SPEC section 6 + review findings.
+#   0. A country with NO home HQ at all gets one in its largest army regardless of size (cw_initial_hq_grant,
+#      guarded by the engine counter): an OPM / native / colonial nation that lost its only HQ in battle would
+#      otherwise never get one back (all its armies below cw_min_subunits_for_ai_hq). The ranked pass waits
+#      for the next pass in that case, so a lagging counter can never place a second HQ above the limit.
+#   1. Home: ONE ranked pass fills the free home slots, largest eligible armies first, regulars ranked above
+#      levy hosts above mercenary-only stacks (one list, one max - two passes re-reading the live counter
+#      were unverified). The block is skipped when no slot is free, so "max" is never 0.
+#      CW TODO verify: max = 0 semantics (no vanilla ordered_* list uses it; the guard keeps it unreachable)
+#      and that total_sub_unit_type_count:cw_hq never exceeds cw_hq_limit after a pass.
+#   2. Colonial: per overseas theatre with a pass-local free-slot counter (see cw_ai_assign_colonial_hq_on).
+# Whether add_subunit honours the unit limit is unverified; the max / counter guards make it irrelevant.
+cw_ai_assign_hqs = {
+	if = {
+		limit = { total_sub_unit_type_count:cw_hq = 0 }
+		cw_initial_hq_grant = yes
+	}
+	else_if = {
+		limit = { cw_has_free_hq_slot = yes }
+		ordered_army = {
+			limit = { cw_eligible_for_home_hq = yes }
+			order_by = {
+				value = num_subunits
+				if = {
+					limit = { has_regulars = yes }
+					add = 1000
+				}
+				else_if = {
+					limit = { has_levies = yes }
+					add = 500
+				}
+			}
+			max = { value = cw_hq_free_slots }
+			check_range_bounds = no
+			add_subunit = unit_type:cw_hq
+			cw_home_hq_added = yes
+		}
+	}
+	if = {
+		limit = {
+			current_age_or_later = { age = age_3_discovery }
+			cw_has_free_colonial_hq_slot = yes
+		}
+		set_local_variable = {
+			name = cw_col_free
+			value = cw_colonial_hq_free_slots
+		}
+		cw_ai_assign_colonial_hq_on = { continent = europe }
+		cw_ai_assign_colonial_hq_on = { continent = asia }
+		cw_ai_assign_colonial_hq_on = { continent = africa }
+		cw_ai_assign_colonial_hq_on = { continent = america }
+		cw_ai_assign_colonial_hq_on = { continent = oceania }
+		remove_local_variable = cw_col_free
+	}
+}
+
+# country scope, AI ONLY (players are never force-disbanded, SPEC section 15). Review finding (research 15 section
+# 2.5): assignment only fills FREE slots and cleanup only removes ABOVE the limit, so an HQ that ends up in a tiny
+# stack (the AI splits its army and the HQ goes with the fragment; a levy host demobilises around a lone staff; the
+# AI recruiter builds the ~free cw_hq into a fresh unit) would hold a slot for ever while the main army stays
+# HQ-less. Three rules, each followed by the placement of the same pass (cw_run_hq_pass):
+#   1. HOME: while a "stranded" home HQ exists (stack below cw_min_subunits_for_ai_hq - unorganized anyway, the HQ
+#      does nothing there) AND an eligible HQ-less home army (>= cw_min_subunits_for_ai_hq, i.e. always larger)
+#      waits, strip EVERY stranded home HQ; cw_ai_assign_hqs then hands the freed slots to the largest eligible
+#      armies (DESIGN.md 2.5: the HQ belongs to the main army). No free-slot gate: a slot freed early simply waits
+#      for the next army that qualifies, and without an eligible army nothing is stripped (an OPM whose only army
+#      has two regiments keeps its staff - no churn against cw_initial_hq_grant).
+#   2. COLONIAL, misplaced: a colonial HQ on non-overseas land organizes nothing (siege-only tier) while it blocks
+#      a theatre slot and the home pass (the army "has an HQ") - stripped whatever the army's size; the home pass
+#      may equip that army at once (cw_eligible_for_home_hq ignores colonial HQs). Armies at sea are never touched.
+#   3. COLONIAL, stranded: per theatre, rule 1 for stacks below cw_min_subunits_for_ai_hq while an eligible HQ-less
+#      army waits on the SAME continent (cw_ai_relocate_colonial_hq_on).
+# Guard order: engine counter first, then early-exit army scans (cheap unit tests before the regiment scan); the
+# "strip all" loops use the verified every_army = { if = { limit } } form (no vanilla every_army carries a limit).
+# CW TODO verify: does the AI recruiter ever build cw_hq itself (watch AI army compositions)?
+cw_ai_relocate_hqs = {
+	if = {
+		limit = {
+			any_army = { cw_unit_has_stranded_home_hq = yes }
+			any_army = { cw_eligible_for_home_hq = yes }
+		}
+		every_army = {
+			if = {
+				limit = { cw_unit_has_stranded_home_hq = yes }
+				cw_strip_home_hq_from_unit = yes
+			}
+		}
+	}
+	if = {
+		limit = { total_sub_unit_type_count:cw_hq_colonial > 0 }
+		every_army = {
+			if = {
+				limit = { cw_unit_has_misplaced_colonial_hq = yes }
+				cw_strip_colonial_hq_from_unit = yes
+			}
+		}
+		cw_ai_relocate_colonial_hq_on = { continent = europe }
+		cw_ai_relocate_colonial_hq_on = { continent = asia }
+		cw_ai_relocate_colonial_hq_on = { continent = africa }
+		cw_ai_relocate_colonial_hq_on = { continent = america }
+		cw_ai_relocate_colonial_hq_on = { continent = oceania }
+	}
+}
+
+# country scope, argument continent = europe | asia | africa | america | oceania (AI only, rule 3 above): a stranded
+# colonial HQ on this continent is stripped while an eligible HQ-less army waits on the same continent. The
+# continent test comes first in every limit so only armies on that theatre pay for the regiment scan.
+cw_ai_relocate_colonial_hq_on = {
+	if = {
+		limit = {
+			any_army = {
+				unit_location = { continent = continent:$continent$ }
+				cw_unit_has_stranded_colonial_hq = yes
+			}
+			any_army = {
+				unit_location = { continent = continent:$continent$ }
+				cw_eligible_for_colonial_hq = yes
+			}
+		}
+		every_army = {
+			if = {
+				limit = {
+					unit_location = { continent = continent:$continent$ }
+					cw_unit_has_stranded_colonial_hq = yes
+				}
+				cw_strip_colonial_hq_from_unit = yes
+			}
+		}
+	}
+}
+
+# country scope, AI ONLY. When the count exceeds the limit (lost land, native-tradition rule, merged
+# conquests), strip ONE HQ from each of the SMALLEST HQ armies first (reversed order_by: score block,
+# hellenism_religion.txt:292-307), max = excess armies per pass; a merged army holding two HQs loses one
+# per pass. Never touches armies in combat (no regiment deletions mid-battle) or embarked armies.
+# The colonial half reads the CACHED limit and waits while any colonial HQ army is at sea: a theatre whose
+# only claim is the expedition itself "disappears" during a crossing (unit_location is a sea zone), which
+# must not cost the HQ (review finding).
+cw_cleanup_excess_hqs = {
+	if = {
+		limit = { total_sub_unit_type_count:cw_hq > cw_hq_limit }
+		ordered_army = {
+			limit = {
+				in_combat = no
+				unit_location = { is_land = yes }
+				cw_unit_is_exempt = no
+				cw_unit_has_home_hq = yes
+			}
+			order_by = {
+				value = num_subunits
+				multiply = -1
+			}
+			max = { value = cw_hq_excess }
+			check_range_bounds = no
+			cw_strip_home_hq_from_unit = yes
+		}
+	}
+	if = {
+		limit = {
+			cw_colonial_hqs_above_limit = yes
+			NOT = {
+				any_army = {
+					unit_location = { is_land = no }
+					cw_unit_has_colonial_hq = yes
+				}
+			}
+		}
+		ordered_army = {
+			limit = {
+				in_combat = no
+				unit_location = { is_land = yes }
+				cw_unit_is_exempt = no
+				cw_unit_has_colonial_hq = yes
+			}
+			order_by = {
+				value = num_subunits
+				multiply = -1
+			}
+			max = { value = cw_colonial_hq_excess }
+			check_range_bounds = no
+			cw_strip_colonial_hq_from_unit = yes
+		}
+	}
+}
+
+# country scope. Game start, first pulse of countries created later, and every assignment pass: a real
+# country with NO home HQ at all gets one in its largest army, whatever its size (DESIGN.md 2.5 "a lost HQ
+# is restored the same way", review finding; below cw_min_subunits_organized the army stays penalised until
+# it grows - cw_home_hq_added). Guarded by the engine counter, so it costs nothing while an HQ exists.
+# Skips armies that are fighting, retreating, embarked, exempt, or already holding a colonial HQ.
+cw_initial_hq_grant = {
+	if = {
+		limit = { total_sub_unit_type_count:cw_hq = 0 }
+		ordered_army = {
+			limit = {
+				in_combat = no
+				in_retreat = no
+				unit_location = { is_land = yes }
+				cw_unit_is_exempt = no
+				cw_unit_has_hq = no
+			}
+			order_by = num_subunits
+			max = 1
+			check_range_bounds = no
+			add_subunit = unit_type:cw_hq
+			cw_home_hq_added = yes
+		}
+	}
+}
+
+# ---- player helpers for the scripted GUIs (module gui_windows) --------------------------------
+# root = the player's country, scope:loc = the location of the selected army (SPEC section 11).
+# No ordered_unit_in_location exists in vanilla; "unit_location ?= scope:loc" on the country's own
+# armies does the same job (link-vs-scope comparison pattern: owner ?= scope:target.owner, _hardcoded.txt:5917).
+# The modifiers are set at once by cw_home_hq_added / cw_colonial_hq_added / cw_strip_*_hq_from_unit (SPEC
+# section 6: "immediately"), and each helper ends by refreshing the cached counters (overview window) and
+# the hint flag, so the GUI is right after one click instead of after the next pass (review finding).
+# scope:loc must be land: the helpers never touch an embarked army (a sea-zone location). The two add helpers also skip
+# armies in combat / retreat (no injecting an HQ mid-battle), mirroring is_valid of cw_sgui_loc_add_hq /
+# _add_colonial_hq (module gui_windows), so the effect can never pick a fighting army while an idle one enabled the
+# button (final consistency pass).
+
+# Put a home HQ into the largest own army at scope:loc that has no HOME HQ and is not organized yet (if a home slot
+# is free). Tuning pass: "no home HQ" instead of "no HQ at all", so an army whose only HQ is colonial (siege-only tier
+# at home, cw_unit_has_colonial_hq_at_home) can receive one; cw_home_hq_added then lifts cw_no_hq_siege_only.
+# Mirrors is_valid of cw_sgui_loc_add_hq (cw_scripted_guis.txt).
+cw_loc_add_hq = {
+	if = {
+		limit = {
+			exists = scope:loc
+			scope:loc = { is_land = yes }
+			cw_has_free_hq_slot = yes
+		}
+		ordered_army = {
+			limit = {
+				unit_location ?= scope:loc
+				in_combat = no
+				in_retreat = no
+				cw_unit_is_exempt = no
+				cw_unit_has_home_hq = no
+				cw_unit_is_organized = no
+			}
+			order_by = num_subunits
+			max = 1
+			check_range_bounds = no
+			add_subunit = unit_type:cw_hq
+			cw_home_hq_added = yes
+		}
+		cw_cache_limits = yes
+		cw_refresh_army_without_hq_flag = yes
+	}
+}
+
+# Put a colonial HQ into the largest own HQ-less army at scope:loc (free colonial slot, overseas ground).
+cw_loc_add_colonial_hq = {
+	if = {
+		limit = {
+			exists = scope:loc
+			scope:loc = {
+				is_land = yes
+				would_be_overseas_for = root
+			}
+			cw_has_free_colonial_hq_slot = yes
+		}
+		ordered_army = {
+			limit = {
+				unit_location ?= scope:loc
+				in_combat = no
+				in_retreat = no
+				cw_unit_is_exempt = no
+				cw_unit_has_hq = no
+			}
+			order_by = num_subunits
+			max = 1
+			check_range_bounds = no
+			add_subunit = unit_type:cw_hq_colonial
+			cw_colonial_hq_added = yes
+		}
+		cw_cache_limits = yes
+		cw_refresh_army_without_hq_flag = yes
+	}
+}
+
+# Disband ONE HQ of the largest own HQ army at scope:loc (home HQ first, then colonial; one regiment per
+# click, so a merged army keeps its second HQ until the next click). The strip sets the penalty and the
+# hint flag itself, so the flag is not re-derived here from a regiment list that may not be updated yet.
+cw_loc_remove_hq = {
+	if = {
+		limit = {
+			exists = scope:loc
+			scope:loc = { is_land = yes }
+		}
+		ordered_army = {
+			limit = {
+				unit_location ?= scope:loc
+				cw_unit_has_hq = yes
+			}
+			order_by = num_subunits
+			max = 1
+			check_range_bounds = no
+			if = {
+				limit = { cw_unit_has_home_hq = yes }
+				cw_strip_home_hq_from_unit = yes
+			}
+			else = {
+				cw_strip_colonial_hq_from_unit = yes
+			}
+		}
+		cw_cache_limits = yes
+	}
+}
+
+# =============================================================================================
+# 4. Scheduling (SPEC section 5) - called from cw_on_actions.txt and cw_events.txt
+# =============================================================================================
+
+# country scope. The full HQ pass: organization, AI relocation of stranded / misplaced HQs, script placement
+# (AI / automation), AI-only cleanup above the limit. Callers run cw_cache_limits first (the one evaluation of
+# cw_colonial_hq_limit per pass; every loop below compares the live counter with the cached variable).
+cw_run_hq_pass = {
+	cw_update_army_organization = yes
+	if = {
+		limit = { is_ai = yes }
+		cw_ai_relocate_hqs = yes
+	}
+	if = {
+		limit = { cw_hq_automation_active = yes }
+		cw_ai_assign_hqs = yes
+	}
+	if = {
+		limit = { is_ai = yes }
+		cw_cleanup_excess_hqs = yes
+	}
+}
+
+# country scope (player). Fires cw_events.1 when the home HQ limit grew since the last look;
+# silently tracks shrinking limits. cw_hq_limit_seen is seeded at game start (cw_game_start_country).
+# Variable vs named value comparison: laws/20_middle_kingdom.txt:11.
+cw_player_notifications = {
+	if = {
+		limit = { NOT = { has_variable = cw_hq_limit_seen } }
+		set_variable = {
+			name = cw_hq_limit_seen
+			value = cw_hq_limit
+		}
+	}
+	else_if = {
+		limit = { var:cw_hq_limit_seen < cw_hq_limit }
+		set_variable = {
+			name = cw_hq_limit_seen
+			value = cw_hq_limit
+		}
+		trigger_event_non_silently = { id = cw_events.1 }
+	}
+	else_if = {
+		limit = { var:cw_hq_limit_seen > cw_hq_limit }
+		set_variable = {
+			name = cw_hq_limit_seen
+			value = cw_hq_limit
+		}
+	}
+}
+
+# country scope. Starts the hidden 15-day war ticker (cw_tick.1) unless one is already running.
+# The event re-fires itself while at_war = yes and guards itself with cw_tick_scheduled (14 days).
+cw_start_war_ticker = {
+	if = {
+		limit = { NOT = { has_variable = cw_tick_scheduled } }
+		trigger_event_silently = { id = cw_tick.1 }
+	}
+}
+
+# country scope. monthly_country_pulse (root = country, trigger cw_is_real_country already checked).
+#   1. cache counters (always; the one colonial-limit evaluation of the month at peace)
+#   2. at war: the full pass every month, and the 15-day ticker is (re)started - O(1), self-guarded by
+#      cw_tick_scheduled, so a healthy chain is never duplicated and a dead one (war joined without a hook,
+#      a queued tick that found the guard set) restarts within a month (review finding)
+#   3. at peace: the full pass only every 3 months, staggered per country by a self-expiring variable
+#      (each country's timer starts in its first peaceful month; the first peace pulse runs at once)
+#   4. players: notifications
+# Countries that never saw cw_game_start_country (released, formed, save without the mod) are seeded here.
+cw_monthly_pulse_effect = {
+	cw_cache_limits = yes
+	if = {
+		limit = { NOT = { has_variable = cw_initialized } }
+		set_variable = cw_initialized
+		cw_initial_hq_grant = yes
+	}
+	if = {
+		limit = { at_war = yes }
+		cw_run_hq_pass = yes
+		cw_start_war_ticker = yes
+	}
+	else_if = {
+		limit = { NOT = { has_variable = cw_peace_cooldown } }
+		set_variable = {
+			name = cw_peace_cooldown
+			months = 3			# = cw_peace_cadence_months (cw_values.txt); literal because a named value in a set_variable duration is unverified
+		}
+		cw_run_hq_pass = yes
+	}
+	if = {
+		limit = { is_ai = no }
+		cw_player_notifications = yes
+	}
+}
+
+# country scope, REBEL countries only (monthly on_action cw_monthly_rebel_pulse and the revolt hooks,
+# cw_on_actions.txt). Every rebel army gets cw_rebel_disorder - the combat half of the standard penalty, no siege
+# malus - refreshed with mode = replace (years = 1, so it dies by itself if the mod is removed). Nothing else is
+# ever done for rebels: no limits, no HQs, no organization pass (DESIGN.md 2.2, research 15 section 1.3). The
+# is_rebel_country guard (war_of_the_roses_actions.txt:50,57) lets the revolt hooks call it on any scope:target;
+# pirates and mercenary-company countries fail it.
+cw_rebel_disorder_country = {
+	if = {
+		limit = { is_rebel_country = yes }
+		every_army = {
+			add_unit_modifier = {
+				modifier = cw_rebel_disorder
+				years = 1
+				mode = replace
+			}
+		}
+	}
+}
+
+# country scope. on_game_started_after_lobby, every real country: one HQ in the largest army, modifiers
+# in line, counters cached (so the cached colonial limit exists before the first pass), and the player's
+# "seen" limit seeded so the first pulse does not announce a slot.
+cw_game_start_country = {
+	set_variable = cw_initialized
+	cw_initial_hq_grant = yes
+	cw_update_army_organization = yes
+	cw_cache_limits = yes
+	set_variable = {
+		name = cw_hq_limit_seen
+		value = cw_hq_limit
+	}
+}
+
+# country scope. on_new_age (root = country): limits may have grown - refresh, let the AI use the new
+# slot at once, tell the player.
+cw_new_age_country = {
+	cw_cache_limits = yes
+	if = {
+		limit = { cw_hq_automation_active = yes }
+		cw_ai_assign_hqs = yes
+	}
+	if = {
+		limit = { is_ai = no }
+		cw_player_notifications = yes
+	}
+}
+
+# country scope. on_war_declared (scope:actor / scope:recipient) and on_join_war (root = joiner).
+# Idempotent: a declaration that drags many participants in may call this several times per country
+# within the same day, so the heavy part is guarded by a 2-day variable; the ticker guards itself.
+cw_war_start_country = {
+	if = {
+		limit = {
+			cw_is_real_country = yes
+			at_war = yes
+		}
+		if = {
+			limit = { NOT = { has_variable = cw_war_start_done } }
+			set_variable = {
+				name = cw_war_start_done
+				days = 2
+			}
+			if = {
+				limit = { has_variable = cw_peace_cooldown }
+				remove_variable = cw_peace_cooldown
+			}
+			cw_cache_limits = yes
+			cw_run_hq_pass = yes
+		}
+		cw_start_war_ticker = yes
+	}
+}
+
+# country scope. on_ending_war (root = country, fires once per side). Drop the peace cooldown so the
+# first peaceful monthly pulse does a full pass right away; the ticker stops by itself (at_war = no).
+cw_war_end_country = {
+	if = {
+		limit = { cw_is_real_country = yes }
+		if = {
+			limit = { has_variable = cw_peace_cooldown }
+			remove_variable = cw_peace_cooldown
+		}
+		cw_cache_limits = yes
+	}
+}

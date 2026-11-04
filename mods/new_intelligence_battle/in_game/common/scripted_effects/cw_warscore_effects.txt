@@ -1,0 +1,84 @@
+﻿# Concentrated Warfare - war score scripted effects (module warscore_rules, SPEC section 8).
+
+# cw_grant_capital_bonus_warscore
+# Scope: root = the country that just gained control of scope:target (a location). Called from cw_on_capital_taken
+# (on_siege_won / on_location_occupied, see on_action/cw_warscore_on_actions.txt), which already checked
+# has_game_rule = cw_warscore_on, cw_is_real_country and scope:target = { is_capital = yes }.
+#
+# What: if the location is the capital of the ENEMY WAR LEADER of a war we take part in, credit our side of that war
+# with a one-off bonus war score - once per war per capital (a capital that is relieved and taken again pays nothing more).
+# Design (DESIGN section 4 / SPEC section 8): "taking the capital" means the enemy's capital, once - NOT the capital of
+# every co-belligerent and subject that joined: without the war-leader test five one-province subject capitals would fill
+# the whole WARGOAL_MAX_BONUS = 50 bucket with the same weight as the war leader's capital. With it, at most two capitals
+# per war can ever pay (one per side's leader), so the per-location guard list below stays a correct "once" guard.
+#
+# Syntax, all copied from vanilla (game/in_game/common unless noted):
+#   * war link + bonus: unit_abilities/raid_clan_holdings.txt:67-71
+#       "war_with_country(root.owner)" = { add_bonus_warscore = { country = root.owner amount = 20 } }
+#     i.e. the country-scope link war_with_country(<country>) enters the scope of our war with <country>, and
+#     add_bonus_warscore credits <country>'s side. The bonus shows in the "Bonuses" row of the war score tooltip
+#     (WARSCORE_FROM_BONUSES) and the row is capped by NDiplomacy::WARGOAL_MAX_BONUS = 50 (research 05 sections 1.1, 7.9).
+#   * scope-chain link argument scope:target.owner: vanilla passes chains to link arguments all the time -
+#     "opinion(scope:war.defender_leader)", "border_distance_to(scope:war.attacker_leader)",
+#     "relative_strength(scope:target_country.overlord)" (country_interactions / generic_actions) - and uses this very
+#     chain: on_action/on_country_specific_pulse.txt:29 'scope:target.owner = { save_scope_as = previous_owner }'.
+#     No save_scope fallback is needed.
+#   * null-safe link entry "?=": on_action/_hardcoded.txt:371 '"c:TLE.war_with_country(root)" ?= {' (trigger context) and
+#     country_interactions/lend_unit_to_ally.txt:31 '"top_overlord_in_war(scope:actor)" ?= { save_temporary_scope_as = ... }'
+#     (effect context). is_at_war_with can be true through a war the link does not resolve to, or the war may end on the
+#     same tick: with "?=" such a transient no-war state is skipped silently instead of logging an error and aborting.
+#   * enemy war leader: is_war_leader_of = <war> is a country trigger - on_action/_hardcoded.txt:181-187
+#     'every_current_war = { limit = { c:LIT = { is_war_leader_of = prev } } ... }' (prev = the war),
+#     peace_treaties/dissolve_coalition.txt:10 'scope:winner = { is_war_leader_of = scope:war }'. Inside the war-link
+#     block below the previous scope is that war, so the same 'is_war_leader_of = prev' shape applies.
+#   * dotted scope change inside a trigger: generic_actions/rise_of_the_ottomans.txt:140 'limit = { scope:target.owner = {'.
+#
+# Balance knob: amount = 10 (SPEC section 8). WAR_WORTH_COUNTRY_CAPITAL = 15 (cw_war_defines.txt; 30 before the balance
+# review) already makes the capital the single most valuable location; this is the extra "the capital has fallen" shock.
+# Together they are worth ~40-55 % against a 20-location minor instead of the former one-siege 95 % (research 15 section
+# 4.2). It is deliberately not larger: the bonus bucket is one-shot and does NOT go away when the capital is relieved.
+cw_grant_capital_bonus_warscore = {
+	if = {
+		limit = {
+			scope:target = {
+				is_capital = yes
+				has_owner = yes
+				owner = { is_at_war_with = root }		# enemy capital only: retaking our own or an ally's capital gives nothing
+			}
+		}
+		# Scope inside this block = our war with the capital's owner (null-safe: no such war -> the block is skipped silently).
+		"war_with_country(scope:target.owner)" ?= {
+			# Once-per-war-per-capital guard: the war object keeps a list of the capitals already rewarded. The list dies
+			# with the war, so a later war against the same enemy pays again.
+			# Variables on WAR scopes are vanilla practice: _hardcoded.txt:187 'set_variable = teu_lit_first_war' inside
+			# every_current_war, :371-373 '"c:TLE.war_with_country(root)" ?= { has_variable = is_starting_morocco_war }'.
+			# Variable LISTS are verified on a non-country scope: expedition_types/cartographic_survey.txt:48-50
+			# 'scope:expedition = { add_new_waypoint = prev  add_to_variable_list = { name = cartographic_survey_visited target = prev } }'
+			# and :63 'scope:expedition = { is_target_in_variable_list = {...} }' (expedition scope, location targets).
+			# CW TODO verify: a variable LIST on a war scope specifically is not seen in vanilla (low risk given the above).
+			# Test (docs/TESTING.md E8): take the same enemy capital twice in one war (lose it, retake it) - the Bonuses row
+			# must stay at +10. If error.log reports add_to_variable_list / is_target_in_variable_list on the war, switch
+			# to the plain-flag fallback (once per war instead of once per capital):
+			#   NOT = { has_variable = cw_capital_bonus_given }   /   set_variable = cw_capital_bonus_given
+			if = {
+				limit = {
+					scope:target.owner = { is_war_leader_of = prev }	# prev = this war: only the enemy war leader's capital counts
+					NOT = {
+						is_target_in_variable_list = {
+							name = cw_capital_bonus_given
+							target = scope:target
+						}
+					}
+				}
+				add_to_variable_list = {
+					name = cw_capital_bonus_given
+					target = scope:target
+				}
+				add_bonus_warscore = {
+					country = root
+					amount = 10
+				}
+			}
+		}
+	}
+}

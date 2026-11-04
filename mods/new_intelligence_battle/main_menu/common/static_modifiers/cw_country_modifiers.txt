@@ -1,0 +1,76 @@
+﻿###################################
+# Concentrated Warfare - country modifiers
+# War stances are applied to AI countries only (see cw_update_war_stance, in_game/common/scripted_effects/cw_stance_effects.txt),
+# with months = 2 and mode = replace, refreshed monthly; they self-expire if the mod stops refreshing them.
+# Modifier types marked ai = yes in modifier_type_definitions only steer the AI's strategic valuation; players never feel them.
+# Honest scope of these levers (research 06 §3.2 / §3.5 "Limits"): NOTHING here moves armies. Inside a running war only
+#   expected_warscore_modifier (what peace the AI accepts), defence_importance_modifier (fort / defence valuation) and
+#   manpower_importance_modifier (reserve building) act; aggressiveness_modifier, carefulness_modifier,
+#   win_war_chance_threshold and ai_months_between_wars steer NEW war declarations. The in-war behaviour comes from the
+#   NAI defines (loading_screen/common/defines/cw_ai_defines.txt) and the escort stance; the stance modifiers mainly make
+#   the AI value the war the way its stage suggests and keep it from opening a second front while it has one.
+# Value ranges follow vanilla: ai personalities +-0.3 aggressiveness / +-0.25 carefulness (ai_personalities/00_ai_personalities.txt),
+# ruler traits +-0.05..0.15 (traits/00_ruler.txt), difficulty high_aggression +1.0 (static_modifiers/difficulty.txt:135-144).
+# Loc: STATIC_MODIFIER_NAME_<key> / STATIC_MODIFIER_DESC_<key> (module localize); the key is visible on the AI's
+# "Behavioral Modifiers" tooltip, so the names read as the war stage (research 06 §11.8).
+###################################
+
+# 1 - Offensive: seeks the decisive battle, accepts risk - IN THE CURRENT WAR. The declaration levers are kept small on
+# purpose: the full ai_aggressive profile (+0.3 / -0.2) would make a winning AI more likely to open a second war mid-war,
+# the opposite of "concentrated wars" (DESIGN §1); ai_months_between_wars = 12 (ai_defensive uses +12) makes it finish
+# this war before it starts another.
+cw_stance_offensive = {
+	game_data = {
+		category = country
+	}
+	aggressiveness_modifier = 0.1			# bold temperament on the tooltip (ruler trait scale: conqueror +0.15)
+	carefulness_modifier = -0.1				# ai_opportunistic -0.1
+	ai_months_between_wars = 12				# no second front while this war runs (ai_defensive +12)
+	defence_importance_modifier = -0.1		# forts and reserves matter less than the field army
+	expected_warscore_modifier = 0.1		# expects more from the war -> keeps pressing (conqueror trait +0.2)
+}
+
+# 2 - Defensive: holds forts and home territory.
+cw_stance_defensive = {
+	game_data = {
+		category = country
+	}
+	aggressiveness_modifier = -0.2			# ai_defensive -0.2
+	carefulness_modifier = 0.2				# ai_defensive +0.25
+	defence_importance_modifier = 0.3		# ai_defensive +0.25
+	manpower_importance_modifier = 0.1		# ai_defensive +0.1: keep reserves to man the defence
+}
+
+# 3 - Waiting / concentrating: avoids battle while allies and reinforcements gather (attackers in a young war).
+# regiment_reinforcement_speed is the one gameplay effect of a stance (SPEC §4: "ai=yes types + regiment_reinforcement_speed
+# 0.1 on waiting"); a unit-category type carried by a country modifier, as vanilla does for siege_ability in
+# army_maintenance_reverse_mod (research 03 §2.3). No global_supply_limit_modifier here: it would raise the AI's stack-size
+# target (AI_SUPPLY_LIMIT_TARGET x supply) only while waiting, and the drop at the next stance change could itself push
+# stacks over RATIO_OVER_SUPPLY_TARGET_TO_SPLIT - stack size is steered globally in cw_ai_defines.txt instead.
+cw_stance_waiting = {
+	game_data = {
+		category = country
+	}
+	carefulness_modifier = 0.3				# ai_cautious +0.3
+	win_war_chance_threshold = 0.1			# wants clearly better odds before committing to a new war (craven trait +0.2)
+	manpower_importance_modifier = 0.25		# research 06 §3.5 worked example
+	regiment_reinforcement_speed = 0.1		# armies refill faster while gathering (battlefield_medic general trait +0.05)
+}
+
+# 4 - Harassing / asymmetric: heavily outnumbered, avoids the main enemy army, raids and besieges the rear.
+cw_stance_harassing = {
+	game_data = {
+		category = country
+	}
+	aggressiveness_modifier = -0.3			# ai_isolationist -0.25 .. ai_cautious -0.15
+	carefulness_modifier = 0.3				# ai_cautious +0.3
+	defence_importance_modifier = 0.2		# ai_defensive +0.25
+	expected_warscore_modifier = -0.2		# accepts a worse peace instead of fighting to the end (craven trait -0.1)
+	manpower_importance_modifier = 0.2		# preserves men: no costly stand-up battles
+}
+
+# The native handicap "isolated military tradition" (SPEC section 9) is NOT a static modifier: it is the AUTO modifier
+# cw_isolated_tradition_auto in in_game/common/auto_modifiers/cw_auto_modifiers.txt (discipline -0.05, gated by game rule
+# cw_rule_native_penalty, ended by Pike and Shot or decision cw_reform_war_host). The reserved static twin cw_isolated_tradition
+# that used to sit here was never applied by any script and was deleted in the balance review (research 15 sections 6 / 7, P3);
+# a future scripted variant must define its own key rather than resurrect a second copy of the same values.

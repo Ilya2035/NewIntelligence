@@ -1,0 +1,108 @@
+﻿# =====================================================================================================
+# Concentrated Warfare - war stance values (module ai_stance). Scope: country.
+# Every balance knob of SPEC §7 is a named value here so it can be tuned in one place.
+#
+# relative_military_strength = ours / (ours + theirs)   (loc RELATIVE_MILITARY_STRENGTH_TRIGGER, research 04 §4.3):
+#   0.50 = parity, 0.55 ~ 1.2:1 in our favour, 0.57 ~ 1.3:1, 0.60 ~ 1.5:1, 0.40 ~ 1:1.5 against us, 0.33 ~ 1:2 against us.
+#   It measures POTENTIAL strength (maximum manpower + army + levy power, loc game_concept military strength; balance
+#   review 15 §3.1), so a destroyed field army does not move it for months - the fielded-strength term below (army_size,
+#   the men actually in the field) and the offensive war-score floor cover that case.
+#
+# Design of this file (review pass): only STATIC numbers and trivial formulas live here. The temperament branching
+# (bold / cautious ruler or commander) sits in cw_stance_triggers.txt as trigger_if chains, because no vanilla script
+# value evaluates a scripted trigger inside a limit (every limit under game/in_game/common/script_values uses built-ins
+# only: is_port, has_river, is_ai, is_ruler ...). Both operand forms the triggers use are verified:
+#   * static named value inside a trigger block: country_interactions/enforce_culture.txt:38-40
+#     "dependency_length_days = { target = scope:actor value >= MIN_DAYS_AS_SUBJECT_FOR_ENFORCEMENT }"
+#   * formula value inside a trigger block: events/DHE/flavor_MAL.txt:1317 "value > manpower_max_level"
+#     (a formula in script_values/building_caps.txt:461).
+#   * named value as the right-hand side of a plain comparison: generic_actions/conquistadors.txt:78
+#     "potential_army_size < conquistador_max_target_army_size" (static, script_values/conquistador_values.txt:1).
+#   * "multiply = <named value>", static or formula: events/culture/culture_maghrebi.txt:2147 (static),
+#     events/expeditions/treasure_fleet_events.txt:518 "multiply = chinese_expedition_positive_ai_weight" (formula).
+# Formula operands: "value = <named>" / "subtract = <named>" (auto_modifiers/country.txt:787, building_caps.txt:981).
+# Format: game/in_game/common/script_values/holy_war_values.txt, _script_values.info.
+# =====================================================================================================
+
+# --- stance ids: var:cw_stance on AI countries, var:cw_enemy_stance on human countries (read by the GUI plate,
+#     SPEC §7 / §11). The scripted effects set these numbers as literals (cw_set_stance_id_*), keep both in sync.
+cw_stance_id_unknown = 0
+cw_stance_id_offensive = 1
+cw_stance_id_defensive = 2
+cw_stance_id_waiting = 3
+cw_stance_id_harassing = 4
+
+# --- entry thresholds (SPEC §7.2, balance review 15 §3.3 / §7 P2): the ratio at which a stance is ENTERED, per temperament ---
+# Temperament = cw_stance_temperament_is_bold / _is_cautious (cw_stance_triggers.txt): bold ruler traits or an
+# offensive_planner commanding the largest army lower the offensive bar; cautious traits / a defensive_planner raise it
+# and make the AI give up the field earlier. A bold and a cautious signal at the same time cancel out (base values),
+# like the additive trait modifiers they mirror. The temperament bounds themselves are the SPEC §7.2 numbers; only the
+# base entry moved (0.55 -> 0.57) with the balance review.
+cw_stance_offensive_bold = 0.50			# bold: offensive already at parity
+cw_stance_offensive_base = 0.57			# >= ~1.3:1 -> seek the decisive battle (DESIGN §3.3); was 0.55 before the balance review
+cw_stance_offensive_cautious = 0.60		# cautious: offensive only from ~1.5:1
+cw_stance_harassing_base = 0.33			# <= 1:2 -> asymmetric warfare. Vanilla's own outnumbered mode starts at
+										#   HEAVILY_OUTNUMBERED_RATIO = 0.40 (0.45 in cw_ai_defines.txt)
+cw_stance_harassing_cautious = 0.40		# cautious: harassing already at 1:1.5 (a bold signal does not lower this bar)
+
+# --- dead bands (hysteresis, balance review 15 §3.2-3.3). A stance is only LEFT once the ratio crosses its entry bound
+#     by the band, so a war hovering around 0.57 (or 0.33) does not flip offensive <-> defensive at every lock expiry
+#     (each flip re-arms cw_stance_lock and cw_stance_changed, and the plate would read "Unknown" for ever).
+#     Maintainer's decision: offensive enters at >= 0.57 and is kept down to 0.53 (exit = entry - 0.04); harassing enters
+#     at <= 0.33 and is kept up to 0.38 (exit = entry + 0.05). The temperament bounds carry the same bands (bold 0.50 ->
+#     kept to 0.46, cautious 0.60 -> 0.56; cautious harassing 0.40 -> 0.45). These two bands replace the former single
+#     cw_stance_hysteresis_band = 0.03 (SPEC §16 "Stance thresholds" describes that older state). ---
+cw_stance_offensive_band = 0.04
+cw_stance_harassing_band = 0.05
+cw_stance_offensive_exit_bold = {
+	value = cw_stance_offensive_bold
+	subtract = cw_stance_offensive_band
+}
+cw_stance_offensive_exit_base = {
+	value = cw_stance_offensive_base
+	subtract = cw_stance_offensive_band
+}
+cw_stance_offensive_exit_cautious = {
+	value = cw_stance_offensive_cautious
+	subtract = cw_stance_offensive_band
+}
+cw_stance_harassing_exit_base = {
+	value = cw_stance_harassing_base
+	add = cw_stance_harassing_band
+}
+cw_stance_harassing_exit_cautious = {
+	value = cw_stance_harassing_cautious
+	add = cw_stance_harassing_band
+}
+
+# --- offensive war-score floor (balance review 15 §3.3): offensive additionally requires this country's war score in the
+#     war against the main enemy to be at least this (war_score_of_country), whatever the potential-strength ratio says.
+#     Vanilla's own "losing" checks use < 0 / < -10 (research 04). ---
+cw_stance_offensive_min_warscore = -10
+
+# --- fielded-strength term (balance review 15 §3.3): harassing also when this country's army_size ("men in the Army" -
+#     the regiments actually in the field, loc ARMY_SIZE_TRIGGER) is at most this fraction of the main enemy's; kept
+#     while it stays at or below the exit fraction (entry + the harassing band, the same dead-band rule as the ratio).
+#     The comparison itself is cw_fielded_reaches_harassing / cw_fielded_holds_harassing (cw_stance_triggers.txt). ---
+cw_stance_fielded_harassing_ratio = 0.5
+cw_stance_fielded_harassing_exit_ratio = {
+	value = cw_stance_fielded_harassing_ratio
+	add = cw_stance_harassing_band
+}
+
+# --- losing badly -> harassing regardless of the strength ratio (SPEC §7.3) ---
+cw_stance_losing_warscore = -25			# war score of this country in the war against the main enemy (vanilla "losing" checks: < 0 / < -10)
+cw_stance_losing_war_exhaustion = 8		# war_exhaustion >= 8 (vanilla flavour events use > 5)
+
+# --- waiting (SPEC §7.3, balance review 15 §3.3): attackers only (a defender at parity is "defensive" per DESIGN §3.3) and
+#     EITHER the war against the main enemy is younger than this OR the army is still below this share of its expected
+#     size (army_size_percentage = current / expected men, loc ARMY_SIZE_PERCENTAGE_TRIGGER; vanilla reads it with
+#     "< 0.8" in events/religion/orthodox_icon_events.txt:11) -> gather forces first ---
+cw_stance_young_war_years = 1
+cw_stance_waiting_army_size_percentage = 0.8
+
+# --- hysteresis in time: the stance lock and the modifier duration are 2 months (SPEC §3 knob cw_stance_lock_months,
+#     defined in cw_values.txt [hq_core]); the player's intelligence delay is the SEPARATE expiring variable
+#     cw_stance_changed, 1 month, armed only when the AI's stance actually changes (balance review 15 §3.3 "intel delay").
+#     cw_stance_effects.txt writes both as literal "months = 2" / "months = 1" because a named script value as a
+#     set_variable duration is never used in vanilla (research 04 §2.1); change them together with this note when tuning. ---

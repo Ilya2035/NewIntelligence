@@ -1,0 +1,38 @@
+﻿# Concentrated Warfare - war score hooks (module warscore_rules, SPEC section 8).
+#
+# Vanilla on_action keys are only EXTENDED here: on_actions = { ... } lists of same-named on_actions merge across
+# files (research 04 section 1.4, vanilla itself does it in religious_order_conquest.txt and the D009 DLC).
+# Never put trigger / effect / events under a vanilla key - all logic lives in our own cw_* on_actions.
+#
+# Scopes (comments verbatim from game/in_game/common/on_action/_hardcoded.txt:319-321 and 492-494):
+#   on_siege_won         - "When a location with fort changes controller after a siege."
+#   on_location_occupied - "When a location without fort changes controller after an occupation process"
+#   root = country (the one gaining control), scope:target = location, scope:character = leading general character
+
+on_siege_won = {
+	on_actions = { cw_on_capital_taken }
+}
+
+on_location_occupied = {
+	on_actions = { cw_on_capital_taken }
+}
+
+# Capital premium: when an enemy capital falls, the taker's war side receives a one-off bonus war score
+# (effect cw_grant_capital_bonus_warscore in scripted_effects/cw_warscore_effects.txt).
+# The trigger is the cheap gate the engine evaluates on every siege/occupation in the world:
+# game-rule flag first, then the real-country test, then the location test.
+# cw_is_real_country (scripted_triggers/cw_triggers.txt, module hq_core, same in_game stage) = is_real_country AND
+# NOT is_subject_type = conquistador: besides rebels / pirates / mercenaries it also excludes conquistador hosts, which
+# are "real" countries - a host that storms a native capital must not credit its own pseudo-war (SPEC section 15).
+# Steppe hordes (country_type = army as well) are real countries here and earn the bonus like anyone else (research 14 F1).
+cw_on_capital_taken = {
+	trigger = {
+		has_game_rule = cw_warscore_on
+		cw_is_real_country = yes
+		exists = scope:target
+		scope:target = { is_capital = yes }
+	}
+	effect = {
+		cw_grant_capital_bonus_warscore = yes
+	}
+}

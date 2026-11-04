@@ -1,0 +1,25 @@
+﻿###################################
+# Concentrated Warfare - goods demand templates for the headquarters regiments (module hq_core)
+#
+# Format copied from goods_demand/army_demands.txt (e.g. auxuliary_construction, lines 96-101):
+#   <key> = { <goods> = <amount per 1,000 men> ... category = regiment_construction|regiment_maintenance }
+# Categories exist in goods_demand_category/00_default.txt (regiment_maintenance, regiment_construction).
+#
+# Demands are quoted per 1,000 men (interfaces_l_english.yml:5822), so a 100-man HQ consumes 1/10 of
+# the amount below - effectively nothing. An EMPTY demand block (goods-less) is unverified
+# (research 01 section 4.1), hence the token "paper = 0.01" (staff paperwork).
+#
+# NOTE (deviation from SPEC section 2 naming): the goods-demand keys are suffixed "_demand" so they
+# cannot be confused with the price keys cw_hq_maintenance / cw_hq_colonial_maintenance in
+# in_game/common/prices/cw_prices.txt (the price key name is dictated by the engine: <unit>_maintenance).
+###################################
+
+cw_hq_construction_demand = {
+	paper = 0.01
+	category = regiment_construction
+}
+
+cw_hq_maintenance_demand = {
+	paper = 0.01
+	category = regiment_maintenance
+}

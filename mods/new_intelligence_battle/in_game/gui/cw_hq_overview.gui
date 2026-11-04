@@ -1,0 +1,493 @@
+# Concentrated Warfare - "Headquarters" overview window (scripted widget, registered in gui/scripted_widgets/cw_scripted_widgets.txt)
+#
+# Opened/closed through the client-side GetVariableSystem key cw_hq_overview_visible (toggled by the war-stance plate,
+# cleared by the close buttons). Content:
+#   * header CW_OVERVIEW_TITLE;
+#   * two counters "used / limit" for home and colonial headquarters, read from the country variables cached monthly by
+#     cw_cache_limits (module hq_core): cw_hq_count_v / cw_hq_limit_v / cw_colonial_hq_count_v / cw_colonial_hq_limit_v;
+#   * hint text CW_OVERVIEW_HINT and the automation toggle (scripted GUIs cw_sgui_toggle_auto_hq / cw_sgui_auto_hq_on);
+#   * the list of the player's armies (AccessPlayerUnits filtered with Unit.IsArmy): name, location, regiments, and markers:
+#       - a headquarters marker per HQ regiment, found by comparing the regiment type's localized name with
+#         Localize('cw_hq') / Localize('cw_hq_colonial') (string compare pattern verified: manage_subjects_lateralview.gui:23);
+#       - a warning marker while one of the "no headquarters" unit modifiers (cw_no_hq / _mild / _harsh) is on the army
+#         (one localized name for all three variants, compared markup-free with GetNameWithNoTooltip).
+#     Clicking a row selects the army and pans to it (vanilla unit_card_actions template). The "No armies" placeholder
+#     is gated by the country scripted GUI cw_sgui_player_has_army, because AccessPlayerUnits also contains navies.
+# Templates reused: bg_window_default_alt, window_header_alt, window_margin_alt, bg_main_inner_alt, bg_text_mask_container_brown,
+# bg_market_card + bg_cabinet_card_frame (vanilla unit list rows), divider_solid_gold, scrollbox, button_close_alt,
+# ui_direction_button_holder_right, button_checkbox, button_regular, stat_player_button (hover highlight).
+# Rules: no position on children of hbox/vbox; item = {} holds exactly one child; keep fontsize_min <= 14.
+
+@cw_ov_w = 760
+@cw_ov_h = 660
+@cw_ov_row_h = 44
+@cw_ov_icon = 24
+@cw_ov_name_w = 230
+@cw_ov_loc_w = 190
+@cw_ov_size_w = 70
+
+# Number style used by the counters
+template cw_ov_number_text {
+	autoresize = yes
+	align = left|nobaseline
+	using = Font_Type_Headers
+	using = Font_Size_Small
+	default_format = "#yellow_titles"
+}
+
+types CW_HQOverviewTypes
+{
+	# Counter card: icon + label + "count / limit". The instances fill the four value blocks; each value is shown by a
+	# widget visible while the cached variable IsSet and by a plain "0" otherwise (GetValue on an unset variable is unverified).
+	type cw_hq_counter = hbox {
+		layoutpolicy_horizontal = expanding
+		spacing = 8
+		margin = { 10 4 }
+		using = bg_text_mask_container_brown
+
+		block "cw_counter_tooltip" {}
+
+		icon = {
+			size = { 32 32 }
+			block "cw_counter_icon" {
+				texture = "gfx/interface/icons/unit_actions/commander.dds"
+			}
+		}
+
+		vbox = {
+			layoutpolicy_horizontal = expanding
+			spacing = 1
+
+			text_single = {
+				layoutpolicy_horizontal = expanding
+				size = { -1 20 }
+				autoresize = no
+				elide = right
+				align = left|nobaseline
+				fontsize = 13
+				default_format = "#overview_text"
+				block "cw_counter_label" {
+					text = "CW_HQ_SLOTS"
+				}
+			}
+
+			hbox = {
+				layoutpolicy_horizontal = expanding
+				spacing = 3
+				ignoreinvisible = yes
+
+				block "cw_counter_count" {}
+
+				text_single = {
+					using = cw_ov_number_text
+					raw_text = "/"
+				}
+
+				block "cw_counter_limit" {}
+
+				expand = {}
+			}
+		}
+	}
+
+	# One army row of the list (datamodel item context: Unit).
+	type cw_hq_army_row = widget {
+		layoutpolicy_horizontal = expanding
+		size = { -1 @cw_ov_row_h }
+		visible = "[Unit.IsArmy]"
+		using = bg_market_card
+		using = bg_cabinet_card_frame
+
+		# Click = select the army and pan to it (right click = the vanilla unit context menu); highlighted while selected.
+		stat_player_button = {
+			size = { 100% 100% }
+			down = "[IsUnitSelected(Unit.Self)]"
+			blockoverride "stat_button" {
+				using = unit_card_actions
+			}
+		}
+
+		hbox = {
+			size = { 100% 100% }
+			margin = { 8 0 }
+			spacing = 8
+
+			icon = {
+				size = { @cw_ov_icon @cw_ov_icon }
+				alwaystransparent = yes
+				texture = "gfx/interface/icons/alerts_icons/military.dds"
+			}
+
+			# Army name
+			text_single = {
+				using = Font_Type_Headers
+				using = Font_Size_Small
+				size = { @cw_ov_name_w -1 }
+				layoutpolicy_vertical = expanding
+				autoresize = no
+				elide = right
+				align = left|nobaseline
+				alwaystransparent = yes
+				default_format = "#yellow_titles"
+				text = "[Unit.GetNameWithNoTooltip]"
+			}
+
+			# Location (Location.GetName keeps the vanilla hover tooltip of the location)
+			widget = {
+				size = { @cw_ov_loc_w -1 }
+				layoutpolicy_vertical = expanding
+				datacontext = "[Unit.GetLocation]"
+
+				text_single = {
+					size = { 100% 100% }
+					autoresize = no
+					elide = right
+					align = left|nobaseline
+					default_format = "#subtle_name"
+					text = "[Location.GetName]"
+				}
+			}
+
+			# Regiment count
+			hbox = {
+				size = { @cw_ov_size_w -1 }
+				layoutpolicy_vertical = expanding
+				spacing = 4
+				alwaystransparent = yes
+
+				icon = {
+					size = { 20 20 }
+					alwaystransparent = yes
+					texture = "gfx/interface/icons/unit_actions/regiment.dds"
+				}
+
+				text_single = {
+					autoresize = yes
+					align = left|nobaseline
+					alwaystransparent = yes
+					text = "[Unit.GetNumSubUnits]"
+				}
+
+				expand = {}
+			}
+
+			# Headquarters markers: one icon per HQ regiment of the army (merged armies may show several), from ONE
+			# datamodel pass over the regiments: the item widget is visible only for HQ regiments (ignoreinvisible collapses
+			# the rest, flowcontainer + datamodel pattern multi_unit_window.gui:229-241), and only inside it the home /
+			# colonial icon is picked by a second compare - a plain regiment costs one Or of two compares and spawns no
+			# evaluated children; a late-game great power therefore gets one hidden widget per regiment, not two.
+			# Unit.GetSubUnits as a datamodel has no vanilla precedent (vanilla only calls GetDataModelSize(Unit.GetSubUnits),
+			# unit_overview.gui:2998); the SubUnit item context is inferred from SingleUnitWindow.GetSubUnits
+			# (single_unit_window.gui:4742).
+			# CW TODO verify (first in-game run): a wrong item context shows up in error.log as "No context supplied ...
+			# SUBUNIT.GetDefinition", a missing function at load in debug.log as "Could not find promote ..."; and the HQ
+			# unit types must keep a unique localized name (cw_hq / cw_hq_colonial) in every language.
+			flowcontainer = {
+				ignoreinvisible = yes
+				spacing = 0
+				datamodel = "[Unit.GetSubUnits]"
+				item = {
+					widget = {
+						size = { @cw_ov_icon @cw_ov_icon }
+						visible = "[Or(EqualTo_string(SubUnit.GetDefinition.GetNameWithNoTooltip, Localize('cw_hq')), EqualTo_string(SubUnit.GetDefinition.GetNameWithNoTooltip, Localize('cw_hq_colonial')))]"
+
+						icon = {
+							size = { 100% 100% }
+							visible = "[EqualTo_string(SubUnit.GetDefinition.GetNameWithNoTooltip, Localize('cw_hq'))]"
+							texture = "gfx/interface/icons/unit_actions/commander.dds"
+							tooltip = "CW_OVERVIEW_HAS_HQ_TT"
+						}
+
+						icon = {
+							size = { 100% 100% }
+							visible = "[EqualTo_string(SubUnit.GetDefinition.GetNameWithNoTooltip, Localize('cw_hq_colonial'))]"
+							texture = "gfx/interface/icons/flat_icons/overseas.dds"
+							tooltip = "CW_OVERVIEW_HAS_COLONIAL_HQ_TT"
+						}
+					}
+				}
+			}
+
+			# Penalty marker: the army currently carries one of the "no headquarters" unit modifiers (cw_no_hq / _mild /
+			# _harsh). The three variants share ONE localized name (STATIC_MODIFIER_NAME_cw_no_hq, see the loc comment), so a
+			# single compare covers them. GetName on a static modifier embeds the tooltip markup of the modifier object
+			# (that is why the markup-free StaticModifier.GetNameWithNoTooltip exists, cooltip.gui:949 StaticModifierTooltip,
+			# and why this file compares SubUnit.GetDefinition.GetNameWithNoTooltip above), so a GetName compare would
+			# never match and the marker would stay invisible on every penalised army.
+			# TimedModifierOwner.GetModifiers / TimedModifier.GetModifier: in_game/gui/shared/modifiers.gui:102-108.
+			# CW TODO verify (first in-game run): vanilla only calls .GetName on TimedModifier.GetModifier. If the markup-free
+			# variant does not resolve on this object, debug.log logs at load "Could not find promote for
+			# 'GetNameWithNoTooltip' in 'TimedModifier.GetModifier.GetNameWithNoTooltip'" (pdx_data_factory.cpp) and the
+			# whole visible property is dropped - the marker would then show on EVERY modifier; fall back to .GetName in
+			# that case. Otherwise check that the marker appears on an army carrying cw_no_hq.
+			flowcontainer = {
+				ignoreinvisible = yes
+				spacing = 0
+				datacontext = "[Unit.GetTimedModifierOwner]"
+				datamodel = "[TimedModifierOwner.GetModifiers]"
+				item = {
+					icon = {
+						size = { @cw_ov_icon @cw_ov_icon }
+						visible = "[EqualTo_string(TimedModifier.GetModifier.GetNameWithNoTooltip, Localize('STATIC_MODIFIER_NAME_cw_no_hq'))]"
+						texture = "gfx/interface/icons/icon_warning.dds"
+						tooltip = "CW_OVERVIEW_NO_HQ_TT"
+					}
+				}
+			}
+
+			expand = {}
+		}
+	}
+
+	type cw_hq_overview_window = window {
+		name = "cw_hq_overview_window"
+		layer = windows_layer
+		parentanchor = center
+		size = { @cw_ov_w @cw_ov_h }
+		movable = yes
+		allow_outside = yes
+
+		# Scripted widget: visible MUST be a data function. enabled mirrors it so a hidden window never swallows input.
+		visible = "[And(GetVariableSystem.Exists('cw_hq_overview_visible'), GetPlayer.IsValid)]"
+		enabled = "[And(GetVariableSystem.Exists('cw_hq_overview_visible'), GetPlayer.IsValid)]"
+
+		using = Animation_Show_Hide_UI
+		blockoverride "on_hide_ui" { alpha = 0 }
+		blockoverride "on_show_ui" { alpha = 1 }
+
+		widget = {
+			size = { 100% 100% }
+			using = bg_window_default_alt
+
+			# Close button in the top-right corner (workshop-verified pattern, CMP sakuya_kawashiro.gui:17-30)
+			widget = {
+				parentanchor = right
+				position = { -5 5 }
+				size = { 40 40 }
+
+				ui_direction_button_holder_right = {}
+
+				button_close_alt = {
+					size = { 40 40 }
+					blockoverride "close_on_action" {
+						on_action = "[GetVariableSystem.Clear('cw_hq_overview_visible')]"
+					}
+				}
+			}
+
+			vbox = {
+				using = window_margin_alt
+				spacing = 6
+
+				window_header_alt = {
+					blockoverride "window_header_alt_color_texture" {
+						using = color_military_texture
+					}
+					blockoverride "header_text" {
+						text = "CW_OVERVIEW_TITLE"
+					}
+				}
+
+				vbox = {
+					using = layoutpolicy_expanding
+					using = bg_main_inner_alt
+					margin = { 12 10 }
+					spacing = 8
+
+					# ---------------- counters ----------------
+					hbox = {
+						layoutpolicy_horizontal = expanding
+						spacing = 10
+
+						cw_hq_counter = {
+							blockoverride "cw_counter_tooltip" { tooltip = "CW_HQ_SLOTS_TT" }
+							blockoverride "cw_counter_icon" { texture = "gfx/interface/icons/unit_actions/commander.dds" }
+							blockoverride "cw_counter_label" { text = "CW_HQ_SLOTS" }
+							blockoverride "cw_counter_count" {
+								text_single = {
+									using = cw_ov_number_text
+									visible = "[GetPlayer.MakeScope.GetVariable('cw_hq_count_v').IsSet]"
+									text = "[GetPlayer.MakeScope.GetVariable('cw_hq_count_v').GetValue|0]"
+								}
+								text_single = {
+									using = cw_ov_number_text
+									visible = "[Not(GetPlayer.MakeScope.GetVariable('cw_hq_count_v').IsSet)]"
+									raw_text = "0"
+								}
+							}
+							blockoverride "cw_counter_limit" {
+								text_single = {
+									using = cw_ov_number_text
+									visible = "[GetPlayer.MakeScope.GetVariable('cw_hq_limit_v').IsSet]"
+									text = "[GetPlayer.MakeScope.GetVariable('cw_hq_limit_v').GetValue|0]"
+								}
+								text_single = {
+									using = cw_ov_number_text
+									visible = "[Not(GetPlayer.MakeScope.GetVariable('cw_hq_limit_v').IsSet)]"
+									raw_text = "0"
+								}
+							}
+						}
+
+						cw_hq_counter = {
+							blockoverride "cw_counter_tooltip" { tooltip = "CW_HQ_COLONIAL_SLOTS_TT" }
+							blockoverride "cw_counter_icon" { texture = "gfx/interface/icons/flat_icons/overseas.dds" }
+							blockoverride "cw_counter_label" { text = "CW_HQ_COLONIAL_SLOTS" }
+							blockoverride "cw_counter_count" {
+								text_single = {
+									using = cw_ov_number_text
+									visible = "[GetPlayer.MakeScope.GetVariable('cw_colonial_hq_count_v').IsSet]"
+									text = "[GetPlayer.MakeScope.GetVariable('cw_colonial_hq_count_v').GetValue|0]"
+								}
+								text_single = {
+									using = cw_ov_number_text
+									visible = "[Not(GetPlayer.MakeScope.GetVariable('cw_colonial_hq_count_v').IsSet)]"
+									raw_text = "0"
+								}
+							}
+							blockoverride "cw_counter_limit" {
+								text_single = {
+									using = cw_ov_number_text
+									visible = "[GetPlayer.MakeScope.GetVariable('cw_colonial_hq_limit_v').IsSet]"
+									text = "[GetPlayer.MakeScope.GetVariable('cw_colonial_hq_limit_v').GetValue|0]"
+								}
+								text_single = {
+									using = cw_ov_number_text
+									visible = "[Not(GetPlayer.MakeScope.GetVariable('cw_colonial_hq_limit_v').IsSet)]"
+									raw_text = "0"
+								}
+							}
+						}
+					}
+
+					# ---------------- hint ----------------
+					text_multi = {
+						layoutpolicy_horizontal = expanding
+						max_width = 700
+						autoresize = yes
+						align = left|nobaseline
+						default_format = "#overview_text"
+						text = "CW_OVERVIEW_HINT"
+					}
+
+					# ---------------- automation toggle ----------------
+					hbox = {
+						layoutpolicy_horizontal = expanding
+						spacing = 8
+						margin = { 10 4 }
+						using = bg_text_mask_container_brown
+
+						button_checkbox = {
+							size = { 22 22 }
+							down = "[GetScriptedGui('cw_sgui_auto_hq_on').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+							enabled = "[GetScriptedGui('cw_sgui_toggle_auto_hq').IsValid(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+							onclick = "[GetScriptedGui('cw_sgui_toggle_auto_hq').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+							tooltip = "CW_AUTO_HQ_TT"
+						}
+
+						text_single = {
+							layoutpolicy_horizontal = expanding
+							size = { -1 22 }
+							autoresize = no
+							elide = right
+							align = left|nobaseline
+							default_format = "#overview_text"
+							text = "[Select_CString(GetScriptedGui('cw_sgui_auto_hq_on').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End), Localize('CW_AUTO_HQ_ON'), Localize('CW_AUTO_HQ_OFF'))]"
+							tooltip = "CW_AUTO_HQ_TT"
+						}
+					}
+
+					divider_solid_gold = {}
+
+					# ---------------- army list ----------------
+					hbox = {
+						layoutpolicy_horizontal = expanding
+						margin = { 16 0 }
+						spacing = 8
+
+						widget = { size = { @cw_ov_icon 1 } }
+
+						text_single = {
+							size = { @cw_ov_name_w 20 }
+							autoresize = no
+							elide = right
+							align = left|nobaseline
+							default_format = "#subtle_name"
+							text = "CW_OVERVIEW_COL_ARMY"
+						}
+						text_single = {
+							size = { @cw_ov_loc_w 20 }
+							autoresize = no
+							elide = right
+							align = left|nobaseline
+							default_format = "#subtle_name"
+							text = "CW_OVERVIEW_COL_LOCATION"
+						}
+						text_single = {
+							size = { @cw_ov_size_w 20 }
+							autoresize = no
+							elide = right
+							align = left|nobaseline
+							default_format = "#subtle_name"
+							text = "CW_OVERVIEW_COL_SIZE"
+						}
+						text_single = {
+							autoresize = yes
+							align = left|nobaseline
+							default_format = "#subtle_name"
+							text = "CW_OVERVIEW_COL_HQ"
+						}
+
+						expand = {}
+					}
+
+					scrollbox = {
+						using = layoutpolicy_expanding
+
+						blockoverride "scrollbox_content" {
+							vbox = {
+								layoutpolicy_horizontal = expanding
+								ignoreinvisible = yes
+								spacing = 4
+								margin = { 6 6 }
+								max_update_rate = 4
+
+								datamodel = "[AccessPlayerUnits]"
+								item = {
+									cw_hq_army_row = {}
+								}
+							}
+						}
+
+						# "No armies" placeholder (the block sits in a text_single of the scrollbox type, main_menu_lists.gui:320-327).
+						# AccessPlayerUnits also lists navies (multi_unit_window.gui:438-443 filters it with Unit.IsArmy / IsNavy),
+						# so IsDataModelEmpty(AccessPlayerUnits) would hide the text for a fleet-only player whose rows are all
+						# collapsed by Unit.IsArmy; the country scripted GUI cw_sgui_player_has_army (any_army) decides instead.
+						# GetPlayer.MakeScope is safe here: the window root is hidden unless GetPlayer.IsValid.
+						blockoverride "scrollbox_empty" {
+							visible = "[Not(GetScriptedGui('cw_sgui_player_has_army').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End))]"
+							text = "CW_OVERVIEW_EMPTY"
+						}
+					}
+
+					# ---------------- footer ----------------
+					hbox = {
+						layoutpolicy_horizontal = expanding
+
+						expand = {}
+
+						button_regular = {
+							size = { 160 30 }
+							text = "CW_CLOSE"
+							onclick = "[GetVariableSystem.Clear('cw_hq_overview_visible')]"
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+cw_hq_overview_window = {
+	datacontext = "[GetPlayer]"
+}

@@ -1,0 +1,295 @@
+# Concentrated Warfare - enemy war-stance plate (scripted widget, registered in gui/scripted_widgets/cw_scripted_widgets.txt)
+#
+# A 26 px banner under the HUD alert band: parentanchor top|hcenter, y = 132 (alerts end at y = 130, the vanilla
+# "paused" banner starts at y = 160 - research 08 section 3). Visible only while the player is at war with a real
+# enemy (cw_sgui_player_at_war). It shows the war stance of the player's main enemy as icon + label:
+#   country variable cw_enemy_stance on the player (0 unknown, 1 offensive, 2 defensive, 3 waiting, 4 harassing),
+#   written monthly by cw_update_player_enemy_stance (module ai_stance), together with cw_enemy_stance_source (the enemy).
+# The five states are toggled by the scripted GUIs cw_sgui_stance_is_0..4 (cw_scripted_guis.txt), so the state logic
+# stays in script. The tooltip explains the stance and names the enemy; left click toggles the Headquarters overview
+# (GetVariableSystem key cw_hq_overview_visible, see cw_hq_overview.gui).
+#
+# Engine rules observed (research 07/08):
+#  * the root of a scripted widget MUST have a function-valued visible (visible = yes never shows it);
+#  * GetVariableSystem = client-side UI state (window open/closed); script variables = game state, read with
+#    GetPlayer.MakeScope.GetVariable('key');
+#  * no position on children of hbox/vbox; spacing/margin only on layout containers; anchors are left|right|hcenter x top|bottom|vcenter;
+#  * everything drawn above the highlight button is alwaystransparent so hover and clicks reach the button - including
+#    the enemy flag, which is therefore drawn as plain icons (coat of arms + frame) and NOT as country_flag_very_small:
+#    that type contains its own button (coat_of_arms.gui:64-106: action_tooltip OpenDiplomacy, ondoubleclick
+#    PanToCountry, country tooltip) and alwaystransparent is not inherited by it, so the 30x20 flag area would open
+#    the enemy instead of toggling the overview.
+# Layer: topbar (priority 1, same as the HUD; the alert band sits in the same layer, nothing overlaps y = 132..158).
+#
+# Structure: window (cheap root gate: valid player, no lobby) > body widget (war gate through the scripted GUI, which
+# needs GetPlayer.MakeScope) > background + highlight button + content. The scope-building test sits one level below
+# the root on purpose: And/And3 do not short-circuit, so a MakeScope on an invalid player inside the root visible would
+# run up to 4 times per second (max_update_rate) in the lobby / observer mode / while switching country, while the
+# children of a hidden widget are not evaluated at all.
+
+@cw_plate_h = 26			# plate height in px (fits between the alert band and the pause banner)
+@cw_plate_w = 360			# fallback width; the content hbox resizes the body widget to its own minimum size (see below)
+@cw_plate_icon = 20			# stance icon size (source textures are 128x128, scaled down)
+@cw_plate_flag_w = 30		# same footprint as country_flag_very_small, 30x20 (coat_of_arms.gui:211)
+@cw_plate_flag_h = 20
+
+types CW_WarStancePlateTypes
+{
+	# One stance state: icon + name. Each instance overrides the scripted gui that shows it, the icon and the label.
+	type cw_stance_state = hbox {
+		spacing = 5
+		alwaystransparent = yes
+
+		block "cw_state_visible" {
+			visible = "[GetScriptedGui('cw_sgui_stance_is_0').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+		}
+
+		icon = {
+			size = { @cw_plate_icon @cw_plate_icon }
+			alwaystransparent = yes
+
+			block "cw_state_icon" {
+				texture = "gfx/interface/icons/ai_dispositions/wary.dds"
+			}
+
+			glow = {
+				name = "drop_shadow"
+				glow_radius = 2
+				color = { 0.0 0.0 0.0 1.0 }
+				alpha = 0.3
+			}
+		}
+
+		text_single = {
+			autoresize = yes
+			align = left|nobaseline
+			alwaystransparent = yes
+			using = Font_Type_Headers
+			using = Font_Size_Small
+			default_format = "#color_white"
+
+			block "cw_state_text" {
+				text = "CW_STANCE_0"
+			}
+		}
+	}
+}
+
+window = {
+	name = "cw_war_stance_plate"
+	layer = topbar
+	parentanchor = top|hcenter
+	widgetanchor = top|hcenter
+	position = { 0 132 }
+	size = { @cw_plate_w @cw_plate_h }
+	allow_outside = yes
+	max_update_rate = 4			# like the top bar sections (hud_topbar.gui:178)
+	datacontext = "[GetPlayer]"
+
+	# Scripted widget: visible MUST be a data function. The root only tests what is always safe to evaluate: a valid
+	# player and no lobby (vanilla top bar guard, hud_topbar.gui:136); the war test lives on the body widget below.
+	# enabled mirrors the player test so a hidden root never swallows input (CMP pattern, research 08 section 2.4).
+	visible = "[And(GetPlayer.IsValid, Not(IsLobbyOpen))]"
+	enabled = "[GetPlayer.IsValid]"
+
+	# Follow the "hide UI" hotkey like every HUD part (in_game/gui/shared/animation.gui:125).
+	using = Animation_Show_Hide_UI
+	blockoverride "on_hide_ui" { alpha = 0 }
+	blockoverride "on_show_ui" { alpha = 1 }
+
+	# Body: everything visible. Shown only at war with a real enemy (cw_sgui_player_at_war: at_war AND
+	# cw_enemy_stance_source set, cw_scripted_guis.txt). Centred in the window; the content hbox shrinks/grows this
+	# widget to its own minimum size (set_parent_size_to_minimum on an hbox inside a plain anchored widget:
+	# main_menu_cooltip_types.gui:341-346, TooltipHotkeyHeader).
+	# CW TODO verify (first in-game run, observer mode and lobby included):
+	#   * error.log / debug.log stay free of lines for this file - the MakeScope below must not be evaluated while the
+	#     root is hidden (hud_topbar.gui keeps its Player.* chains under the same Not(IsLobbyOpen) guard);
+	#   * the body really hugs the content; if it keeps the fallback width, widen @cw_plate_w for Russian;
+	#   * at peace (body hidden) the empty 360x26 window leaves no dead strip over the map - it has no filter_mouse,
+	#     and vanilla needs filter_mouse = all to make the top bar block the map (hud_topbar.gui:133-143).
+	widget = {
+		name = "cw_war_stance_plate_body"
+		parentanchor = center
+		widgetanchor = center
+		size = { 100% 100% }
+		visible = "[GetScriptedGui('cw_sgui_player_at_war').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+
+		# Native pill background (brown text-mask container, backgrounds.gui:3852).
+		widget = {
+			size = { 100% 100% }
+			alwaystransparent = yes
+			using = bg_text_mask_container_brown
+		}
+
+		# Hover highlight, click and tooltip: the same subtle frame button the top bar stat pills use
+		# (stat_player_button, panels/left_panel/left_panel.gui:890). It is "down" while the overview is open.
+		stat_player_button = {
+			size = { 100% 100% }
+			down = "[GetVariableSystem.Exists('cw_hq_overview_visible')]"
+
+			blockoverride "stat_button" {
+				action_tooltip = {
+					click_type = left
+					click_mode = single
+					title = "CW_PLATE_OPEN"
+					on_action = "[GetVariableSystem.Toggle('cw_hq_overview_visible')]"
+				}
+
+				tooltipwidget = {
+					ContextualTooltipType = {
+						blockoverride "title_icon" {
+							icon = {
+								using = tooltip_title_icon_size
+								texture = "gfx/interface/icons/alerts_icons/military.dds"
+							}
+						}
+
+						blockoverride "title_text" {
+							text = "CW_PLATE_TT"
+						}
+
+						blockoverride "tooltip_content" {
+							# Explanation of the current stance - one block per state, same gates as the plate.
+							# CW_STANCE_0_TT must not embed the enemy name (the source variable may be unset while unknown);
+							# CW_STANCE_1..4_TT may embed [GetPlayer.MakeScope.GetVariable('cw_enemy_stance_source').GetCountry.GetName].
+							TooltipTextBlock = {
+								visible = "[GetScriptedGui('cw_sgui_stance_is_1').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+								blockoverride "text" { text = "CW_STANCE_1_TT" }
+							}
+							TooltipTextBlock = {
+								visible = "[GetScriptedGui('cw_sgui_stance_is_2').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+								blockoverride "text" { text = "CW_STANCE_2_TT" }
+							}
+							TooltipTextBlock = {
+								visible = "[GetScriptedGui('cw_sgui_stance_is_3').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+								blockoverride "text" { text = "CW_STANCE_3_TT" }
+							}
+							TooltipTextBlock = {
+								visible = "[GetScriptedGui('cw_sgui_stance_is_4').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+								blockoverride "text" { text = "CW_STANCE_4_TT" }
+							}
+							TooltipTextBlock = {
+								visible = "[GetScriptedGui('cw_sgui_stance_is_0').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+								blockoverride "text" { text = "CW_STANCE_0_TT" }
+							}
+
+							# Main enemy: flag + name, only once the script has identified one (cw_enemy_stance_source).
+							# GetVariable(...).GetCountry as datacontext: vanilla panels/situation/hussite_wars.gui:112.
+							# Inside the tooltip the real flag type is fine (it may keep its own country tooltip / click).
+							hbox = {
+								visible = "[GetPlayer.MakeScope.GetVariable('cw_enemy_stance_source').IsSet]"
+								datacontext = "[GetPlayer.MakeScope.GetVariable('cw_enemy_stance_source').GetCountry]"
+								layoutpolicy_horizontal = expanding
+								margin = { 10 0 }
+								spacing = 6
+
+								text_single = {
+									autoresize = yes
+									align = left|nobaseline
+									default_format = "#yellow_titles"
+									text = "CW_PLATE_ENEMY"
+								}
+
+								country_flag_very_small = {}
+
+								text_single = {
+									autoresize = yes
+									align = left|nobaseline
+									text = "[Country.GetName]"
+								}
+
+								expand = {}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		# Content. set_parent_size_to_minimum shrinks/grows the body widget to the visible content (vanilla uses it on
+		# tooltip and header-button boxes); with ignoreinvisible the hidden states take no space.
+		hbox = {
+			parentanchor = center
+			set_parent_size_to_minimum = yes
+			minimumsize = { 160 @cw_plate_h }
+			ignoreinvisible = yes
+			alwaystransparent = yes
+			margin = { 14 0 }
+			spacing = 8
+
+			# "Enemy:" prefix
+			text_single = {
+				autoresize = yes
+				align = left|nobaseline
+				alwaystransparent = yes
+				using = Font_Size_Small
+				default_format = "#yellow_titles"
+				text = "CW_PLATE_TITLE"
+			}
+
+			# Enemy flag (hidden until the script has found the main enemy). Plain icons instead of the flag type (see the
+			# header): the coat of arms exactly as the "flag" block of country_flag_very_small draws it
+			# (coat_of_arms.gui:214-220: GetCountryCoatOfArms + CoatOfArmsWrapper texture / frame / framesize, texture
+			# density 2, the "Brighter" cloth multiply of coat_of_arms.gui:128-132), at the 81 % centred footprint of the
+			# type's own button (coat_of_arms.gui:64-66), under the same frame_1.dds frame the country_flag type draws as
+			# background (coat_of_arms.gui:22-33). Everything alwaystransparent: no tooltip, no click, no double click.
+			widget = {
+				size = { @cw_plate_flag_w @cw_plate_flag_h }
+				alwaystransparent = yes
+				visible = "[GetPlayer.MakeScope.GetVariable('cw_enemy_stance_source').IsSet]"
+				datacontext = "[GetPlayer.MakeScope.GetVariable('cw_enemy_stance_source').GetCountry]"
+
+				icon = {
+					size = { 81% 81% }
+					parentanchor = center
+					alwaystransparent = yes
+					datacontext = "[GetCountryCoatOfArms(Country.Self)]"
+					texture = "[CoatOfArmsWrapper.GetTexture('(int32)72','(int32)48')]"
+					frame = "[CoatOfArmsWrapper.GetFrame('(int32)72','(int32)48')]"
+					framesize = "[CoatOfArmsWrapper.GetFrameSizeOrFallback('(int32)72','(int32)48','(float)0.5')]"
+					texture_density = 2
+
+					modify_texture = {
+						name = "Brighter"
+						texture = "gfx/interface/coat_of_arms/flag_texture.dds"
+						blend_mode = multiply
+					}
+				}
+
+				icon = {
+					size = { 100% 100% }
+					alwaystransparent = yes
+					texture = "gfx/interface/component_decoration/flag_frames/frame_1.dds"
+					texture_density = 2
+				}
+			}
+
+			# The five states (icons: gfx/interface/icons/military_stances/*.dds and ai_dispositions/wary.dds, all 128x128)
+			cw_stance_state = {		# 1 - Offensive: seeks the decisive battle
+				blockoverride "cw_state_visible" { visible = "[GetScriptedGui('cw_sgui_stance_is_1').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]" }
+				blockoverride "cw_state_icon" { texture = "gfx/interface/icons/military_stances/aggressive_military_stance.dds" }
+				blockoverride "cw_state_text" { text = "CW_STANCE_1" }
+			}
+			cw_stance_state = {		# 2 - Defensive: holds forts and home territory
+				blockoverride "cw_state_visible" { visible = "[GetScriptedGui('cw_sgui_stance_is_2').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]" }
+				blockoverride "cw_state_icon" { texture = "gfx/interface/icons/military_stances/defensive_military_stance.dds" }
+				blockoverride "cw_state_text" { text = "CW_STANCE_2" }
+			}
+			cw_stance_state = {		# 3 - Waiting: gathers forces and allies
+				blockoverride "cw_state_visible" { visible = "[GetScriptedGui('cw_sgui_stance_is_3').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]" }
+				blockoverride "cw_state_icon" { texture = "gfx/interface/icons/military_stances/passive_military_stance.dds" }
+				blockoverride "cw_state_text" { text = "CW_STANCE_3" }
+			}
+			cw_stance_state = {		# 4 - Harassing: avoids battle, raids and besieges the rear
+				blockoverride "cw_state_visible" { visible = "[GetScriptedGui('cw_sgui_stance_is_4').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]" }
+				blockoverride "cw_state_icon" { texture = "gfx/interface/icons/military_stances/siege_raider_military_stance.dds" }
+				blockoverride "cw_state_text" { text = "CW_STANCE_4" }
+			}
+			cw_stance_state = {		# 0 - Unknown: stance changed recently or the enemy is human
+				blockoverride "cw_state_visible" { visible = "[GetScriptedGui('cw_sgui_stance_is_0').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]" }
+				blockoverride "cw_state_icon" { texture = "gfx/interface/icons/ai_dispositions/wary.dds" }
+				blockoverride "cw_state_text" { text = "CW_STANCE_0" }
+			}
+		}
+	}
+}

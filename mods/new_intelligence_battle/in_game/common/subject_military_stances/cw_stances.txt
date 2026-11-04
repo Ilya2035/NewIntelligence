@@ -1,0 +1,68 @@
+﻿# =====================================================================================================
+# Concentrated Warfare - subject military stance "Escort" (module ai_stance), SPEC §7 / research 06 §5.4.
+# New key only; the vanilla defaults in 00_default.txt stay untouched (normal_military_stance keeps is_default).
+# Field set copied from supportive_military_stance (00_default.txt:61-88); overridden priorities are marked
+# with the supportive value in the comment. Priority 0-10; assignment score ~ priority x 100 - map distance
+# (NAI AI_MILITARY_ASSIGNMENT_PRIORITY_FACTOR / _PROXIMITY_FACTOR, research 06 §2.2).
+# Intent: the subject's army shadows the overlord's main army and its sieges instead of roaming the map.
+#
+# Localization (module localize, present): cw_escort_military_stance, cw_escort_military_stance_desc,
+# cw_escort_military_stance_desc_all (pattern military_l_english.yml:21-23).
+#
+# ICON - OPEN, owner module gui_windows (the mod ships no gfx folder yet). Vanilla binds every stance icon through a
+# texticon entry keyed by the stance name in main_menu/gui/shared/font_icons.gui:3309-3361 plus a .dds under
+# gfx/interface/icons/military_stances/; the subjects panel iterates ALL stances (manage_subjects_lateralview.gui:29
+# datamodel = "[GetMilitaryStances]") and requests GetMilitaryStanceIcon(SubjectMilitaryStance.Self) for each (:47),
+# so this row renders without an icon and most likely logs a missing-texture error whenever the panel opens.
+# Needed: main_menu/gfx/interface/icons/military_stances/cw_escort_military_stance.dds (a copy of
+# supportive_military_stance.dds as placeholder) and, if GetMilitaryStanceIcon resolves through font_icons.gui rather
+# than by path, a full-file copy of main_menu/gui/shared/font_icons.gui with one added entry (pattern :3349-3357):
+#   texticon = { icon = cw_escort_military_stance iconsize = {
+#     texture = "gfx/interface/icons/military_stances/cw_escort_military_stance.dds"
+#     size = { @font_icon_default_size @font_icon_default_size } offset = { 0 @font_icon_default_offset }
+#     fontsize = @font_icon_default_fontsize } }
+# TESTING.md row to add: open the subjects panel, confirm the Escort row shows an icon and error.log / gui.log carry
+# no 'military_stance' line. Until then the stance works but shows no icon.
+#
+# NOT assigned by script. Players pick it in the subjects view ("change_military_stance" generic action);
+# the overlord AI picks its subjects' stances in C++ (military_stance.txt:10 "ai_tick = never #handled in code").
+# CW TODO verify (research 06 E3) - the literal reference for set_country_military_stance; test both forms
+# in a debug effect and read error.log:
+#   every_subject_or_below = { set_country_military_stance = subject_military_stance:cw_escort_military_stance }
+#   every_subject_or_below = { set_country_military_stance = military_stance:cw_escort_military_stance }
+# and check a few months later whether the overlord's AI tick reverted it.
+# =====================================================================================================
+
+cw_escort_military_stance = {
+	chase_unit_own_location_priority = 10
+	chase_unit_overlord_location_priority = 10
+	chase_unit_subject_location_priority = 10
+	chase_unit_friendly_location_priority = 7
+	chase_unit_neutral_location_priority = 6
+	chase_unit_enemy_location_priority = 4			# supportive 6: do not wander into enemy land after stragglers
+	chase_navy_priority = 5
+	hunt_army_priority = 4							# supportive 6: no independent army hunting
+	hunt_navy_priority = 6
+	defend_own_territory_priority = 6				# supportive 0: still react when the homeland is invaded
+	defend_ally_territory_priority = 0
+	merge_units_priority = 10						# keep stacks together
+	hunt_pirates_priority = 0
+	repatriate_ships_priority = 10
+	repatriate_troops_priority = 10
+	support_armies_priority = 10					# supportive 5: escort the overlord's field army
+	support_sieges_priority = 10					# supportive 5: join and cover the overlord's sieges
+	maintain_military_levels_priority = 4
+	carpet_siege_own_locations_attacking_priority = 0
+	carpet_siege_own_locations_defending_priority = 0
+	carpet_siege_enemy_locations_priority = 1		# supportive 2: siege detachments are the overlord's job
+	blockade_port_priority = 2
+	blockade_strait_priority = 3
+	suppress_rebel_priority = 1
+	army_logistics_priority = 2
+	navy_logistics_priority = 2
+	friendly_naval_transport_priority = 3			# supportive 1: ferry the overlord's armies more willingly
+	# eagerness to enter a location holding enemy units (siege_raider uses 0.0 = never; vanilla engine
+	# analogues HUNT_ARMIES_CONFRONT_FACTOR 2.0 / CARPET_SIEGE_CONFRONT_FACTOR 0.5): join battles the
+	# main army is already fighting, do not start them alone
+	confront_factor = 0.5
+}

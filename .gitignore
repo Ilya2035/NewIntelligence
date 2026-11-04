@@ -1,0 +1,10 @@
+# OS / IDE
+Thumbs.db
+desktop.ini
+.DS_Store
+.idea/
+*.swp
+
+# Build / scratch
+tools/cache/
+*.log

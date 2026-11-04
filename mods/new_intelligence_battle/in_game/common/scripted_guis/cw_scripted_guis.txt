@@ -1,0 +1,361 @@
+﻿###################################
+# Concentrated Warfare - scripted GUIs (module gui_windows, SPEC section 11)
+#
+# Every entry has scope = country and is called from .gui files with the local player as root:
+#   [GetScriptedGui('cw_sgui_x').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]      -> is_shown
+#   [GetScriptedGui('cw_sgui_x').IsValid(GuiScope.SetRoot(GetPlayer.MakeScope).End)]      -> is_valid
+#   [GetScriptedGui('cw_sgui_x').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]      -> effect
+# (call pattern verified in vanilla economy_lateralview.gui:444/1710 and the workshop mods, research 08 section 2.7;
+#  field grammar: in_game/common/scripted_guis/scripted_guis.info - is_shown / is_valid are documented there even
+#  though the single vanilla .txt only uses effect + saved_scopes).
+#
+# Location-targeted entries (army window "Headquarters" tab, module gui_army_tab) receive the selected army's location:
+#   GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('loc', SingleUnitWindow.GetSelectedUnit.GetLocation.MakeScope).End
+# and resolve the army in script, because Unit.MakeScope / scope = unit are unverified in 1.4.7 (SPEC section 0,
+# research 07 section 6.1). saved_scopes lists the AddScope names exactly like vanilla economy_satisfaction_target.txt.
+#
+# Called by name but OWNED BY MODULE hq_core:
+#   scripted effects  cw_loc_add_hq / cw_loc_add_colonial_hq / cw_loc_remove_hq      (cw_effects.txt; root = country, scope:loc)
+#                     cw_cache_limits (refreshes the cached counters), cw_ai_assign_hqs (cw_effects.txt; country scope)
+#   scripted triggers cw_unit_has_hq (HQ of EITHER type), cw_unit_has_home_hq, cw_unit_has_colonial_hq,
+#                     cw_unit_has_colonial_hq_at_home (siege-only tier),
+#                     cw_unit_is_organized (the right HQ for the ground + >= cw_min_subunits_organized regiments),
+#                     cw_unit_is_exempt (unit scope), cw_has_free_hq_slot,
+#                     cw_has_free_colonial_hq_slot (country scope)                   (cw_triggers.txt)
+#   cached variables  cw_colonial_hq_limit_v                                        (cw_cache_limits, monthly)
+# The button validity below contains the limit= of the hq_core effects (plus the busy / at-sea guards of the AI
+# eligibility, see cw_sgui_loc_add_hq), so a button is never enabled when its effect would find no army to act on.
+#
+# Performance: is_shown / is_valid are re-evaluated on every GUI update of the calling widget (research 08 section 10.2.6),
+# so every trigger here is a handful of cheap checks; the only iteration is any_unit_in_location over ONE location
+# (vanilla form: events/DHE/flavor_hol.txt:1048 "any_unit_in_location = { count >= 1 owner = root }").
+###################################
+
+# ---------------------------------------------------------------------------------------------
+# Army window tab - status rows (which kind of HQ army stands at scope:loc, is the location overseas)
+# ---------------------------------------------------------------------------------------------
+
+# Shown when an own ORGANIZED army stands at scope:loc: a headquarters regiment of either type AND at least
+# cw_min_subunits_organized regiments (cw_unit_is_organized, hq_core) - the very test the script applies before
+# lifting the penalty (cw_update_unit_organization), so the "organised" status row never contradicts the modifier.
+# cw_unit_has_hq alone would call a lone HQ regiment "organised" while the script penalises it; a lone HQ is NOT
+# organized (SPEC section 15) and therefore falls into the CW_HQ_ABSENT_LOC row of the tab. A colonial HQ organizes an
+# army only on overseas ground (cw_unit_is_organized, tuning pass): at home such an army is in the siege-only tier
+# (cw_no_hq_siege_only) and is NOT an organised army for this row either.
+cw_sgui_loc_has_hq_army = {
+	scope = country
+	saved_scopes = { loc }
+	is_shown = {
+		exists = scope:loc
+		scope:loc = {
+			any_unit_in_location = {
+				owner = root
+				is_army = yes
+				cw_unit_is_organized = yes
+			}
+		}
+	}
+}
+
+# Shown when an own army whose ONLY headquarters is a colonial one stands at scope:loc on non-overseas ground and is
+# big enough to be organized (cw_unit_has_colonial_hq_at_home, hq_core): the siege-only tier (cw_no_hq_siege_only) -
+# the army fights at full strength but cannot besiege here. The army tab shows the location row CW_HQ_COLONIAL_AT_HOME
+# (3a') from it, withholds the red "no organised army here" row (3a) in that case and keeps the penalty row (2) of a
+# co-located HQ-less army visible.
+# (The former cw_sgui_loc_has_colonial_hq_army "organized colonial HQ army here" entry was never referenced by a .gui
+# file - the tab reads the colonial HQ per regiment plus cw_sgui_loc_is_overseas - and was removed in the tuning pass.)
+cw_sgui_loc_has_colonial_hq_at_home = {
+	scope = country
+	saved_scopes = { loc }
+	is_shown = {
+		exists = scope:loc
+		scope:loc = {
+			any_unit_in_location = {
+				owner = root
+				is_army = yes
+				cw_unit_has_colonial_hq_at_home = yes
+			}
+		}
+	}
+}
+
+# Shown when scope:loc is overseas for the player (another continent, game concept "overseas"):
+# the tab then advertises colonial HQs / the expeditionary bonus. would_be_overseas_for works on any location
+# (verified colonial_charter_goals/form_colonial_nation.txt:12).
+cw_sgui_loc_is_overseas = {
+	scope = country
+	saved_scopes = { loc }
+	is_shown = {
+		exists = scope:loc
+		scope:loc = {
+			would_be_overseas_for = root
+		}
+	}
+}
+
+# ---------------------------------------------------------------------------------------------
+# Army window tab - buttons (IsValid gates the button, Execute runs the hq_core helper)
+# ---------------------------------------------------------------------------------------------
+
+# "Place headquarters here": a free home slot (live engine count vs the script value cw_hq_limit, wrapped by
+# hq_core in cw_has_free_hq_slot) AND an own, non-exempt, idle, not yet organized army without a HOME HQ at scope:loc
+# (tuning pass: an army whose only HQ is colonial - the siege-only tier at home - may receive a home HQ; formerly
+# "without any HQ", which left such an army with no way to regain its sieges except disbanding first) - the limit= the
+# effect cw_loc_add_hq uses to pick its army, plus the guards of the AI / automation path (cw_eligible_for_any_hq):
+#   * is_land = yes on scope:loc: an army aboard transports reports the sea zone as its location, and add_subunit
+#     on a transported unit is unverified (location trigger: trigger_localization/location_triggers.txt:426,
+#     events/colonization/colonial_charter.txt:19);
+#   * in_combat = no / in_retreat = no on the army: no injecting an HQ mid-battle to drop the -20 % discipline /
+#     -25 % morale penalty at once (unit triggers: trigger_localization/unit_triggers.txt:122/128).
+# Cheap engine triggers first, the regiment scan (cw_unit_has_hq) last. Live values on purpose: the monthly cached
+# cw_hq_count_v could allow a second HQ within the same month.
+# The same guards sit in the limit= of cw_loc_add_hq / cw_loc_add_colonial_hq (is_land on scope:loc, in_combat = no /
+# in_retreat = no on the army; added in the final consistency pass) and in cw_eligible_for_any_hq (unit_location =
+# { is_land = yes }), so with two own armies on one location the effect can never pick the fighting one while the idle
+# one enabled the button.
+cw_sgui_loc_add_hq = {
+	scope = country
+	saved_scopes = { loc }
+	is_shown = {
+		always = yes
+	}
+	is_valid = {
+		exists = scope:loc
+		cw_has_free_hq_slot = yes
+		scope:loc = {
+			is_land = yes
+			any_unit_in_location = {
+				owner = root
+				is_army = yes
+				in_combat = no
+				in_retreat = no
+				cw_unit_is_exempt = no
+				cw_unit_has_home_hq = no		# tuning pass: no HOME HQ (an army whose only HQ is colonial may receive one) ...
+				cw_unit_is_organized = no		# ... unless it is already organized (a colonial HQ army overseas needs none)
+			}
+		}
+	}
+	# The helper changes the live HQ count and ends with cw_cache_limits itself (cw_effects.txt), so the "used/limit"
+	# pills of the army tab and the overview show the new value at once instead of the stale monthly one (e.g. 1/2 with
+	# the button already disabled by the live cw_has_free_hq_slot). No second cw_cache_limits here (final consistency
+	# pass): cw_colonial_hq_limit walks the owned-location list, and once per click is enough.
+	effect = {
+		root = {
+			cw_loc_add_hq = yes
+		}
+	}
+}
+
+# "Place colonial headquarters here".
+# is_shown: colonial HQs exist for this country at all (colonial limit > 0). The limit is a script value and cannot
+# be used as a trigger on its own, so the monthly cached copy cw_colonial_hq_limit_v (SPEC section 3) is read; a
+# stale month only delays the button's appearance. trigger_if/trigger_else is the vanilla-verified way to compare
+# a variable that may not exist yet (unit_abilities/promote_to_farari.txt:21-28).
+# is_valid: free colonial slot (hq_core cw_has_free_colonial_hq_slot), scope:loc overseas land, and an own non-exempt,
+# idle army without any HQ there (mirrors the limit= of cw_loc_add_colonial_hq plus the same is_land / in_combat /
+# in_retreat guards as cw_sgui_loc_add_hq above; the army condition is an addition to the SPEC section 11 wording so
+# the button is disabled when the effect could not pick an army).
+cw_sgui_loc_add_colonial_hq = {
+	scope = country
+	saved_scopes = { loc }
+	is_shown = {
+		trigger_if = {
+			limit = { has_variable = cw_colonial_hq_limit_v }
+			var:cw_colonial_hq_limit_v > 0
+		}
+		trigger_else = {
+			always = no
+		}
+	}
+	is_valid = {
+		exists = scope:loc
+		cw_has_free_colonial_hq_slot = yes
+		scope:loc = {
+			is_land = yes
+			would_be_overseas_for = root
+			any_unit_in_location = {
+				owner = root
+				is_army = yes
+				in_combat = no
+				in_retreat = no
+				cw_unit_is_exempt = no
+				cw_unit_has_hq = no
+			}
+		}
+	}
+	# The helper refreshes the cached counters itself (see cw_sgui_loc_add_hq).
+	effect = {
+		root = {
+			cw_loc_add_colonial_hq = yes
+		}
+	}
+}
+
+# "Disband headquarters": an own army with an HQ of either type at scope:loc (cw_loc_remove_hq strips the home
+# HQ first, then the colonial one - one type per click). On purpose cw_unit_has_hq, not cw_unit_is_organized:
+# a lone HQ regiment must stay disbandable.
+cw_sgui_loc_remove_hq = {
+	scope = country
+	saved_scopes = { loc }
+	is_shown = {
+		always = yes
+	}
+	is_valid = {
+		exists = scope:loc
+		scope:loc = {
+			any_unit_in_location = {
+				owner = root
+				is_army = yes
+				cw_unit_has_hq = yes
+			}
+		}
+	}
+	# The helper refreshes the cached counters itself (see cw_sgui_loc_add_hq).
+	effect = {
+		root = {
+			cw_loc_remove_hq = yes
+		}
+	}
+}
+
+# ---------------------------------------------------------------------------------------------
+# War-stance plate - which of the five states is shown (SPEC section 7: cw_enemy_stance 0..4 on the player)
+# 0 unknown, 1 offensive, 2 defensive, 3 waiting, 4 harassing (ids: cw_stance_values.txt, module ai_stance).
+# The variable is written monthly by cw_update_player_enemy_stance and removed at peace, so "unset" must read as
+# 0 / unknown. Comparison form var:x = N verified (research 04 section 2.1: var:phase = 2, var:gt_diligence >= 25),
+# guarded by has_variable through trigger_if / trigger_else (vanilla pattern, see above).
+# ---------------------------------------------------------------------------------------------
+
+cw_sgui_stance_is_0 = {
+	scope = country
+	is_shown = {
+		trigger_if = {
+			limit = { has_variable = cw_enemy_stance }
+			var:cw_enemy_stance = 0
+		}
+		trigger_else = {
+			always = yes
+		}
+	}
+}
+
+cw_sgui_stance_is_1 = {
+	scope = country
+	is_shown = {
+		trigger_if = {
+			limit = { has_variable = cw_enemy_stance }
+			var:cw_enemy_stance = 1
+		}
+		trigger_else = {
+			always = no
+		}
+	}
+}
+
+cw_sgui_stance_is_2 = {
+	scope = country
+	is_shown = {
+		trigger_if = {
+			limit = { has_variable = cw_enemy_stance }
+			var:cw_enemy_stance = 2
+		}
+		trigger_else = {
+			always = no
+		}
+	}
+}
+
+cw_sgui_stance_is_3 = {
+	scope = country
+	is_shown = {
+		trigger_if = {
+			limit = { has_variable = cw_enemy_stance }
+			var:cw_enemy_stance = 3
+		}
+		trigger_else = {
+			always = no
+		}
+	}
+}
+
+cw_sgui_stance_is_4 = {
+	scope = country
+	is_shown = {
+		trigger_if = {
+			limit = { has_variable = cw_enemy_stance }
+			var:cw_enemy_stance = 4
+		}
+		trigger_else = {
+			always = no
+		}
+	}
+}
+
+# ---------------------------------------------------------------------------------------------
+# Player state helpers
+# ---------------------------------------------------------------------------------------------
+
+# The plate is visible only while the player is at war (at_war, NOT is_at_war - SPEC section 0) AND the script has
+# identified a real main enemy: cw_enemy_stance_source is written on day 1 of a real war by cw_stance_on_war_declared /
+# cw_stance_on_join_war (cw_stance_on_actions.txt, module ai_stance) and removed by cw_clear_player_enemy_stance when
+# the player's only wars are civil / rebel wars (cw_stance_effects.txt, else branch of cw_update_player_enemy_stance).
+# Deviation from SPEC section 11 ("at_war = yes" alone): without the variable the plate would show "Unknown" with
+# CW_STANCE_0_TT claiming a recent stance change or a human enemy, which is false while no real enemy exists.
+cw_sgui_player_at_war = {
+	scope = country
+	is_shown = {
+		at_war = yes
+		has_variable = cw_enemy_stance_source
+	}
+}
+
+# The player owns at least one army (navies never count). Gates the "No armies" placeholder of the overview window:
+# its list datamodel AccessPlayerUnits also contains navies, so IsDataModelEmpty would hide the text for a country
+# that only owns fleets. Early-exit iteration; form any_army = { count > 0 } verified in events/religion/buddhism_events.txt:345.
+cw_sgui_player_has_army = {
+	scope = country
+	is_shown = {
+		any_army = {
+			count > 0
+		}
+	}
+}
+
+# Automation toggle ("entrust HQ placement to the general staff"): flips the flag variable cw_auto_hq that
+# cw_hq_automation_active (hq_core) reads to run cw_ai_assign_hqs for a human player. Same variable as the
+# decision cw_toggle_auto_hq (hq_core), so both switches stay in sync - including what switching ON does: like the
+# decision (cw_decisions.txt, option a) the counters are refreshed and the free slots are filled at once
+# (cw_cache_limits + cw_ai_assign_hqs), so the promise of cw_auto_hq_enable_tt / CW_AUTO_HQ_TT ("free slots are
+# filled immediately", "the same switch") holds for both entry points instead of waiting for the next pulse
+# (up to a month, or the 15-day war ticker). Switching OFF only drops the flag (existing HQs stay, as the decision).
+# Flag form set_variable = X verified (978 vanilla uses).
+cw_sgui_toggle_auto_hq = {
+	scope = country
+	is_shown = {
+		always = yes
+	}
+	is_valid = {
+		is_ai = no
+	}
+	effect = {
+		root = {
+			if = {
+				limit = { has_variable = cw_auto_hq }
+				remove_variable = cw_auto_hq
+			}
+			else = {
+				set_variable = cw_auto_hq
+				cw_cache_limits = yes
+				cw_ai_assign_hqs = yes
+			}
+		}
+	}
+}
+
+# Current state of the automation toggle (drives the checkbox and the ON/OFF label).
+cw_sgui_auto_hq_on = {
+	scope = country
+	is_shown = {
+		has_variable = cw_auto_hq
+	}
+}

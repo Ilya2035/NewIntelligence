@@ -1,0 +1,19 @@
+﻿###################################
+# Concentrated Warfare - scripted hint (module hq_core)
+#
+# Format: scriptable_hints/scripted_hints.txt (hint_has_army_without_leader, lines 528-533):
+#   <hint_key> = { priority = { <country triggers> }  sort_priority = <int> }
+# The priority trigger is evaluated PER FRAME for the player's country (____info.txt), so it must be
+# trivial: we test a country flag that cw_update_army_organization maintains, never an army scan.
+# Loc: hint_cw_army_without_hq (title), hint_cw_army_without_hq_hint_text (body; vanilla splits it into
+# _hint_text_1 / _2 pieces joined with \n\n).
+# Vanilla cannot add new alert types (alert_descriptions are C++ keys), so this hint plus the army
+# window tab are the "army without HQ" warning (research 11 section 6.2).
+###################################
+
+hint_cw_army_without_hq = {
+	priority = {
+		has_variable = cw_has_army_without_hq
+	}
+	sort_priority = 200 # corresponds to alert severity (vanilla comment)
+}
