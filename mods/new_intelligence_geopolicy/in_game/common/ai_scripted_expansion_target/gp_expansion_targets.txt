@@ -75,16 +75,21 @@ gp_target_contain_threat = {
 	}
 }
 
-# 3. Expel the intruder: foreign or conquering powers holding land in our home region.
+# 3. Expel the intruder: foreign or conquering powers holding land in our home region - only those weaker than we
+#    are, and only in an active posture (second test: at game start almost every European country has an intruder,
+#    an open list would drive the AI back into constant wars).
 gp_target_expel_intruder = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
 		exists = capital
-		months_since_war >= 12
+		months_since_war >= 24
 		NOT = { has_variable = gp_role_status_quo }
 		NOT = { has_variable = gp_role_besieged }
-		NOT = { gp_is_calm_posture = yes }
+		OR = {
+			has_variable = gp_posture_expansion
+			has_variable = gp_posture_opportunism
+		}
 	}
 	candidate_list = {
 		capital.region = {
@@ -92,13 +97,17 @@ gp_target_expel_intruder = {
 				limit = {
 					gp_is_intruder = yes
 					NOT = { has_truce_with = root }
+					relative_strength = {
+						target = root
+						value < 0.5		# weaker than we are (share)
+					}
 				}
 				add_to_list = source
 			}
 		}
 	}
 	score = {
-		add = 26
+		add = 20
 	}
 	sort_value = {
 		add = 500

@@ -585,7 +585,8 @@ gp_terrain_location = {
 
 # A block of "GP_REPORT ..." lines in debug.log per marquee country (gp_is_debug_country) at game start and every year.
 # debug_log loc cannot see saved scopes (first test), so the country is named by a literal tag (switch on tag, verified)
-# and values are printed as literal buckets. One "loc check" line probes [ROOT...].
+# and values are printed as literal buckets. [ROOT...] does not resolve in debug_log either ("Promote ROOT returned nullptr",
+# second test) - no localized data in this report.
 # GP TODO remove the call in gp_yearly_update before a public release.
 gp_debug_report = {
 	if = {
@@ -649,6 +650,5 @@ gp_debug_report = {
 		if = { limit = { has_variable = gp_posture_peace } debug_log = "GP_REPORT    posture peace" }
 		if = { limit = { has_variable = gp_posture_isolation } debug_log = "GP_REPORT    posture isolation" }
 		if = { limit = { is_ai = no } debug_log = "GP_REPORT    player country" }
-		debug_log = "GP_REPORT    loc check: root [ROOT.GetCountry.GetName], threat [ROOT.GetCountry.MakeScope.GetVariable('gp_threat').GetCountry.GetName], share [ROOT.GetCountry.MakeScope.GetVariable('gp_region_share').GetValue|2]"
 	}
 }
