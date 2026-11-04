@@ -4,13 +4,241 @@
 # Format: ai_scripted_expansion_score/readme.txt. attacker_potential: root = attacker; target_trigger: root = target,
 # scope:attacker = attacker; score / multiplier: scope:attacker, scope:target.
 # This file carries ALL of the mod's influence on whom the AI wants to fight: there are no country modifiers
-# (author's rule 2026-11-04). Roles (var:gp_role_*) and temperaments (government / capital / faith) act here only.
+# (author's rule 2026-11-04). Postures (var:gp_posture_*), roles (var:gp_role_*) and temperaments act here only.
 # Convention (as vanilla gag_guelphs: multiplier = { add = -0.75 } "much less likely"): the multiplier is read as
 # (1 + value) times the final score, so -0.4 = x0.6 and +0.3 = x1.3. GP TODO verify in the AI war-planning tooltip.
-# A target is picked only when its final score reaches EXPANSION_TARGET_SCORE_NEEDED_TO_PICK = 20, so lowering the
-# multiplier of every target is how a calm role "waits between wars" without any modifier.
+# A target is picked only when its final score reaches EXPANSION_TARGET_SCORE_NEEDED_TO_PICK (raised 20 -> 25 in
+# gp_defines.txt), so lowering the multiplier of every target is how a calm posture "waits" without any modifier.
 # Strength values are relative_strength shares 0..1 (0.71 = 2.5x). Nothing uses never_attack.
 ###################################
+
+# ================================================================================================
+# Postures (chosen yearly in gp_choose_posture; one per AI country)
+# ================================================================================================
+
+# Expansion: a little more eager for targets inside the home region and next door.
+gp_score_posture_expansion = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_expansion
+		exists = capital
+	}
+	target_trigger = {
+		OR = {
+			is_neighbor_of = scope:attacker
+			any_owned_location = { region = scope:attacker.capital.region }
+		}
+	}
+	multiplier = {
+		add = 0.15
+	}
+}
+
+# Preparation: everything is aimed at the chosen target; the rest of the world can wait.
+gp_score_posture_preparation_target = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_preparation
+		has_variable = gp_war_target
+	}
+	target_trigger = {
+		this ?= scope:attacker.var:gp_war_target
+	}
+	score = {
+		add = 12
+	}
+	multiplier = {
+		add = 0.6
+	}
+}
+
+gp_score_posture_preparation_others = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_preparation
+	}
+	target_trigger = {
+		NOT = { this ?= scope:attacker.var:gp_war_target }
+		NOT = { gp_is_tiny_target_of_attacker = yes }
+	}
+	multiplier = {
+		add = -0.6
+	}
+}
+
+# Opportunism: strikes neighbours that are busy in another war or have a regency; everyone else is left alone.
+gp_score_posture_opportunism = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_opportunism
+	}
+	target_trigger = {
+		always = yes
+	}
+	multiplier = {
+		add = -0.6
+		if = {
+			limit = {
+				scope:target = {
+					OR = {
+						at_war = yes
+						has_regent = yes
+					}
+				}
+			}
+			add = 1.2
+		}
+	}
+}
+
+# Consolidation: holds and digests; only easy prey stays interesting.
+gp_score_posture_consolidation = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_consolidation
+	}
+	target_trigger = {
+		NOT = { gp_is_tiny_target_of_attacker = yes }
+		NOT = { this ?= scope:attacker.var:gp_threat }
+	}
+	multiplier = {
+		add = -0.6
+	}
+}
+
+# Defense: a much stronger enemy at the border - fight only it.
+gp_score_posture_defense = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_defense
+	}
+	target_trigger = {
+		NOT = { this ?= scope:attacker.var:gp_threat }
+	}
+	multiplier = {
+		add = -0.8
+	}
+}
+
+# Common front: the threat is the enemy, everything else waits.
+gp_score_posture_common_front = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_common_front
+	}
+	target_trigger = {
+		NOT = { this ?= scope:attacker.var:gp_threat }
+	}
+	multiplier = {
+		add = -0.7
+	}
+}
+
+# Recovery: after a lost war - no new wars.
+gp_score_posture_recovery = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_recovery
+	}
+	target_trigger = {
+		always = yes
+	}
+	multiplier = {
+		add = -0.9
+	}
+}
+
+# Peace: builds and trades; even easy prey is left alone (author: "if peaceful - then no").
+gp_score_posture_peace = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_peace
+	}
+	target_trigger = {
+		always = yes
+	}
+	multiplier = {
+		add = -0.75
+	}
+}
+
+# Isolation: the world beyond the home region does not exist; inside it, little appetite.
+gp_score_posture_isolation = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_isolation
+		exists = capital
+	}
+	target_trigger = {
+		always = yes
+	}
+	multiplier = {
+		add = -0.5
+		if = {
+			limit = {
+				scope:target = {
+					exists = capital
+					NOT = { capital.region = scope:attacker.capital.region }
+				}
+			}
+			add = -0.45
+		}
+	}
+}
+
+# ================================================================================================
+# Light expansion and the early game
+# ================================================================================================
+
+# Easy prey: a neighbour we dwarf (natives, petty lordships) is fair game in any non-calm posture - it costs little
+# and alarms nobody much (author: "when it feels total superiority and no general outrage").
+gp_score_light_expansion = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		NOT = { gp_is_calm_posture = yes }
+	}
+	target_trigger = {
+		is_neighbor_of = scope:attacker
+		gp_is_tiny_target_of_attacker = yes
+	}
+	score = {
+		add = 5
+	}
+	multiplier = {
+		add = 0.3
+	}
+}
+
+# First twenty years: countries mind their own region (except hegemons, empires and steppe hordes).
+gp_score_early_restraint = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		gp_is_early_game = yes
+		exists = capital
+		NOT = { has_variable = gp_role_hegemon }
+		NOT = { has_variable = gp_role_empire }
+		NOT = { gp_is_steppe = yes }
+	}
+	target_trigger = {
+		NOT = { any_owned_location = { region = scope:attacker.capital.region } }
+		NOT = { gp_is_tiny_target_of_attacker = yes }
+	}
+	multiplier = {
+		add = -0.5
+	}
+}
 
 # ================================================================================================
 # Zones and neighbourhood
@@ -48,8 +276,8 @@ gp_score_distance_discipline = {
 # Regional threat, common front, intruders
 # ================================================================================================
 
-# Common front: the countries that name the same regional threat as we do (and share our faith group) are not
-# targets while that threat stands - "we are enemies, but for now it drives us together".
+# Common front: the countries that stand with us against our regional threat (same faith; same threat or already at
+# war with it) are not targets while that threat stands - "we are enemies, but for now it drives us together".
 gp_score_common_front = {
 	attacker_potential = {
 		is_ai = yes
@@ -57,46 +285,48 @@ gp_score_common_front = {
 		has_variable = gp_threat
 	}
 	target_trigger = {
-		gp_shares_threat_with = { COUNTRY = scope:attacker }
-		religion.group = scope:attacker.religion.group
+		gp_is_front_partner_of = { COUNTRY = scope:attacker }
 	}
 	multiplier = {
 		add = -0.6
 	}
 }
 
-# Containment: our regional threat is a preferred target as long as it is at most 2.5x as strong (share 0.71);
-# the engine's win-chance check still applies.
+# Containment: our regional threat is a preferred target only while it presses on the region (conquering, or a
+# foreign power holding land in it) and is at most 2.5x as strong (share 0.71); static big neighbours are not
+# dog-piled (author, 2026-11-04: "majors get drowned"). The engine's win-chance check still applies.
 gp_score_contain_threat = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
 		has_variable = gp_threat
 		var:gp_threat_share <= 0.71
+		gp_threat_is_pressing = yes
 	}
 	target_trigger = {
 		this ?= scope:attacker.var:gp_threat
 	}
 	score = {
-		add = 15
+		add = 12
 	}
 	multiplier = {
 		add = 0.3
 	}
 }
 
-# Expel the intruder: a power from another sub-continent / faith holding land in our home region.
+# Expel the intruder: a foreign or conquering power holding land in our home region.
 gp_score_expel_intruder = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
 		exists = capital
+		NOT = { gp_is_calm_posture = yes }
 	}
 	target_trigger = {
 		gp_is_intruder_of = { COUNTRY = scope:attacker }
 	}
 	score = {
-		add = 10
+		add = 8
 	}
 	multiplier = {
 		add = 0.25
@@ -123,10 +353,10 @@ gp_score_heathen_threat_restraint = {
 }
 
 # ================================================================================================
-# Roles (var:gp_role_*, set yearly by gp_update_role)
+# Roles (var:gp_role_*, set yearly by gp_update_role) - small, the postures carry the behaviour
 # ================================================================================================
 
-# Consolidator: wants the land of its own region and its neighbours - more eager there.
+# Consolidator: wants the land of its own region and its neighbours.
 gp_score_role_consolidator = {
 	attacker_potential = {
 		is_ai = yes
@@ -141,26 +371,6 @@ gp_score_role_consolidator = {
 		}
 	}
 	multiplier = {
-		add = 0.25
-		if = {
-			limit = { gp_is_strong_mode = yes }
-			add = 0.15
-		}
-	}
-}
-
-# Regional power: keeps expanding inside its region, a little more eagerly than vanilla.
-gp_score_role_regional = {
-	attacker_potential = {
-		is_ai = yes
-		gp_is_active = yes
-		has_variable = gp_role_regional
-		exists = capital
-	}
-	target_trigger = {
-		any_owned_location = { region = scope:attacker.capital.region }
-	}
-	multiplier = {
 		add = 0.1
 		if = {
 			limit = { gp_is_strong_mode = yes }
@@ -169,8 +379,25 @@ gp_score_role_regional = {
 	}
 }
 
-# Hegemon: keeps the peace at home - after a war it waits (3 years) before the next one, and it prefers to dominate
-# the small co-religionist neighbours of its region (subjects, influence) rather than to eat them.
+# Regional power: only in the "strong" game rule.
+gp_score_role_regional = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		gp_is_strong_mode = yes
+		has_variable = gp_role_regional
+		exists = capital
+	}
+	target_trigger = {
+		any_owned_location = { region = scope:attacker.capital.region }
+	}
+	multiplier = {
+		add = 0.15
+	}
+}
+
+# Hegemon: after a war it waits (3 years) before the next one, and it prefers to dominate the small co-religionist
+# neighbours of its region (subjects, influence) rather than to eat them.
 gp_score_role_hegemon_pause = {
 	attacker_potential = {
 		is_ai = yes
@@ -258,18 +485,19 @@ gp_score_besieged = {
 # Civilizational temperaments (read on the fly)
 # ================================================================================================
 
-# The horde wars, raids and takes tribute.
+# The horde wars, raids and takes tribute (tribute wars: gp_target_horde_tribute).
 gp_score_temper_steppe = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
 		gp_is_steppe = yes
+		NOT = { gp_is_calm_posture = yes }
 	}
 	target_trigger = {
 		is_neighbor_of = scope:attacker
 	}
 	multiplier = {
-		add = 0.25
+		add = 0.2
 	}
 }
 

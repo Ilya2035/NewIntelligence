@@ -25,6 +25,9 @@ NAI = {
 	AI_UNINTEGRATED_LAND_EXPANSION_PENALTY = 2.5				# l.1388  2
 	SAFE_AMOUNT_OF_ANTAGONISM = 25								# l.1391  30
 	POTENTIAL_COALITION_MAX_SAFE_RELATIVE_STRENGTH = 0.65		# l.1213  0.75
+	# --- calmer overall: a war target must be clearly worth it (author, first long test: "too much activity") ---
+	EXPANSION_TARGET_SCORE_NEEDED_TO_PICK = 25				# l.1329  20
+	EXPANSION_TARGET_SCORE_NEEDED_TO_KEEP = 18				# l.1328  15
 }
 
 NDiplomacy = {

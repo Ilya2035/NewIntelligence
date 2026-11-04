@@ -1,11 +1,11 @@
 ﻿###################################
 # New Intelligence: Geopolicy - scripted triggers (prefix gp_)
 #
-# No country modifiers anywhere (author's rule, 2026-11-04: no buffs, only behaviour): roles live in plain country
-# variables (gp_role_*), temperaments are read on the fly from government / capital / faith.
+# No country modifiers anywhere (author's rule, 2026-11-04: no buffs, only behaviour): roles and postures live in
+# plain country variables (gp_role_*, gp_posture_*), temperaments and the ruler are read on the fly.
 # Strength comparisons: relative_strength is a SHARE 0..1 = our strength / (our + their), not a ratio
 # (vanilla script_values comment "relative_strength(root) #this is 0..1"). Ratio R -> share R / (1 + R):
-# 1.5x = 0.6, 2x = 0.67, 2.5x = 0.71, 3x = 0.75, 0.7x = 0.41, 0.35x = 0.26.
+# 1.5x = 0.6, 2x = 0.67, 2.5x = 0.71, 3x = 0.75, 1x = 0.5, 0.8x = 0.45, 0.7x = 0.41, 0.35x = 0.26, 0.18x = 0.15.
 ###################################
 
 # Real countries only: no rebels, pirates, mercenary hosts, conquistador hosts, landless tags.
@@ -15,13 +15,18 @@ gp_is_real_country = {
 	num_locations > 0
 }
 
-# Game rule "Geopolicy AI": off disables roles, stages, threat reactions and scripted war scoring (defines stay).
+# Game rule "Geopolicy AI": off disables roles, postures, threat reactions and scripted war scoring (defines stay).
 gp_is_active = {
 	NOT = { has_game_rule = gp_mode_off }
 }
 
 gp_is_strong_mode = {
 	has_game_rule = gp_mode_strong
+}
+
+# First twenty years of the campaign: countries mind their own region (author, 2026-11-04).
+gp_is_early_game = {
+	years_since_game_start < 20
 }
 
 # ---- civilizational temperaments (read on the fly, no modifier) ----------------------------------
@@ -65,34 +70,151 @@ gp_is_near_east_muslim = {
 	}
 }
 
+# Homelands where staying out of the world is natural: the Chinese, Japanese and Korean states and the Pacific
+# islands (author: "Hawaii could be isolationist too").
+gp_isolation_home = {
+	exists = capital
+	OR = {
+		gp_is_sinic = yes
+		gp_is_japanese = yes
+		gp_is_korean = yes
+		capital.region = region:polynesia_region
+		capital.region = region:micronesia_region
+		capital.region = region:melanesia_region
+		capital.region = region:new_zealand_region
+	}
+}
+
+# Isolation holds only while nothing forces the country out of it: no regional threat, no foreign power in the home
+# region, no conquering ruler. When this turns false the posture is re-chosen at once (gp_update_posture).
+gp_isolation_possible = {
+	gp_isolation_home = yes
+	NOT = { has_variable = gp_threat }
+	NOT = { has_variable = gp_has_intruder }
+	NOT = { ruler ?= { has_trait = conqueror } }
+	NOT = { ruler ?= { mil >= 80 } }
+}
+
+# ---- the ruler (vanilla traits and skills, read only: no bonus is ever granted) --------------------
+
+gp_ruler_warlike = {
+	ruler ?= {
+		OR = {
+			has_trait = conqueror
+			has_trait = expansionist
+			has_trait = bold_fighter
+			has_trait = cruel
+			has_trait = malevolent
+			has_trait = zealot
+			has_trait = tactical_genius
+			mil >= 70
+		}
+	}
+}
+
+gp_ruler_cautious = {
+	ruler ?= {
+		OR = {
+			has_trait = careful
+			has_trait = craven
+			has_trait = calm
+			has_trait = kind_hearted
+			has_trait = benevolent
+		}
+	}
+}
+
+gp_ruler_diplomat = {
+	ruler ?= {
+		OR = {
+			has_trait = charismatic_negotiator
+			has_trait = well_connected
+			has_trait = intricate_web_weaver
+			has_trait = silver_tongue
+			has_trait = fierce_negotiator
+			dip >= 70
+		}
+	}
+}
+
+gp_ruler_builder = {
+	ruler ?= {
+		OR = {
+			has_trait = lawgiver
+			has_trait = midas_touched
+			has_trait = entrepreneur
+			has_trait = industrious
+			has_trait = scholar
+			has_trait = architectural_visionary
+			adm >= 70
+		}
+	}
+}
+
+gp_ruler_greedy = {
+	ruler ?= { has_trait = greedy }
+}
+
+# Rulers who pick their course badly: bigger random swing in the posture choice ("sometimes mistaken").
+gp_ruler_erratic = {
+	ruler ?= {
+		OR = {
+			has_trait = drunkard
+			has_trait = naive
+			has_trait = babbling_buffoon
+		}
+	}
+}
+
 # ---- threat and intruders ----------------------------------------------------------------------
 
 # this = candidate country, scope:gp_c = the country looking for its regional threat (saved in gp_yearly_update).
-# The candidate must be at least 1.5x as strong (share >= gp_threat_share_min = 0.6).
+# Two ways to become a threat: be at least 1.5x as strong (share 0.6) and border us / hold land in our region / be seen
+# as a threat by the engine; or be EXPANDING (gp_is_expanding, momentum of conquest) and at least as strong as we are.
+# The second branch makes neighbours of a fast conqueror close ranks even when it is not a giant.
 gp_is_threat_candidate = {
 	NOT = { this = scope:gp_c }
 	gp_is_real_country = yes
 	NOT = { is_subject_or_below_of = scope:gp_c }
 	NOT = { scope:gp_c = { is_subject_or_below_of = prev } }
 	NOT = { in_union_with = scope:gp_c }
-	relative_strength = {
-		target = scope:gp_c
-		value >= gp_threat_share_min
-	}
 	OR = {
-		is_threat_to = scope:gp_c
-		is_neighbor_of = scope:gp_c
-		any_owned_location = {
-			count >= 5
-			region = scope:gp_c.capital.region
+		AND = {
+			relative_strength = {
+				target = scope:gp_c
+				value >= gp_threat_share_min
+			}
+			OR = {
+				is_threat_to = scope:gp_c
+				is_neighbor_of = scope:gp_c
+				any_owned_location = {
+					count >= 5
+					region = scope:gp_c.capital.region
+				}
+			}
+		}
+		AND = {
+			has_variable = gp_is_expanding
+			relative_strength = {
+				target = scope:gp_c
+				value >= 0.5
+			}
+			OR = {
+				is_neighbor_of = scope:gp_c
+				any_owned_location = {
+					count >= 3
+					region = scope:gp_c.capital.region
+				}
+			}
 		}
 	}
 }
 
 # this = candidate, $COUNTRY$ = the country whose home region is intruded upon.
-# An intruder keeps >= 3 locations in $COUNTRY$'s home region while its own capital sits in another region AND
-# (another sub-continent OR another religion group). Overlord / subject / union partner never count.
-# religion.group = X.religion.group: vanilla form ("NOT = { religion.group = root.religion.group }").
+# An intruder keeps >= 3 locations in $COUNTRY$'s home region while its own capital sits in another REGION, and it is
+# foreign (another sub-continent or another religion group) OR it is conquering right now (gp_is_expanding): England
+# taking Normandy is an intruder for the French region while the war of conquest lasts. Overlord / subject / union
+# partner never count. religion.group = X.religion.group: vanilla form.
 gp_is_intruder_of = {
 	NOT = { this = $COUNTRY$ }
 	gp_is_real_country = yes
@@ -105,6 +227,7 @@ gp_is_intruder_of = {
 	OR = {
 		NOT = { capital.sub_continent = $COUNTRY$.capital.sub_continent }
 		NOT = { religion.group = $COUNTRY$.religion.group }
+		has_variable = gp_is_expanding
 	}
 	any_owned_location = {
 		count >= 3
@@ -123,7 +246,40 @@ gp_shares_threat_with = {
 	var:gp_threat ?= $COUNTRY$.var:gp_threat
 }
 
-# ---- roles (plain country variables, set yearly by gp_update_role) --------------------------------
+# this = candidate partner of $COUNTRY$ against $COUNTRY$'s regional threat: same faith group, not the threat itself,
+# and either it names the same threat or it is already at war with it (France fighting England for Brittany).
+gp_is_front_partner_of = {
+	NOT = { this = $COUNTRY$ }
+	$COUNTRY$ = { has_variable = gp_threat }
+	religion.group = $COUNTRY$.religion.group
+	NOT = { this ?= $COUNTRY$.var:gp_threat }
+	OR = {
+		gp_shares_threat_with = { COUNTRY = $COUNTRY$ }
+		$COUNTRY$.var:gp_threat ?= { is_at_war_with = prev }
+	}
+}
+
+# Our threat is worth containing only while it is actually pressing on the region (conquering, or a foreign power in
+# it) - static big neighbours are not dog-piled.
+gp_threat_is_pressing = {
+	has_variable = gp_threat
+	OR = {
+		var:gp_threat ?= { has_variable = gp_is_expanding }
+		var:gp_threat ?= { gp_is_intruder_of = { COUNTRY = root } }
+	}
+}
+
+# ---- target filters (target scope, scope:attacker) ------------------------------------------------
+
+# Light expansion: a target we dwarf (at least ~5.5x stronger, share < 0.15) - easy prey that alarms nobody much.
+gp_is_tiny_target_of_attacker = {
+	relative_strength = {
+		target = scope:attacker
+		value < 0.15
+	}
+}
+
+# ---- roles and postures (plain country variables) --------------------------------------------------
 
 gp_is_expansion_role = {
 	OR = {
@@ -131,6 +287,14 @@ gp_is_expansion_role = {
 		has_variable = gp_role_regional
 		has_variable = gp_role_hegemon
 		has_variable = gp_role_empire
+	}
+}
+
+gp_is_calm_posture = {
+	OR = {
+		has_variable = gp_posture_peace
+		has_variable = gp_posture_recovery
+		has_variable = gp_posture_isolation
 	}
 }
 
@@ -158,5 +322,9 @@ gp_is_debug_country = {
 		tag = SCO
 		tag = NOV
 		tag = VEN
+		tag = GEO
+		tag = BRI
+		tag = KOR
+		tag = GLH
 	}
 }

@@ -25,3 +25,18 @@ gp_rule_mode = {
 		flag = general_rule
 	}
 }
+
+# Natural frontiers: mountain and hill forts are harder to take, the open steppe is harder to hold (location modifiers
+# for every owner, applied at game start; main_menu/common/static_modifiers/gp_terrain_modifiers.txt).
+gp_rule_terrain = {
+	default = gp_terrain_on
+
+	gp_terrain_on = {
+		flag = gp_terrain_on
+		flag = general_rule
+	}
+	gp_terrain_off = {
+		flag = gp_terrain_off
+		flag = general_rule
+	}
+}

@@ -1,10 +1,10 @@
 ﻿###################################
 # New Intelligence: Geopolicy - knobs and helper values (prefix gp_)
 #
-# Static values are referenced by name wherever a number is accepted (_script_values.info). The role / stage thresholds
-# are ALSO written as literals in gp_effects.txt (comparisons "var:x >= 0.25"), because a named value on the right-hand
-# side of a variable comparison is unverified - keep both in sync.
+# Static values are referenced by name wherever a number is accepted (_script_values.info). Thresholds compared with
+# variables are ALSO written as literals in gp_effects.txt - keep both in sync.
 # Strength values are SHARES 0..1 (relative_strength = our strength / (our + their)): ratio R -> share R / (1 + R).
+# All values are evaluated in country scope; none of them uses root (in the game-start loop root is not the country).
 ###################################
 
 # ---- stages (share of the home region's ownable locations that we own) ----------------------
@@ -23,13 +23,305 @@ gp_threat_share_containable = 0.71	# up to 2.5x as strong the threat is a prefer
 
 # ---- helpers (country scope) -----------------------------------------------------------------
 
-# Share of the home region we own: gp_compute_region_share (gp_effects.txt) counts the ownable locations of the
-# capital's region into the two temporary variables, then stores this value as var:gp_region_share.
-# Reading a variable inside a script value: vanilla script_values/economy_satisfaction_target.txt:5.
+# Share of the home region we own = owned / total ownable locations of the capital's region (gp_compute_region_share).
 gp_region_share_value = {
 	value = var:gp_owned_tmp
 	divide = {
-		value = var:gp_total_tmp
+		value = var:gp_region_total
 		min = 1
+	}
+}
+
+# Momentum of conquest: last year's momentum decays by 30 %, this year's net gain of locations is added.
+gp_momentum_next = {
+	value = var:gp_momentum
+	multiply = 0.7
+	add = {
+		value = num_locations
+		subtract = var:gp_loc_prev
+		min = 0
+	}
+}
+
+# Momentum above this means "expanding": 4 locations plus 4 % of the country (a 30-location duchy needs ~5, a
+# 200-location kingdom ~12). Stored as the difference so the comparison is against 0.
+gp_momentum_excess = {
+	value = var:gp_momentum
+	subtract = {
+		value = num_locations
+		multiply = 0.04
+		add = 4
+	}
+}
+
+# ================================================================================================
+# Postures (gp_choose_posture): Score = state interest + ruler will x crown weight + estates x (1 - crown) + noise.
+# "the stronger the government, the more the ruler decides" (author): the ruler's points are multiplied by
+# gp_ruler_weight = crown power + 0.4 (halved under a regency), the estates by the rest of the power they hold.
+# ================================================================================================
+
+gp_crown_power = {
+	value = "estate_power(estate_type:crown_estate)"
+	min = 0
+	max = 1
+}
+
+gp_ruler_weight = {
+	value = gp_crown_power
+	add = 0.4
+	if = {
+		limit = { has_regent = yes }
+		multiply = 0.5
+	}
+	if = {
+		limit = { government_type = government_type:republic }
+		multiply = 0.7
+	}
+}
+
+gp_nobles_power = {
+	value = "estate_power(estate_type:nobles_estate)"
+	min = 0
+	max = 1
+}
+
+gp_burghers_power = {
+	value = "estate_power(estate_type:burghers_estate)"
+	min = 0
+	max = 1
+}
+
+gp_clergy_power = {
+	value = "estate_power(estate_type:clergy_estate)"
+	min = 0
+	max = 1
+}
+
+gp_peasants_power = {
+	value = "estate_power(estate_type:peasants_estate)"
+	min = 0
+	max = 1
+}
+
+# Random swing: the posture drawn by lot in gp_choose_posture (var:gp_noise = its code) gets this much.
+gp_noise_amount = {
+	value = 25
+	if = {
+		limit = { gp_ruler_erratic = yes }
+		add = 20
+	}
+}
+
+# ---- ruler points per posture (multiplied by gp_ruler_weight) --------------------------------------
+
+gp_rp_expansion = {
+	value = 0
+	if = { limit = { gp_ruler_warlike = yes } add = 30 }
+	if = { limit = { gp_ruler_cautious = yes } add = -20 }
+	if = { limit = { gp_ruler_builder = yes } add = -10 }
+	if = { limit = { ruler ?= { age_in_years < 30 } } add = 10 }
+	if = { limit = { ruler ?= { age_in_years > 60 } } add = -10 }
+}
+
+gp_rp_preparation = {
+	value = 0
+	if = { limit = { gp_ruler_warlike = yes } add = 20 }
+	if = { limit = { ruler ?= { has_trait = tactical_genius } } add = 10 }
+	if = { limit = { gp_ruler_cautious = yes } add = -10 }
+}
+
+gp_rp_opportunism = {
+	value = 0
+	if = { limit = { gp_ruler_greedy = yes } add = 25 }
+	if = { limit = { gp_ruler_cautious = yes } add = 10 }
+	if = { limit = { gp_ruler_diplomat = yes } add = 5 }
+}
+
+gp_rp_consolidation = {
+	value = 0
+	if = { limit = { gp_ruler_diplomat = yes } add = 15 }
+	if = { limit = { gp_ruler_builder = yes } add = 15 }
+	if = { limit = { gp_ruler_cautious = yes } add = 15 }
+	if = { limit = { gp_ruler_warlike = yes } add = -10 }
+	if = { limit = { ruler ?= { age_in_years > 60 } } add = 10 }
+}
+
+gp_rp_peace = {
+	value = 0
+	if = { limit = { gp_ruler_builder = yes } add = 20 }
+	if = { limit = { gp_ruler_cautious = yes } add = 15 }
+	if = { limit = { gp_ruler_warlike = yes } add = -25 }
+}
+
+gp_rp_defense = {
+	value = 0
+	if = { limit = { gp_ruler_cautious = yes } add = 15 }
+	if = { limit = { gp_ruler_warlike = yes } add = -10 }
+}
+
+gp_rp_front = {
+	value = 0
+	if = { limit = { gp_ruler_diplomat = yes } add = 15 }
+	if = { limit = { gp_ruler_warlike = yes } add = -5 }
+}
+
+# ---- posture scores ----------------------------------------------------------------------------------
+
+# 1 Expansion within the zones of interest.
+gp_ps_expansion = {
+	value = 10
+	if = { limit = { has_variable = gp_role_consolidator } add = 20 }
+	if = { limit = { has_variable = gp_role_regional } add = 10 }
+	if = { limit = { has_variable = gp_role_hegemon } add = -15 }
+	if = { limit = { has_variable = gp_role_empire } add = -10 }
+	if = { limit = { has_variable = gp_role_status_quo } add = -30 }
+	if = { limit = { has_variable = gp_role_besieged } add = -60 }
+	if = { limit = { var:gp_region_share < 0.9 } add = 5 }
+	if = { limit = { has_variable = gp_is_expanding } add = 10 }
+	if = {
+		limit = {
+			gp_is_early_game = yes
+			NOT = { gp_is_steppe = yes }
+			NOT = { has_variable = gp_role_hegemon }
+			NOT = { has_variable = gp_role_empire }
+		}
+		add = -15
+	}
+	if = { limit = { at_war = yes } add = -10 }
+	if = { limit = { gp_is_steppe = yes } add = 10 }
+	add = { value = gp_rp_expansion multiply = gp_ruler_weight }
+	add = { value = gp_nobles_power multiply = 25 }
+	if = { limit = { has_variable = gp_posture_expansion } add = 15 }
+	if = { limit = { var:gp_noise = 1 } add = gp_noise_amount }
+}
+
+# 2 Preparation for a chosen war (target picked in gp_pick_war_target; without a target it falls back to expansion).
+gp_ps_preparation = {
+	value = 0
+	if = { limit = { has_variable = gp_role_consolidator } add = 15 }
+	if = { limit = { has_variable = gp_role_regional } add = 10 }
+	if = { limit = { months_since_war >= 48 } add = 15 }
+	if = { limit = { at_war = yes } add = -50 }
+	if = { limit = { has_variable = gp_threat } add = -10 }
+	if = { limit = { gp_is_early_game = yes } add = -15 }
+	add = { value = gp_rp_preparation multiply = gp_ruler_weight }
+	add = { value = gp_nobles_power multiply = 15 }
+	if = { limit = { has_variable = gp_posture_preparation } add = 15 }
+	if = { limit = { var:gp_noise = 2 } add = gp_noise_amount }
+}
+
+# 3 Opportunism: waits and strikes neighbours that are busy or weakened.
+gp_ps_opportunism = {
+	value = 10
+	if = { limit = { has_variable = gp_role_regional } add = 10 }
+	if = { limit = { has_variable = gp_role_hegemon } add = 15 }
+	if = { limit = { has_variable = gp_role_empire } add = 10 }
+	add = { value = gp_rp_opportunism multiply = gp_ruler_weight }
+	add = { value = gp_burghers_power multiply = 15 }
+	if = { limit = { has_variable = gp_posture_opportunism } add = 15 }
+	if = { limit = { var:gp_noise = 3 } add = gp_noise_amount }
+}
+
+# 4 Consolidation / status quo: natural borders reached, or a war just ended - hold and digest.
+gp_ps_consolidation = {
+	value = 10
+	if = { limit = { var:gp_region_share >= 0.9 } add = 25 }
+	if = { limit = { has_variable = gp_role_hegemon } add = 20 }
+	if = { limit = { has_variable = gp_role_empire } add = 20 }
+	if = { limit = { has_variable = gp_role_status_quo } add = 25 }
+	if = { limit = { months_since_war < 36 } add = 20 }
+	if = { limit = { gp_is_early_game = yes } add = 10 }
+	add = { value = gp_rp_consolidation multiply = gp_ruler_weight }
+	add = { value = gp_burghers_power multiply = 10 }
+	if = { limit = { has_variable = gp_posture_consolidation } add = 15 }
+	if = { limit = { var:gp_noise = 4 } add = gp_noise_amount }
+}
+
+# 5 Defense: a much stronger power presses on the border.
+gp_ps_defense = {
+	value = 0
+	if = {
+		limit = {
+			has_variable = gp_threat
+			var:gp_threat_share >= 0.67
+			var:gp_threat ?= { is_neighbor_of = scope:gp_c }
+		}
+		add = 60
+	}
+	else_if = {
+		limit = {
+			has_variable = gp_threat
+			var:gp_threat_share >= 0.6
+		}
+		add = 30
+	}
+	if = { limit = { has_variable = gp_role_besieged } add = 40 }
+	add = { value = gp_rp_defense multiply = gp_ruler_weight }
+	add = { value = gp_peasants_power multiply = 10 }
+	if = { limit = { has_variable = gp_posture_defense } add = 15 }
+	if = { limit = { var:gp_noise = 5 } add = gp_noise_amount }
+}
+
+# 6 Common front: partners of the same faith stand against the same threat.
+gp_ps_front = {
+	value = -20
+	if = {
+		limit = {
+			has_variable = gp_threat
+			has_variable = gp_has_front_partner
+		}
+		add = 60
+		if = { limit = { var:gp_threat_share >= 0.67 } add = 15 }
+	}
+	add = { value = gp_rp_front multiply = gp_ruler_weight }
+	add = { value = gp_clergy_power multiply = 15 }
+	if = { limit = { has_variable = gp_posture_common_front } add = 15 }
+	if = { limit = { var:gp_noise = 6 } add = gp_noise_amount }
+}
+
+# 7 Recovery: after a lost war or with the country exhausted.
+gp_ps_recovery = {
+	value = -20
+	if = { limit = { has_variable = gp_recent_defeat } add = 70 }
+	if = { limit = { war_exhaustion >= 8 } add = 40 }
+	if = { limit = { gp_ruler_builder = yes } add = 10 }
+	add = { value = gp_peasants_power multiply = 20 }
+	if = { limit = { has_variable = gp_posture_recovery } add = 15 }
+	if = { limit = { var:gp_noise = 7 } add = gp_noise_amount }
+}
+
+# 8 Peace: builds and trades, starts nothing.
+gp_ps_peace = {
+	value = 0
+	if = { limit = { has_variable = gp_role_status_quo } add = 20 }
+	if = { limit = { gp_is_early_game = yes } add = 5 }
+	if = {
+		limit = {
+			OR = {
+				gp_is_sinic = yes
+				gp_is_japanese = yes
+				gp_is_korean = yes
+			}
+		}
+		add = 10
+	}
+	add = { value = gp_rp_peace multiply = gp_ruler_weight }
+	add = { value = gp_burghers_power multiply = 15 }
+	add = { value = gp_peasants_power multiply = 15 }
+	if = { limit = { has_variable = gp_posture_peace } add = 15 }
+	if = { limit = { var:gp_noise = 8 } add = gp_noise_amount }
+}
+
+# 9 Isolation: only where it is natural and nothing forces the country out (gp_isolation_possible).
+gp_ps_isolation = {
+	value = -200
+	if = {
+		limit = { gp_isolation_possible = yes }
+		add = 255
+		if = { limit = { gp_ruler_cautious = yes } add = 10 }
+		if = { limit = { gp_ruler_builder = yes } add = 10 }
+		if = { limit = { gp_ruler_warlike = yes } add = -40 }
+		if = { limit = { has_variable = gp_posture_isolation } add = 15 }
+		if = { limit = { var:gp_noise = 9 } add = gp_noise_amount }
 	}
 }

@@ -1,0 +1,30 @@
+﻿###################################
+# New Intelligence: Geopolicy - natural frontiers (location modifiers, prefix gp_)
+#
+# NOT country buffs: these belong to the land and act for whoever owns it (author, 2026-11-04: "in some regions war is
+# simply hard - mountains, water - while the steppe is hard to defend"). Applied once at game start by gp_apply_terrain
+# (in_game/common/scripted_effects/gp_effects.txt) unless the game rule "Natural frontiers" is off.
+# local_defensive = "Fort Defense" (vanilla: "how quick a siege will go against a location"; buildings give +10..50 %),
+# local_garrison_growth = how fast a garrison refills (percent). Format: static_modifiers/readme.txt.
+###################################
+
+# A fortress in the mountains: twice as hard to take, garrison refills faster.
+gp_mountain_stronghold = {
+	game_data = { category = location }
+	local_defensive = 1.0
+	local_garrison_growth = 0.5
+}
+
+# Hills: a little harder.
+gp_hill_stronghold = {
+	game_data = { category = location }
+	local_defensive = 0.3
+	local_garrison_growth = 0.15
+}
+
+# Open steppe: nothing to hold on to.
+gp_open_steppe = {
+	game_data = { category = location }
+	local_defensive = -0.25
+	local_garrison_growth = -0.25
+}

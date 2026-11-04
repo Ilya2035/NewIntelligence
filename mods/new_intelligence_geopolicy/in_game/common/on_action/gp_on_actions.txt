@@ -24,6 +24,14 @@ on_released_country = {					# root = released country, scope:overlord = overlord
 	on_actions = { gp_on_new_country }
 }
 
+on_ending_war = {						# root = country, fires once per side; scope:winner / scope:loser / scope:war (Battle hooks it too)
+	on_actions = { gp_on_war_end }
+}
+
+on_new_ruler = {						# root = country; scope:old_ruler / scope:new_ruler
+	on_actions = { gp_on_new_ruler }
+}
+
 # ---- our on_actions ----------------------------------------------------------------------------
 
 gp_on_game_start = {
@@ -38,4 +46,14 @@ gp_yearly_pulse = {
 gp_on_new_country = {
 	trigger = { gp_is_real_country = yes }
 	effect = { gp_setup_country = yes }
+}
+
+gp_on_war_end = {
+	trigger = { gp_is_real_country = yes }
+	effect = { gp_on_war_end_effect = yes }
+}
+
+gp_on_new_ruler = {
+	trigger = { gp_is_real_country = yes }
+	effect = { gp_on_new_ruler_effect = yes }
 }

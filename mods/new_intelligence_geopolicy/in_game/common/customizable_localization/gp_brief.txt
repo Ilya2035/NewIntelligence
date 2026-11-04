@@ -1,0 +1,113 @@
+﻿###################################
+# New Intelligence: Geopolicy - country brief lines for the disposition tooltip (prefix gp_)
+#
+# Format: vanilla customizable_localization (type = country, text = { localization_key trigger } ..., fallback).
+# Called from GP_BRIEF_MAIN as [Country.Custom('gp_brief_posture')] etc. (vanilla loc: [ROOT.GetCountry.Custom('...')]).
+###################################
+
+gp_brief_posture = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_brief_posture_expansion
+		trigger = { has_variable = gp_posture_expansion }
+	}
+	text = {
+		localization_key = gp_brief_posture_preparation
+		trigger = { has_variable = gp_posture_preparation }
+	}
+	text = {
+		localization_key = gp_brief_posture_opportunism
+		trigger = { has_variable = gp_posture_opportunism }
+	}
+	text = {
+		localization_key = gp_brief_posture_consolidation
+		trigger = { has_variable = gp_posture_consolidation }
+	}
+	text = {
+		localization_key = gp_brief_posture_defense
+		trigger = { has_variable = gp_posture_defense }
+	}
+	text = {
+		localization_key = gp_brief_posture_common_front
+		trigger = { has_variable = gp_posture_common_front }
+	}
+	text = {
+		localization_key = gp_brief_posture_recovery
+		trigger = { has_variable = gp_posture_recovery }
+	}
+	text = {
+		localization_key = gp_brief_posture_peace
+		trigger = { has_variable = gp_posture_peace }
+	}
+	text = {
+		localization_key = gp_brief_posture_isolation
+		trigger = { has_variable = gp_posture_isolation }
+	}
+	text = {
+		localization_key = gp_brief_posture_none
+		fallback = yes
+	}
+}
+
+gp_brief_role = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_brief_role_consolidator
+		trigger = { has_variable = gp_role_consolidator }
+	}
+	text = {
+		localization_key = gp_brief_role_regional
+		trigger = { has_variable = gp_role_regional }
+	}
+	text = {
+		localization_key = gp_brief_role_hegemon
+		trigger = { has_variable = gp_role_hegemon }
+	}
+	text = {
+		localization_key = gp_brief_role_empire
+		trigger = { has_variable = gp_role_empire }
+	}
+	text = {
+		localization_key = gp_brief_role_besieged
+		trigger = { has_variable = gp_role_besieged }
+	}
+	text = {
+		localization_key = gp_brief_role_status_quo
+		trigger = { has_variable = gp_role_status_quo }
+	}
+	text = {
+		localization_key = gp_brief_role_none
+		fallback = yes
+	}
+}
+
+gp_brief_situation = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_brief_situation_defeat
+		trigger = { has_variable = gp_recent_defeat }
+	}
+	text = {
+		localization_key = gp_brief_situation_front
+		trigger = { has_variable = gp_has_front_partner }
+	}
+	text = {
+		localization_key = gp_brief_situation_intruder
+		trigger = { has_variable = gp_has_intruder }
+	}
+	text = {
+		localization_key = gp_brief_situation_expanding
+		trigger = { has_variable = gp_is_expanding }
+	}
+	text = {
+		localization_key = gp_brief_situation_calm
+		fallback = yes
+	}
+}
+

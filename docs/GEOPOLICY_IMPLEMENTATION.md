@@ -23,6 +23,8 @@
 | `main_menu/common/game_rules/gp_game_rules.txt` | правило «Геополитика ИИ» (standard / strong / off); правила с блоком `defines = {}` нет — парсер 1.4.7 его отвергает (первый запуск Battle) |
 | `loading_screen/common/defines/gp_defines.txt` | 16 ключей `NAI` + 6 ключей `NDiplomacy`, действуют всегда |
 | `in_game/common/decisions/gp_decisions.txt`, `main_menu/common/game_concepts/gp_concepts.txt` | решение «Геополитический обзор», понятия «Геополитика» и «Угроза региону» |
+| `in_game/gui/gp_disposition_tooltip.gui`, `in_game/common/customizable_localization/gp_brief.txt` | блок «Геополитика» в подсказке «Настрой державы»: состояние, роль, обстановка, угроза, цель подготовки |
+| `main_menu/common/static_modifiers/gp_terrain_modifiers.txt` | природные рубежи: модификаторы локаций для гор, холмов, открытой степи (правило игры) |
 | `main_menu/localization/{english,russian}/gp_geopolicy_l_*.yml` | все ключи RU/EN |
 
 ## 2. Годовой проход (`gp_yearly_update`, страна сохраняется как `scope:gp_c`)
@@ -57,6 +59,16 @@
 | 15 | FOUND 2026-11-04: `debug_log` пишет в `debug.log` (318 строк за 4 года), но локализация в нём не видит сохранённых scope (`[SCOPE.sCountry(…)]` → «TOOLTIP:COUNTRY,4294967295») — отчёт переделан на буквальные теги и интервалы; строка «loc check» проверяет `[ROOT…]` | `gp_debug_report` | тест 2 |
 | 16 | VERIFIED 2026-11-04: `switch = { trigger = tag … }` работает (у всех 18 стран отчёта «zone profile historical»); доля региона считается (с 1338 г. появляются гегемоны и империи); в `error.log` 0 строк `gp_` | — | — |
 | 17 | FOUND 2026-11-04: в цикле `every_country` внутри `on_game_started_after_lobby` `root` — не страна; ядро переписано на `scope:gp_c` | `gp_effects.txt` | тест 2: строки отчёта за старт партии совпадают по смыслу с январскими |
+| 18 | Переопределение шаблона `AiDisposition_tooltip` своим файлом подхватывается (шаблоны переопределяются по имени, побеждает последний загруженный); блок `extra_tooltip_content` виден и в режиме карты «Настрой державы» | `in_game/gui/gp_disposition_tooltip.gui` | навести на ИИ-страну в режиме карты: под «Целями» блок «Геополитика» |
+| 19 | `[Country.Custom('gp_brief_posture')]` работает в GUI-контексте (в ванили — `[ROOT.GetCountry.Custom(...)]`) | `GP_BRIEF_MAIN`, `customizable_localization/gp_brief.txt` | в блоке текст «Состояние: …», а не ключ |
+| 20 | `Country.MakeScope.GetVariable('gp_threat').IsSet` и `.GetCountry.GetNameWithNoTooltip` в GUI | `gp_disposition_tooltip.gui`, `GP_BRIEF_THREAT` | строка «Главная угроза региону: X» с именем страны |
+| 21 | Выбор состояния: `set_variable = { value = gp_ps_* }`, сравнение `var:a < var:b` (ванильный приём `compare_and_get_highest_variable_from_4`), `random_list` с равными весами | `gp_choose_posture` | в отчёте строки `posture …` у разных стран разные и меняются со временем |
+| 22 | `set_variable = { value = capital.region }` и сравнение `capital.region = var:gp_region_cached` (ваниль: `value = scope:capital.region`, `root.region = var:high_kingship_region`) | `gp_compute_region_share` | доля региона в отчёте та же, что раньше (гегемоны и империи на месте) |
+| 23 | `"estate_power(estate_type:crown_estate)"` и другие сословия в значениях | `gp_values.txt` | нет ошибок про `estate_power` в `error.log` |
+| 24 | `on_ending_war`: `scope:loser ?= root` для стороны-проигравшего; `on_new_ruler` для пересмотра курса | `gp_on_war_end_effect`, `gp_on_new_ruler_effect` | после проигранной войны в отчёте «lost a war recently» и «posture recovery» |
+| 25 | `cb_make_tributary` в списке целей орды | `gp_target_horde_tribute` | Золотая Орда объявляет войны с поводом дани соседям вне степи |
+| 26 | `add_location_modifier = { days = -1 }` — бессрочно; `every_location_in_continent` по пяти континентам при старте | `gp_apply_terrain` | у горной локации с крепостью в подсказке «Горная твердыня», оборона крепости +100 % |
+| 27 | `spy_network_target` и `antagonise` в цели без `destroy` | `gp_obj_prepare_target` | нет ошибки загрузки цели |
 
 ## 4. Производительность
 

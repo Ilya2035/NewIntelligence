@@ -7,7 +7,9 @@
 # No recipient_list_builder: all reachable countries are filtered by recipient_trigger once a year.
 ###################################
 
-# 1. Common front: ally with the countries that name the same regional threat as we do.
+# 1. Common front: ally with the countries that stand against our regional threat (same faith; they name the same
+#    threat or already fight it - France at war with England for the Breton coast).
+#    Paused while we are at war, dissolved when the threat goes.
 gp_obj_common_front = {
 	days_between_checks = 365
 
@@ -22,8 +24,7 @@ gp_obj_common_front = {
 		scope:recipient = {
 			gp_is_real_country = yes
 			is_subject = no
-			gp_shares_threat_with = { COUNTRY = scope:actor }
-			NOT = { this ?= scope:actor.var:gp_threat }
+			gp_is_front_partner_of = { COUNTRY = scope:actor }
 			NOT = { is_rival_of = scope:actor }
 			NOT = { is_at_war_with = scope:actor }
 		}
@@ -67,6 +68,7 @@ gp_obj_seek_protector = {
 			has_variable = gp_role_consolidator
 			has_variable = gp_role_status_quo
 			has_variable = gp_role_besieged
+			has_variable = gp_posture_defense
 		}
 	}
 
@@ -188,5 +190,87 @@ gp_obj_antagonise_intruder = {
 
 	improve_relation = no
 	antagonise = yes
+	max_allowed = 1
+}
+
+# 5. Preparation: find allies against the chosen target - its other neighbours, who share the interest.
+gp_obj_prepare_allies = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_preparation
+		has_variable = gp_war_target
+		is_subject = no
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			gp_is_real_country = yes
+			is_subject = no
+			NOT = { this = scope:actor }
+			NOT = { this ?= scope:actor.var:gp_war_target }
+			NOT = { is_rival_of = scope:actor }
+			NOT = { is_at_war_with = scope:actor }
+			scope:actor.var:gp_war_target ?= { is_neighbor_of = prev }
+		}
+	}
+
+	recipient_priority = {
+		add = 45
+		add = "scope:recipient.opinion(scope:actor)"
+		divide = 4
+	}
+
+	pause_trigger = {
+		scope:actor = { at_war = yes }
+	}
+
+	cancel_trigger = {
+		scope:actor = {
+			NOT = { has_variable = gp_posture_preparation }
+		}
+	}
+
+	improve_relation = yes
+	country_relations = {
+		alliance = yes
+	}
+	max_allowed = 1
+}
+
+# 6. Preparation: pressure on the target itself - antagonise it and build a spy network (vanilla
+#    japanese_clan_spying.txt uses the same fields).
+gp_obj_prepare_target = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_preparation
+		has_variable = gp_war_target
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			this ?= scope:actor.var:gp_war_target
+			NOT = { is_at_war_with = scope:actor }
+		}
+	}
+
+	recipient_priority = {
+		add = 55
+	}
+
+	cancel_trigger = {
+		scope:actor = {
+			NOT = { has_variable = gp_posture_preparation }
+		}
+	}
+
+	improve_relation = no
+	antagonise = yes
+	spy_network_target = 40
 	max_allowed = 1
 }

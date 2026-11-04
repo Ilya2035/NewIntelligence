@@ -89,7 +89,7 @@ v0.1 (2026-11-04) — первая автономная сборка по гол
 | [docs/GEOPOLICY_DESIGN.md](docs/GEOPOLICY_DESIGN.md) | Концепция: зоны интересов и этапы, роли, угроза региону, пришельцы, культура и вера, темпераменты, формируемые страны, правила игры (русский) |
 | [docs/GEOPOLICY_IMPLEMENTATION.md](docs/GEOPOLICY_IMPLEMENTATION.md) | Как всё устроено: файлы, годовой проход, реестр «GP TODO verify» с тестом для каждого допущения, производительность, совместимость |
 | [docs/GEOPOLICY_TESTING.md](docs/GEOPOLICY_TESTING.md) | Чек-листы первого запуска и наблюдателя 1337→1450, какие ручки крутить |
-| [docs/GEOPOLICY_V2_PROPOSAL.md](docs/GEOPOLICY_V2_PROPOSAL.md) | Предложение v0.2+: 10 состояний государства, сила власти и правитель, сословия, детские обиды и привязанности правителей, единокровные и коалиции по логике, связка с Battle и будущим модом «Двор» (не реализовано) |
+| [docs/GEOPOLICY_V2_PROPOSAL.md](docs/GEOPOLICY_V2_PROPOSAL.md) | Предложение v0.2+: 10 состояний государства, сила власти и правитель, сословия, детские обиды и привязанности правителей, единокровные и коалиции по логике, связка с Battle и будущим модом «Двор» (состояния реализованы в упрощённом виде в v0.1.2, остальное — нет) |
 
 ### Установка / запуск
 
@@ -128,6 +128,9 @@ in_game/common/biases/                    3 модификатора мнени�
 in_game/common/casus_belli/               «Сдержать региональную угрозу»
 in_game/common/formable_countries/        11 новых формируемых стран
 in_game/common/decisions/                 «Геополитический обзор»
+in_game/common/customizable_localization/  строки справки о стране
+in_game/gui/                             gp_disposition_tooltip.gui (справка «Геополитика» в подсказке «Настрой державы»)
+main_menu/common/static_modifiers/        природные рубежи (модификаторы локаций)
 main_menu/common/game_rules, game_concepts, named_colors, coat_of_arms/
 main_menu/localization/{russian,english}/
 loading_screen/common/defines/            gp_defines (красивые границы, культура и вера, дальность, коалиции)

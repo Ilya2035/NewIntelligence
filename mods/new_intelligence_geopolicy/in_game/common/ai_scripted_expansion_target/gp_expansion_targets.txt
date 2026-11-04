@@ -3,18 +3,53 @@
 #
 # Format: ai_scripted_expansion_target/readme.txt. attacker_potential and candidate_list: root = attacker;
 # score / sort_value: scope:attacker, scope:target. A target is picked when its score reaches
-# EXPANSION_TARGET_SCORE_NEEDED_TO_PICK = 20 (NAI); vanilla attack_neighbors scores tax base / distance * 10.
+# EXPANSION_TARGET_SCORE_NEEDED_TO_PICK (25 with gp_defines.txt); vanilla attack_neighbors scores tax base / distance * 10.
+# Strength values are relative_strength shares 0..1.
 ###################################
 
-# 1. Contain the regional threat (uses the mod's own casus belli, which prefers cutting the target down to size).
+# 1. The war a preparing country got ready for (gp_posture_preparation, var:gp_war_target chosen in gp_pick_war_target).
+gp_target_prepared_war = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_posture_preparation
+		has_variable = gp_war_target
+		at_war = no
+	}
+	candidate_list = {
+		var:gp_war_target ?= {
+			if = {
+				limit = {
+					gp_is_real_country = yes
+					NOT = { has_truce_with = root }
+				}
+				add_to_list = source
+			}
+		}
+	}
+	score = {
+		add = 26
+		add = {
+			value = scope:target.country_tax_base
+			divide = 100
+		}
+	}
+	sort_value = {
+		add = 900
+	}
+}
+
+# 2. Contain the regional threat (mod casus belli, cuts the target down to size) - only while it presses on the region.
 gp_target_contain_threat = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
 		has_variable = gp_threat
 		var:gp_threat_share <= 0.71		# at most 2.5x as strong (relative_strength share)
+		gp_threat_is_pressing = yes
 		months_since_war >= 24
 		NOT = { has_variable = gp_role_status_quo }
+		NOT = { gp_is_calm_posture = yes }
 	}
 	candidate_list = {
 		var:gp_threat ?= {
@@ -29,7 +64,7 @@ gp_target_contain_threat = {
 	}
 	casus_belli = casus_belli:gp_cb_contain_threat
 	score = {
-		add = 22
+		add = 25
 		add = {
 			value = scope:target.country_tax_base
 			divide = 100
@@ -40,7 +75,7 @@ gp_target_contain_threat = {
 	}
 }
 
-# 2. Expel the intruder: powers from another sub-continent / faith group holding land in our home region.
+# 3. Expel the intruder: foreign or conquering powers holding land in our home region.
 gp_target_expel_intruder = {
 	attacker_potential = {
 		is_ai = yes
@@ -49,6 +84,7 @@ gp_target_expel_intruder = {
 		months_since_war >= 12
 		NOT = { has_variable = gp_role_status_quo }
 		NOT = { has_variable = gp_role_besieged }
+		NOT = { gp_is_calm_posture = yes }
 	}
 	candidate_list = {
 		capital.region = {
@@ -62,14 +98,14 @@ gp_target_expel_intruder = {
 		}
 	}
 	score = {
-		add = 24
+		add = 26
 	}
 	sort_value = {
 		add = 500
 	}
 }
 
-# 3. The home region beyond our borders: weaker powers present in our region that are not direct neighbours
+# 4. The home region beyond our borders: weaker powers present in our region that are not direct neighbours
 #    (across a strait, behind a vassal) - vanilla attack_neighbors only sees neighbours.
 gp_target_home_region = {
 	attacker_potential = {
@@ -78,6 +114,10 @@ gp_target_home_region = {
 		exists = capital
 		months_since_war >= 36
 		gp_is_expansion_role = yes
+		OR = {
+			has_variable = gp_posture_expansion
+			has_variable = gp_posture_opportunism
+		}
 	}
 	candidate_list = {
 		capital.region = {
@@ -103,5 +143,42 @@ gp_target_home_region = {
 		add = scope:target.country_tax_base
 		divide = "scope:target.capital.distance_to(scope:attacker.capital)"
 		multiply = 10
+	}
+}
+
+# 5. The horde collects tribute: settled neighbours outside the steppe become tributaries (vanilla cb_make_tributary,
+#    usable by steppe hordes), steppe land itself is conquered through the zones of interest. Small bites, easy to hold.
+gp_target_horde_tribute = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		gp_is_steppe = yes
+		months_since_war >= 12
+		NOT = { gp_is_calm_posture = yes }
+	}
+	candidate_list = {
+		every_neighbor_country = {
+			limit = {
+				gp_is_real_country = yes
+				is_subject = no
+				exists = capital
+				NOT = { gp_is_steppe = yes }
+				NOT = { capital.region = region:steppes_region }
+				NOT = { has_truce_with = root }
+				relative_strength = {
+					target = root
+					value < 0.41		# weaker than 0.7x the horde
+				}
+			}
+			add_to_list = source
+		}
+	}
+	casus_belli = casus_belli:cb_make_tributary
+	score = {
+		add = 24
+	}
+	sort_value = {
+		add = 300
+		add = scope:target.country_tax_base
 	}
 }

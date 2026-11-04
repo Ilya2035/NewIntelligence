@@ -1,11 +1,12 @@
 ﻿###################################
 # New Intelligence: Geopolicy - core effects (prefix gp_)
 #
-# One yearly pass per real country (gp_on_actions.txt): home-region share -> regional threat -> intruders ->
-# common front -> role (plain variables) -> (AI only) stage zones. Nothing runs monthly.
-# NO country modifiers (author's rule 2026-11-04: no buffs, only behaviour). What a role changes is read by the AI's own
-# war-target scoring (ai_scripted_expansion_score), target lists, diplomatic objectives and zones of interest.
-# The country is saved as scope:gp_c at the start of gp_yearly_update and used instead of root: in the game-start loop
+# One yearly pass per real country (gp_on_actions.txt): home-region share -> momentum of conquest -> regional threat
+# -> intruders and common front (one loop) -> role -> (AI only) posture and stage zones. Nothing runs monthly.
+# Postures change at once on a lost war (on_ending_war) and on a new ruler (on_new_ruler).
+# NO country modifiers (author's rule 2026-11-04: no buffs, only behaviour). Roles and postures are plain variables read
+# by the AI's own war-target scoring (ai_scripted_expansion_score), target lists, diplomatic objectives and zones.
+# The country is saved as scope:gp_c at the start of every entry point and used instead of root: in the game-start loop
 # (every_country inside on_game_started_after_lobby) root is NOT the country (first in-game test, 2026-11-04).
 ###################################
 
@@ -18,6 +19,7 @@ gp_on_game_start_effect = {
 		limit = { gp_is_real_country = yes }
 		gp_setup_country = yes
 	}
+	gp_apply_terrain = yes
 	debug_log = "GP_REPORT game start: setup finished"
 }
 
@@ -31,46 +33,121 @@ gp_setup_country = {
 gp_yearly_update = {
 	save_scope_as = gp_c
 	gp_compute_region_share = yes
+	gp_update_momentum = yes
 	gp_update_threat = yes
-	gp_update_intruders = yes
-	gp_update_common_front = yes
+	gp_update_region_relations = yes
+	gp_age_defeat = yes
 	if = {
 		limit = { gp_is_active = yes }
 		gp_update_role = yes
 		if = {
 			limit = { is_ai = yes }
+			gp_update_posture = yes
 			gp_update_stage_zones = yes
+		}
+		else = {
+			gp_clear_postures = yes
 		}
 	}
 	else = {
 		gp_clear_roles = yes
+		gp_clear_postures = yes
 	}
 	gp_debug_report = yes
 	clear_saved_scope = gp_c
 }
 
+# country scope (on_ending_war, fired once per side): a lost war sends the AI into recovery at once.
+gp_on_war_end_effect = {
+	if = {
+		limit = { scope:loser ?= root }
+		set_variable = gp_recent_defeat
+		set_variable = { name = gp_defeat_years value = 6 }
+		if = {
+			limit = {
+				is_ai = yes
+				gp_is_active = yes
+				has_variable = gp_region_share
+			}
+			save_scope_as = gp_c
+			gp_choose_posture = yes
+			clear_saved_scope = gp_c
+		}
+	}
+}
+
+# country scope (on_new_ruler): a new ruler re-draws the course of the country ("the ruler changes the posture").
+gp_on_new_ruler_effect = {
+	if = {
+		limit = {
+			is_ai = yes
+			gp_is_active = yes
+			has_variable = gp_region_share
+		}
+		save_scope_as = gp_c
+		gp_choose_posture = yes
+		clear_saved_scope = gp_c
+	}
+}
+
 # ---- home region share ---------------------------------------------------------------------------
 
-# Counts the ownable locations of the home region (effect-side counting: change_variable per location is the
-# verified form; a list loop inside a script value with a scope change is not).
+# Owned locations of the home region are counted by walking OUR locations (small for most countries); the region's
+# total of ownable locations is counted once and cached until the capital moves to another region.
 gp_compute_region_share = {
 	set_variable = { name = gp_owned_tmp value = 0 }
-	set_variable = { name = gp_total_tmp value = 0 }
 	if = {
 		limit = { exists = capital }
-		capital.region = {
-			every_ownable_location_in_region = {
-				scope:gp_c = { change_variable = { name = gp_total_tmp add = 1 } }
-				if = {
-					limit = { owner ?= scope:gp_c }
-					scope:gp_c = { change_variable = { name = gp_owned_tmp add = 1 } }
+		if = {
+			limit = {
+				OR = {
+					NOT = { has_variable = gp_region_cached }
+					NOT = { capital.region = var:gp_region_cached }
+				}
+			}
+			set_variable = { name = gp_region_total value = 0 }
+			set_variable = { name = gp_region_cached value = capital.region }
+			capital.region = {
+				every_ownable_location_in_region = {
+					scope:gp_c = { change_variable = { name = gp_region_total add = 1 } }
 				}
 			}
 		}
+		every_owned_location = {
+			limit = { region = scope:gp_c.capital.region }
+			scope:gp_c = { change_variable = { name = gp_owned_tmp add = 1 } }
+		}
+	}
+	if = {
+		limit = { NOT = { has_variable = gp_region_total } }
+		set_variable = { name = gp_region_total value = 1 }
 	}
 	set_variable = { name = gp_region_share value = gp_region_share_value }
 	remove_variable = gp_owned_tmp
-	remove_variable = gp_total_tmp
+}
+
+# ---- momentum of conquest ----------------------------------------------------------------------------
+
+# var:gp_momentum = last year's momentum x 0.7 + net locations gained this year; gp_is_expanding while it exceeds
+# 4 + 4 % of the country. Read by neighbours (threat, intruder, containment) - fast conquerors alarm their region.
+gp_update_momentum = {
+	if = {
+		limit = { NOT = { has_variable = gp_loc_prev } }
+		set_variable = { name = gp_loc_prev value = num_locations }
+		set_variable = { name = gp_momentum value = 0 }
+	}
+	set_variable = { name = gp_momentum value = gp_momentum_next }
+	set_variable = { name = gp_loc_prev value = num_locations }
+	set_variable = { name = gp_momentum_excess_v value = gp_momentum_excess }
+	if = {
+		limit = { var:gp_momentum_excess_v >= 0 }
+		set_variable = gp_is_expanding
+	}
+	else_if = {
+		limit = { has_variable = gp_is_expanding }
+		remove_variable = gp_is_expanding
+	}
+	remove_variable = gp_momentum_excess_v
 }
 
 # ---- regional threat -----------------------------------------------------------------------------
@@ -124,47 +201,53 @@ gp_update_threat = {
 	}
 }
 
-# ---- foreign intruders ---------------------------------------------------------------------------
+# ---- intruders and common front (one loop over the countries present in the home region) ----------------
 
-# Every "intruder" (gp_triggers.txt) holding land in our home region: opinion -30, refreshed yearly.
-gp_update_intruders = {
+# Intruder (gp_triggers.txt): opinion -30, flag gp_has_intruder. Front partner (same faith, same threat or at war with
+# it): opinion +20, flag gp_has_front_partner. Both refreshed yearly; the front dissolves by itself when the threat
+# fades - "they help while it pays, then quarrel again".
+gp_update_region_relations = {
+	if = { limit = { has_variable = gp_has_intruder } remove_variable = gp_has_intruder }
+	if = { limit = { has_variable = gp_has_front_partner } remove_variable = gp_has_front_partner }
 	if = {
 		limit = { exists = capital }
 		capital.region = {
 			every_present_country = {
-				limit = { gp_is_intruder_of = { COUNTRY = scope:gp_c } }
-				scope:gp_c = {
-					remove_opinion = { target = prev modifier = gp_opinion_foreign_intruder }
-					add_opinion = { target = prev modifier = gp_opinion_foreign_intruder }
+				limit = {
+					NOT = { this = scope:gp_c }
+					gp_is_real_country = yes
+				}
+				if = {
+					limit = { gp_is_intruder_of = { COUNTRY = scope:gp_c } }
+					scope:gp_c = {
+						remove_opinion = { target = prev modifier = gp_opinion_foreign_intruder }
+						add_opinion = { target = prev modifier = gp_opinion_foreign_intruder }
+						set_variable = gp_has_intruder
+					}
+				}
+				if = {
+					limit = { gp_is_front_partner_of = { COUNTRY = scope:gp_c } }
+					scope:gp_c = {
+						remove_opinion = { target = prev modifier = gp_opinion_common_enemy }
+						add_opinion = { target = prev modifier = gp_opinion_common_enemy }
+						set_variable = gp_has_front_partner
+					}
 				}
 			}
 		}
 	}
 }
 
-# ---- common front --------------------------------------------------------------------------------
+# ---- lost wars ----------------------------------------------------------------------------------------
 
-# Countries of our region that name the same threat and share our religion group: +20 opinion (yearly refresh).
-gp_update_common_front = {
+gp_age_defeat = {
 	if = {
-		limit = {
-			exists = capital
-			has_variable = gp_threat
-		}
-		capital.region = {
-			every_present_country = {
-				limit = {
-					NOT = { this = scope:gp_c }
-					gp_is_real_country = yes
-					gp_shares_threat_with = { COUNTRY = scope:gp_c }
-					religion.group = scope:gp_c.religion.group
-					NOT = { this ?= scope:gp_c.var:gp_threat }
-				}
-				scope:gp_c = {
-					remove_opinion = { target = prev modifier = gp_opinion_common_enemy }
-					add_opinion = { target = prev modifier = gp_opinion_common_enemy }
-				}
-			}
+		limit = { has_variable = gp_defeat_years }
+		change_variable = { name = gp_defeat_years add = -1 }
+		if = {
+			limit = { var:gp_defeat_years <= 0 }
+			remove_variable = gp_defeat_years
+			if = { limit = { has_variable = gp_recent_defeat } remove_variable = gp_recent_defeat }
 		}
 	}
 }
@@ -172,6 +255,7 @@ gp_update_common_front = {
 # ---- stages --------------------------------------------------------------------------------------
 
 # Thresholds are literals here (see gp_values.txt header): 0.25 = gp_share_regional, 0.55 = gp_share_hegemon.
+# Aggressive expansion opens the far zones earlier (share 0.35).
 gp_update_stage_zones = {
 	if = {
 		limit = { var:gp_region_share >= 0.25 }
@@ -181,7 +265,16 @@ gp_update_stage_zones = {
 		gp_zones_remove_sphere = yes
 	}
 	if = {
-		limit = { var:gp_region_share >= 0.55 }
+		limit = {
+			OR = {
+				var:gp_region_share >= 0.55
+				AND = {
+					has_variable = gp_posture_expansion
+					gp_ruler_warlike = yes
+					var:gp_region_share >= 0.35
+				}
+			}
+		}
 		gp_zones_add_far = yes
 	}
 	else = {
@@ -257,12 +350,242 @@ gp_clear_roles = {
 	if = { limit = { has_variable = gp_role_status_quo } remove_variable = gp_role_status_quo }
 }
 
+# ---- postures (AI only; plain variables gp_posture_*, see docs/GEOPOLICY_DESIGN.md section 3a) ----------
+
+# Yearly: count the posture down; re-choose when it runs out or when something forces a change (lost war, a
+# stronger enemy at the border, isolation no longer possible, the prepared target gone).
+gp_update_posture = {
+	if = {
+		limit = { has_variable = gp_posture_left }
+		change_variable = { name = gp_posture_left add = -1 }
+	}
+	if = {
+		limit = {
+			OR = {
+				NOT = { has_variable = gp_posture_left }
+				var:gp_posture_left <= 0
+				AND = {
+					has_variable = gp_recent_defeat
+					NOT = { has_variable = gp_posture_recovery }
+				}
+				AND = {
+					has_variable = gp_posture_isolation
+					NOT = { gp_isolation_possible = yes }
+				}
+				AND = {
+					has_variable = gp_threat
+					var:gp_threat_share >= 0.67
+					var:gp_threat ?= { is_neighbor_of = scope:gp_c }
+					NOT = { has_variable = gp_posture_defense }
+					NOT = { has_variable = gp_posture_common_front }
+				}
+				AND = {
+					has_variable = gp_posture_preparation
+					NOT = { var:gp_war_target ?= { gp_is_real_country = yes } }
+				}
+			}
+		}
+		gp_choose_posture = yes
+	}
+}
+
+# Scores every posture (gp_values.txt: state interest + ruler x crown power + estates + inertia + one random swing),
+# takes the highest (vanilla argmax pattern: global_effects.txt compare_and_get_highest_variable_from_4) and draws a
+# random duration, so no country replays the same script every campaign.
+gp_choose_posture = {
+	random_list = {
+		1 = { set_variable = { name = gp_noise value = 1 } }
+		1 = { set_variable = { name = gp_noise value = 2 } }
+		1 = { set_variable = { name = gp_noise value = 3 } }
+		1 = { set_variable = { name = gp_noise value = 4 } }
+		1 = { set_variable = { name = gp_noise value = 5 } }
+		1 = { set_variable = { name = gp_noise value = 6 } }
+		1 = { set_variable = { name = gp_noise value = 7 } }
+		1 = { set_variable = { name = gp_noise value = 8 } }
+		1 = { set_variable = { name = gp_noise value = 9 } }
+	}
+	set_variable = { name = gp_v1 value = gp_ps_expansion }
+	set_variable = { name = gp_v2 value = gp_ps_preparation }
+	set_variable = { name = gp_v3 value = gp_ps_opportunism }
+	set_variable = { name = gp_v4 value = gp_ps_consolidation }
+	set_variable = { name = gp_v5 value = gp_ps_defense }
+	set_variable = { name = gp_v6 value = gp_ps_front }
+	set_variable = { name = gp_v7 value = gp_ps_recovery }
+	set_variable = { name = gp_v8 value = gp_ps_peace }
+	set_variable = { name = gp_v9 value = gp_ps_isolation }
+	set_variable = { name = gp_best value = var:gp_v1 }
+	set_variable = { name = gp_best_code value = 1 }
+	if = { limit = { var:gp_best < var:gp_v2 } set_variable = { name = gp_best value = var:gp_v2 } set_variable = { name = gp_best_code value = 2 } }
+	if = { limit = { var:gp_best < var:gp_v3 } set_variable = { name = gp_best value = var:gp_v3 } set_variable = { name = gp_best_code value = 3 } }
+	if = { limit = { var:gp_best < var:gp_v4 } set_variable = { name = gp_best value = var:gp_v4 } set_variable = { name = gp_best_code value = 4 } }
+	if = { limit = { var:gp_best < var:gp_v5 } set_variable = { name = gp_best value = var:gp_v5 } set_variable = { name = gp_best_code value = 5 } }
+	if = { limit = { var:gp_best < var:gp_v6 } set_variable = { name = gp_best value = var:gp_v6 } set_variable = { name = gp_best_code value = 6 } }
+	if = { limit = { var:gp_best < var:gp_v7 } set_variable = { name = gp_best value = var:gp_v7 } set_variable = { name = gp_best_code value = 7 } }
+	if = { limit = { var:gp_best < var:gp_v8 } set_variable = { name = gp_best value = var:gp_v8 } set_variable = { name = gp_best_code value = 8 } }
+	if = { limit = { var:gp_best < var:gp_v9 } set_variable = { name = gp_best value = var:gp_v9 } set_variable = { name = gp_best_code value = 9 } }
+	# Preparation needs a target in our zones; without one the country simply expands.
+	if = {
+		limit = { var:gp_best_code = 2 }
+		gp_pick_war_target = yes
+		if = {
+			limit = { NOT = { has_variable = gp_war_target } }
+			set_variable = { name = gp_best_code value = 1 }
+		}
+	}
+	if = { limit = { var:gp_best_code = 1 } gp_set_posture = { POSTURE = expansion } }
+	else_if = { limit = { var:gp_best_code = 2 } gp_set_posture = { POSTURE = preparation } }
+	else_if = { limit = { var:gp_best_code = 3 } gp_set_posture = { POSTURE = opportunism } }
+	else_if = { limit = { var:gp_best_code = 4 } gp_set_posture = { POSTURE = consolidation } }
+	else_if = { limit = { var:gp_best_code = 5 } gp_set_posture = { POSTURE = defense } }
+	else_if = { limit = { var:gp_best_code = 6 } gp_set_posture = { POSTURE = common_front } }
+	else_if = { limit = { var:gp_best_code = 7 } gp_set_posture = { POSTURE = recovery } }
+	else_if = { limit = { var:gp_best_code = 8 } gp_set_posture = { POSTURE = peace } }
+	else = { gp_set_posture = { POSTURE = isolation } }
+	if = {
+		limit = {
+			NOT = { has_variable = gp_posture_preparation }
+			has_variable = gp_war_target
+		}
+		remove_variable = gp_war_target
+	}
+	# Duration: 3-7 years by lot; defense and common front are re-checked after 2, recovery lasts 5-8, isolation 8.
+	random_list = {
+		1 = { set_variable = { name = gp_posture_left value = 3 } }
+		1 = { set_variable = { name = gp_posture_left value = 4 } }
+		1 = { set_variable = { name = gp_posture_left value = 5 } }
+		1 = { set_variable = { name = gp_posture_left value = 6 } }
+		1 = { set_variable = { name = gp_posture_left value = 7 } }
+	}
+	if = {
+		limit = {
+			OR = {
+				has_variable = gp_posture_defense
+				has_variable = gp_posture_common_front
+			}
+		}
+		set_variable = { name = gp_posture_left value = 2 }
+	}
+	else_if = {
+		limit = { has_variable = gp_posture_recovery }
+		change_variable = { name = gp_posture_left add = 2 }
+	}
+	else_if = {
+		limit = { has_variable = gp_posture_isolation }
+		set_variable = { name = gp_posture_left value = 8 }
+	}
+	remove_variable = gp_noise
+	remove_variable = gp_v1
+	remove_variable = gp_v2
+	remove_variable = gp_v3
+	remove_variable = gp_v4
+	remove_variable = gp_v5
+	remove_variable = gp_v6
+	remove_variable = gp_v7
+	remove_variable = gp_v8
+	remove_variable = gp_v9
+	remove_variable = gp_best
+	remove_variable = gp_best_code
+}
+
+gp_set_posture = {
+	gp_clear_postures = yes
+	set_variable = gp_posture_$POSTURE$
+}
+
+gp_clear_postures = {
+	if = { limit = { has_variable = gp_posture_expansion } remove_variable = gp_posture_expansion }
+	if = { limit = { has_variable = gp_posture_preparation } remove_variable = gp_posture_preparation }
+	if = { limit = { has_variable = gp_posture_opportunism } remove_variable = gp_posture_opportunism }
+	if = { limit = { has_variable = gp_posture_consolidation } remove_variable = gp_posture_consolidation }
+	if = { limit = { has_variable = gp_posture_defense } remove_variable = gp_posture_defense }
+	if = { limit = { has_variable = gp_posture_common_front } remove_variable = gp_posture_common_front }
+	if = { limit = { has_variable = gp_posture_recovery } remove_variable = gp_posture_recovery }
+	if = { limit = { has_variable = gp_posture_peace } remove_variable = gp_posture_peace }
+	if = { limit = { has_variable = gp_posture_isolation } remove_variable = gp_posture_isolation }
+}
+
+# The war a preparing country gets ready for: the richest neighbour that is clearly weaker (below 0.8x our strength),
+# holds land in our home region (steppe hordes: any neighbour), and is not a friend, partner, subject or under truce.
+gp_pick_war_target = {
+	if = { limit = { has_variable = gp_war_target } remove_variable = gp_war_target }
+	ordered_neighbor_country = {
+		limit = {
+			gp_is_real_country = yes
+			NOT = { is_subject_or_below_of = scope:gp_c }
+			NOT = { scope:gp_c = { is_subject_or_below_of = prev } }
+			NOT = { in_union_with = scope:gp_c }
+			NOT = { has_truce_with = scope:gp_c }
+			NOT = { gp_is_front_partner_of = { COUNTRY = scope:gp_c } }
+			NOT = {
+				has_mutual_scripted_relation = {
+					type = relation_type:alliance
+					target = scope:gp_c
+				}
+			}
+			relative_strength = {
+				target = scope:gp_c
+				value < 0.45
+			}
+			OR = {
+				any_owned_location = { region = scope:gp_c.capital.region }
+				scope:gp_c = { gp_is_steppe = yes }
+			}
+		}
+		order_by = country_tax_base
+		max = 1
+		save_scope_as = gp_found_target
+	}
+	if = {
+		limit = { exists = scope:gp_found_target }
+		set_variable = { name = gp_war_target value = scope:gp_found_target }
+	}
+	clear_saved_scope = gp_found_target
+}
+
+# ---- natural frontiers (game rule; location modifiers for everyone, applied once at game start) -------
+
+# Mountains: fort defense +100 % (author: "a fortress in the mountains gets 100 %"); hills +30 %; the open steppe is
+# hard to hold: fort defense -25 %, garrisons refill slower. Static location modifiers in
+# main_menu/common/static_modifiers/gp_terrain_modifiers.txt.
+gp_apply_terrain = {
+	if = {
+		limit = { NOT = { has_game_rule = gp_terrain_off } }
+		continent:europe = { every_location_in_continent = { gp_terrain_location = yes } }
+		continent:asia = { every_location_in_continent = { gp_terrain_location = yes } }
+		continent:africa = { every_location_in_continent = { gp_terrain_location = yes } }
+		continent:america = { every_location_in_continent = { gp_terrain_location = yes } }
+		continent:oceania = { every_location_in_continent = { gp_terrain_location = yes } }
+	}
+}
+
+gp_terrain_location = {
+	if = {
+		limit = { topography = mountains }
+		add_location_modifier = { modifier = gp_mountain_stronghold days = -1 }
+	}
+	else_if = {
+		limit = { topography = hills }
+		add_location_modifier = { modifier = gp_hill_stronghold days = -1 }
+	}
+	else_if = {
+		limit = {
+			topography = flatland
+			OR = {
+				region = region:steppes_region
+				region = region:mongolia_region
+				area = area:desht_kipchak_area
+				area = area:zhetysu_area
+			}
+		}
+		add_location_modifier = { modifier = gp_open_steppe days = -1 }
+	}
+}
+
 # ---- diagnostics (test builds) --------------------------------------------------------------------
 
 # A block of "GP_REPORT ..." lines in debug.log per marquee country (gp_is_debug_country) at game start and every year.
-# First test (2026-11-04): debug_log loc cannot see saved scopes ([SCOPE.sCountry('x')] printed a null country), so the
-# country is named by a literal tag (switch on tag, verified in game) and values are printed as literal buckets. One
-# "loc check" line probes whether [ROOT...] works (yes in the yearly pulse expected, no at game start).
+# debug_log loc cannot see saved scopes (first test), so the country is named by a literal tag (switch on tag, verified)
+# and values are printed as literal buckets. One "loc check" line probes [ROOT...].
 # GP TODO remove the call in gp_yearly_update before a public release.
 gp_debug_report = {
 	if = {
@@ -287,6 +610,10 @@ gp_debug_report = {
 			SCO = { debug_log = "GP_REPORT SCO Scotland" }
 			NOV = { debug_log = "GP_REPORT NOV Novgorod" }
 			VEN = { debug_log = "GP_REPORT VEN Venice" }
+			GEO = { debug_log = "GP_REPORT GEO Georgia" }
+			BRI = { debug_log = "GP_REPORT BRI Brittany" }
+			KOR = { debug_log = "GP_REPORT KOR Korea" }
+			GLH = { debug_log = "GP_REPORT GLH Golden Horde" }
 		}
 		if = { limit = { var:gp_region_share >= 0.55 } debug_log = "GP_REPORT    region share >= 0.55" }
 		else_if = { limit = { var:gp_region_share >= 0.25 } debug_log = "GP_REPORT    region share 0.25 - 0.55" }
@@ -296,9 +623,14 @@ gp_debug_report = {
 			limit = { has_variable = gp_threat }
 			if = { limit = { var:gp_threat_share >= 0.75 } debug_log = "GP_REPORT    threat found, 3x or more" }
 			else_if = { limit = { var:gp_threat_share >= 0.67 } debug_log = "GP_REPORT    threat found, 2x - 3x" }
-			else = { debug_log = "GP_REPORT    threat found, 1.5x - 2x" }
+			else_if = { limit = { var:gp_threat_share >= 0.6 } debug_log = "GP_REPORT    threat found, 1.5x - 2x" }
+			else = { debug_log = "GP_REPORT    threat found, expanding neighbour 1x - 1.5x" }
 		}
 		else = { debug_log = "GP_REPORT    no regional threat" }
+		if = { limit = { has_variable = gp_is_expanding } debug_log = "GP_REPORT    expanding (momentum)" }
+		if = { limit = { has_variable = gp_has_intruder } debug_log = "GP_REPORT    foreign intruder in the home region" }
+		if = { limit = { has_variable = gp_has_front_partner } debug_log = "GP_REPORT    has common-front partners" }
+		if = { limit = { has_variable = gp_recent_defeat } debug_log = "GP_REPORT    lost a war recently" }
 		if = { limit = { has_variable = gp_has_profile } debug_log = "GP_REPORT    zone profile historical" }
 		else = { debug_log = "GP_REPORT    zone profile generic" }
 		if = { limit = { has_variable = gp_role_consolidator } debug_log = "GP_REPORT    role consolidator" }
@@ -307,6 +639,15 @@ gp_debug_report = {
 		if = { limit = { has_variable = gp_role_empire } debug_log = "GP_REPORT    role empire" }
 		if = { limit = { has_variable = gp_role_besieged } debug_log = "GP_REPORT    role besieged" }
 		if = { limit = { has_variable = gp_role_status_quo } debug_log = "GP_REPORT    role status quo" }
+		if = { limit = { has_variable = gp_posture_expansion } debug_log = "GP_REPORT    posture expansion" }
+		if = { limit = { has_variable = gp_posture_preparation } debug_log = "GP_REPORT    posture preparation (war target chosen)" }
+		if = { limit = { has_variable = gp_posture_opportunism } debug_log = "GP_REPORT    posture opportunism" }
+		if = { limit = { has_variable = gp_posture_consolidation } debug_log = "GP_REPORT    posture consolidation" }
+		if = { limit = { has_variable = gp_posture_defense } debug_log = "GP_REPORT    posture defense" }
+		if = { limit = { has_variable = gp_posture_common_front } debug_log = "GP_REPORT    posture common front" }
+		if = { limit = { has_variable = gp_posture_recovery } debug_log = "GP_REPORT    posture recovery" }
+		if = { limit = { has_variable = gp_posture_peace } debug_log = "GP_REPORT    posture peace" }
+		if = { limit = { has_variable = gp_posture_isolation } debug_log = "GP_REPORT    posture isolation" }
 		if = { limit = { is_ai = no } debug_log = "GP_REPORT    player country" }
 		debug_log = "GP_REPORT    loc check: root [ROOT.GetCountry.GetName], threat [ROOT.GetCountry.MakeScope.GetVariable('gp_threat').GetCountry.GetName], share [ROOT.GetCountry.MakeScope.GetVariable('gp_region_share').GetValue|2]"
 	}
