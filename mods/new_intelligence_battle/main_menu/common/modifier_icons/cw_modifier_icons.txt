@@ -1,0 +1,22 @@
+﻿# New Intelligence: Battle - icons for the price modifier types in modifier_type_definitions/cw_modifier_types.txt
+# (vanilla pattern: a_clan_retainers_* reuse an existing texture, 00_modifier_icons.txt:5968-5976). Without an entry the
+# game logs "Missing Icon for Modifier" (error.log 2026-11-04).
+
+cw_hq_build_cost_modifier= {
+	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
+}
+cw_hq_reinforce_cost_modifier= {
+	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
+}
+cw_hq_maintenance_cost_modifier= {
+	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
+}
+cw_hq_colonial_build_cost_modifier= {
+	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
+}
+cw_hq_colonial_reinforce_cost_modifier= {
+	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
+}
+cw_hq_colonial_maintenance_cost_modifier= {
+	positive = "gfx/interface/icons/modifier_types/army_auxiliary_maintenance_cost_modifier.dds"
+}

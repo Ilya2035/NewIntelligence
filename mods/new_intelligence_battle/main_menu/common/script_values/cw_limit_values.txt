@@ -151,7 +151,7 @@ cw_colonial_hq_limit = {
 	value = 0
 	if = {
 		limit = {
-			current_age_or_later = { age = age_3_discovery }
+			OR = { current_age = age_3_discovery current_age = age_4_reformation current_age = age_5_absolutism current_age = age_6_revolutions }  # CW: current_age_or_later is unknown at the main-menu stage (error.log 2026-11-04)
 		}
 
 		# ---- theatre: Europe ----
@@ -179,7 +179,7 @@ cw_colonial_hq_limit = {
 			}
 			if = {
 				limit = {
-					current_age_or_later = { age = age_4_reformation }
+					OR = { current_age = age_4_reformation current_age = age_5_absolutism current_age = age_6_revolutions }
 					OR = {
 						# our own overseas land on the continent ...
 						any_owned_location = {
@@ -203,7 +203,7 @@ cw_colonial_hq_limit = {
 				}
 				if = {
 					limit = {
-						current_age_or_later = { age = age_5_absolutism }
+						OR = { current_age = age_5_absolutism current_age = age_6_revolutions }
 						OR = {
 							# our own overseas land on the continent ...
 							any_owned_location = {
@@ -254,7 +254,7 @@ cw_colonial_hq_limit = {
 			}
 			if = {
 				limit = {
-					current_age_or_later = { age = age_4_reformation }
+					OR = { current_age = age_4_reformation current_age = age_5_absolutism current_age = age_6_revolutions }
 					OR = {
 						# our own overseas land on the continent ...
 						any_owned_location = {
@@ -278,7 +278,7 @@ cw_colonial_hq_limit = {
 				}
 				if = {
 					limit = {
-						current_age_or_later = { age = age_5_absolutism }
+						OR = { current_age = age_5_absolutism current_age = age_6_revolutions }
 						OR = {
 							# our own overseas land on the continent ...
 							any_owned_location = {
@@ -329,7 +329,7 @@ cw_colonial_hq_limit = {
 			}
 			if = {
 				limit = {
-					current_age_or_later = { age = age_4_reformation }
+					OR = { current_age = age_4_reformation current_age = age_5_absolutism current_age = age_6_revolutions }
 					OR = {
 						# our own overseas land on the continent ...
 						any_owned_location = {
@@ -353,7 +353,7 @@ cw_colonial_hq_limit = {
 				}
 				if = {
 					limit = {
-						current_age_or_later = { age = age_5_absolutism }
+						OR = { current_age = age_5_absolutism current_age = age_6_revolutions }
 						OR = {
 							# our own overseas land on the continent ...
 							any_owned_location = {
@@ -404,7 +404,7 @@ cw_colonial_hq_limit = {
 			}
 			if = {
 				limit = {
-					current_age_or_later = { age = age_4_reformation }
+					OR = { current_age = age_4_reformation current_age = age_5_absolutism current_age = age_6_revolutions }
 					OR = {
 						# our own overseas land on the continent ...
 						any_owned_location = {
@@ -428,7 +428,7 @@ cw_colonial_hq_limit = {
 				}
 				if = {
 					limit = {
-						current_age_or_later = { age = age_5_absolutism }
+						OR = { current_age = age_5_absolutism current_age = age_6_revolutions }
 						OR = {
 							# our own overseas land on the continent ...
 							any_owned_location = {
@@ -479,7 +479,7 @@ cw_colonial_hq_limit = {
 			}
 			if = {
 				limit = {
-					current_age_or_later = { age = age_4_reformation }
+					OR = { current_age = age_4_reformation current_age = age_5_absolutism current_age = age_6_revolutions }
 					OR = {
 						# our own overseas land on the continent ...
 						any_owned_location = {
@@ -503,7 +503,7 @@ cw_colonial_hq_limit = {
 				}
 				if = {
 					limit = {
-						current_age_or_later = { age = age_5_absolutism }
+						OR = { current_age = age_5_absolutism current_age = age_6_revolutions }
 						OR = {
 							# our own overseas land on the continent ...
 							any_owned_location = {

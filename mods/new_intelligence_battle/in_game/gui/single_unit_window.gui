@@ -5306,8 +5306,6 @@ lateralview = {
 											default_format = "#R"
 										}
 									}
-								}
-								item = {
 									# the siege-only tier in force on THIS army (cw_no_hq_siege_only: a colonial headquarters outside its theatre) -
 									# its own loc name, so the compare above never mistakes it for the no-headquarters penalty; shown whenever present
 									hbox = {

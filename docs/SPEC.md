@@ -184,7 +184,7 @@ Country auto modifier `cw_isolated_tradition_auto`: `potential_trigger = { is_re
 
 ## 10. Game rules (`cw_game_rules.txt`, each setting has `flag = general_rule`)
 `cw_rule_hq_penalty` = `cw_hq_penalty_standard` (default) | `cw_hq_penalty_mild` | `cw_hq_penalty_harsh` (script reads `has_game_rule = cw_hq_penalty_mild` etc.).
-`cw_rule_ai_concentration` = `cw_ai_concentration_on` (default) | `cw_ai_concentration_off` (defines block restores vanilla NAI values).
+`cw_rule_ai_concentration` - REMOVED (2026-11-04 first launch: `defines = { }` inside a game rule is rejected by the parser; the NAI overrides are always active).
 `cw_rule_warscore` = `cw_warscore_on` (default) | `cw_warscore_off` (defines block restores vanilla NWar values).
 `cw_rule_native_penalty` = `cw_native_penalty_on` (default) | `cw_native_penalty_off`.
 `cw_rule_stance_events` = `cw_stance_events_off` (default) | `cw_stance_events_on`.

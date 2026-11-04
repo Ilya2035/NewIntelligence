@@ -217,7 +217,7 @@ types CW_HQOverviewTypes
 			# TimedModifierOwner.GetModifiers / TimedModifier.GetModifier: in_game/gui/shared/modifiers.gui:102-108.
 			# CW TODO verify (first in-game run): vanilla only calls .GetName on TimedModifier.GetModifier. If the markup-free
 			# variant does not resolve on this object, debug.log logs at load "Could not find promote for
-			# 'GetNameWithNoTooltip' in 'TimedModifier.GetModifier.GetNameWithNoTooltip'" (pdx_data_factory.cpp) and the
+			# 'GetNameWithNoTooltip' in 'TimedModifier.GetModifier.GetName'" (pdx_data_factory.cpp) and the
 			# whole visible property is dropped - the marker would then show on EVERY modifier; fall back to .GetName in
 			# that case. Otherwise check that the marker appears on an army carrying cw_no_hq.
 			flowcontainer = {
@@ -228,7 +228,7 @@ types CW_HQOverviewTypes
 				item = {
 					icon = {
 						size = { @cw_ov_icon @cw_ov_icon }
-						visible = "[EqualTo_string(TimedModifier.GetModifier.GetNameWithNoTooltip, Localize('STATIC_MODIFIER_NAME_cw_no_hq'))]"
+						visible = "[EqualTo_string(TimedModifier.GetModifier.GetName, Localize('STATIC_MODIFIER_NAME_cw_no_hq'))]"
 						texture = "gfx/interface/icons/icon_warning.dds"
 						tooltip = "CW_OVERVIEW_NO_HQ_TT"
 					}
