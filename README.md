@@ -128,7 +128,6 @@ in_game/common/biases/                    3 модификатора мнени�
 in_game/common/casus_belli/               «Сдержать региональную угрозу»
 in_game/common/formable_countries/        11 новых формируемых стран
 in_game/common/decisions/                 «Геополитический обзор»
-main_menu/common/static_modifiers/        6 ролей + усиленный темп + 6 темпераментов
 main_menu/common/game_rules, game_concepts, named_colors, coat_of_arms/
 main_menu/localization/{russian,english}/
 loading_screen/common/defines/            gp_defines (красивые границы, культура и вера, дальность, коалиции)

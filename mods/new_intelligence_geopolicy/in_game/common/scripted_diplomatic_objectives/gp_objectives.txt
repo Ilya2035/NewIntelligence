@@ -64,9 +64,9 @@ gp_obj_seek_protector = {
 		exists = capital
 		country_rank_level <= 2
 		OR = {
-			has_country_modifier = gp_role_consolidator
-			has_country_modifier = gp_role_status_quo
-			has_country_modifier = gp_role_besieged
+			has_variable = gp_role_consolidator
+			has_variable = gp_role_status_quo
+			has_variable = gp_role_besieged
 		}
 	}
 
@@ -86,7 +86,7 @@ gp_obj_seek_protector = {
 			}
 			relative_strength = {
 				target = scope:actor
-				value >= 2
+				value >= 0.67		# at least 2x our strength (relative_strength share)
 			}
 		}
 	}
@@ -118,8 +118,8 @@ gp_obj_sphere_minor = {
 		gp_is_active = yes
 		exists = capital
 		OR = {
-			has_country_modifier = gp_role_regional
-			has_country_modifier = gp_role_hegemon
+			has_variable = gp_role_regional
+			has_variable = gp_role_hegemon
 		}
 	}
 
@@ -135,7 +135,7 @@ gp_obj_sphere_minor = {
 			NOT = { is_at_war_with = scope:actor }
 			relative_strength = {
 				target = scope:actor
-				value < 0.35
+				value < 0.26		# weaker than 0.35x our strength (share)
 			}
 		}
 	}
@@ -166,7 +166,7 @@ gp_obj_antagonise_intruder = {
 		is_ai = yes
 		gp_is_active = yes
 		exists = capital
-		NOT = { has_country_modifier = gp_role_status_quo }
+		NOT = { has_variable = gp_role_status_quo }
 	}
 
 	recipient_trigger = {

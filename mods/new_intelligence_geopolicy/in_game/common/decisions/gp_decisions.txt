@@ -4,8 +4,8 @@
 # Format: as the Battle mod (decision_category, potential, allow with custom_tooltip state lines, ai_will_do, option).
 # "Geopolitical overview": a read-only report for the player. The allow block always passes; its custom_tooltip lines
 # show the current state (home-region share known, regional threat found or not, zone profile assigned). The single
-# option refreshes the player's own threat / intruder / common-front calculation right away instead of waiting for
-# the yearly pulse (AI-only modifiers are never applied to a player).
+# option re-runs the yearly calculation (share, threat, intruders, common front, role) right away; nothing in it
+# changes the player country beyond invisible variables and opinions.
 # Loc keys: gp_geopolitical_overview.title / .desc / .a, gp_overview_*_tt.
 ###################################
 
@@ -61,10 +61,7 @@ gp_geopolitical_overview = {
 			custom_tooltip = {
 				text = gp_overview_refresh_tt
 				hidden_effect = {
-					gp_compute_region_share = yes
-					gp_update_threat = yes
-					gp_update_intruders = yes
-					gp_update_common_front = yes
+					gp_yearly_update = yes
 				}
 			}
 		}

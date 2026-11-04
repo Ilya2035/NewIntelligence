@@ -1,5 +1,11 @@
 ﻿###################################
 # New Intelligence: Geopolicy - scripted triggers (prefix gp_)
+#
+# No country modifiers anywhere (author's rule, 2026-11-04: no buffs, only behaviour): roles live in plain country
+# variables (gp_role_*), temperaments are read on the fly from government / capital / faith.
+# Strength comparisons: relative_strength is a SHARE 0..1 = our strength / (our + their), not a ratio
+# (vanilla script_values comment "relative_strength(root) #this is 0..1"). Ratio R -> share R / (1 + R):
+# 1.5x = 0.6, 2x = 0.67, 2.5x = 0.71, 3x = 0.75, 0.7x = 0.41, 0.35x = 0.26.
 ###################################
 
 # Real countries only: no rebels, pirates, mercenary hosts, conquistador hosts, landless tags.
@@ -18,7 +24,7 @@ gp_is_strong_mode = {
 	has_game_rule = gp_mode_strong
 }
 
-# ---- civilizational temperaments ---------------------------------------------------------------
+# ---- civilizational temperaments (read on the fly, no modifier) ----------------------------------
 
 gp_is_steppe = {
 	government_type = government_type:steppe_horde
@@ -49,11 +55,6 @@ gp_is_indian = {
 	capital.sub_continent = sub_continent:south_asia
 }
 
-gp_is_european = {
-	exists = capital
-	capital.continent = continent:europe
-}
-
 gp_is_near_east_muslim = {
 	exists = capital
 	religion.group = religion_group:muslim
@@ -66,24 +67,24 @@ gp_is_near_east_muslim = {
 
 # ---- threat and intruders ----------------------------------------------------------------------
 
-# this = candidate country, scope:gp_self = the country looking for its regional threat (saved in gp_update_threat).
-# GP TODO verify: "relative_strength = { target = X value >= <named value> }" (named value on the RHS); fallback: literal 1.5.
+# this = candidate country, scope:gp_c = the country looking for its regional threat (saved in gp_yearly_update).
+# The candidate must be at least 1.5x as strong (share >= gp_threat_share_min = 0.6).
 gp_is_threat_candidate = {
-	NOT = { this = scope:gp_self }
+	NOT = { this = scope:gp_c }
 	gp_is_real_country = yes
-	NOT = { is_subject_or_below_of = scope:gp_self }
-	NOT = { scope:gp_self = { is_subject_or_below_of = prev } }
-	NOT = { in_union_with = scope:gp_self }
+	NOT = { is_subject_or_below_of = scope:gp_c }
+	NOT = { scope:gp_c = { is_subject_or_below_of = prev } }
+	NOT = { in_union_with = scope:gp_c }
 	relative_strength = {
-		target = scope:gp_self
-		value >= gp_threat_ratio_min
+		target = scope:gp_c
+		value >= gp_threat_share_min
 	}
 	OR = {
-		is_threat_to = scope:gp_self
-		is_neighbor_of = scope:gp_self
+		is_threat_to = scope:gp_c
+		is_neighbor_of = scope:gp_c
 		any_owned_location = {
 			count >= 5
-			region = scope:gp_self.capital.region
+			region = scope:gp_c.capital.region
 		}
 	}
 }
@@ -91,7 +92,7 @@ gp_is_threat_candidate = {
 # this = candidate, $COUNTRY$ = the country whose home region is intruded upon.
 # An intruder keeps >= 3 locations in $COUNTRY$'s home region while its own capital sits in another region AND
 # (another sub-continent OR another religion group). Overlord / subject / union partner never count.
-# GP TODO verify: scope-to-scope comparison "religion.group = X.religion.group" (vanilla only compares with literals).
+# religion.group = X.religion.group: vanilla form ("NOT = { religion.group = root.religion.group }").
 gp_is_intruder_of = {
 	NOT = { this = $COUNTRY$ }
 	gp_is_real_country = yes
@@ -111,6 +112,7 @@ gp_is_intruder_of = {
 	}
 }
 
+# Context where root is the attacker (expansion target candidate lists).
 gp_is_intruder = {
 	gp_is_intruder_of = { COUNTRY = root }
 }
@@ -121,10 +123,21 @@ gp_shares_threat_with = {
 	var:gp_threat ?= $COUNTRY$.var:gp_threat
 }
 
+# ---- roles (plain country variables, set yearly by gp_update_role) --------------------------------
+
+gp_is_expansion_role = {
+	OR = {
+		has_variable = gp_role_consolidator
+		has_variable = gp_role_regional
+		has_variable = gp_role_hegemon
+		has_variable = gp_role_empire
+	}
+}
+
 # ---- diagnostics (test builds) ----------------------------------------------------------------------
 
 # Countries whose yearly state is written to debug.log by gp_debug_report (gp_effects.txt). Remove the call before a
-# public release; the list only bounds the log volume (~90 lines a year).
+# public release; the list only bounds the log volume.
 gp_is_debug_country = {
 	OR = {
 		tag = BRA
@@ -145,27 +158,5 @@ gp_is_debug_country = {
 		tag = SCO
 		tag = NOV
 		tag = VEN
-	}
-}
-
-# ---- roles (read by expansion scores / objectives) ----------------------------------------------
-
-gp_has_any_role = {
-	OR = {
-		has_country_modifier = gp_role_consolidator
-		has_country_modifier = gp_role_regional
-		has_country_modifier = gp_role_hegemon
-		has_country_modifier = gp_role_empire
-		has_country_modifier = gp_role_besieged
-		has_country_modifier = gp_role_status_quo
-	}
-}
-
-gp_is_expansion_role = {
-	OR = {
-		has_country_modifier = gp_role_consolidator
-		has_country_modifier = gp_role_regional
-		has_country_modifier = gp_role_hegemon
-		has_country_modifier = gp_role_empire
 	}
 }

@@ -3,19 +3,27 @@
 #
 # Format: ai_scripted_expansion_score/readme.txt. attacker_potential: root = attacker; target_trigger: root = target,
 # scope:attacker = attacker; score / multiplier: scope:attacker, scope:target.
+# This file carries ALL of the mod's influence on whom the AI wants to fight: there are no country modifiers
+# (author's rule 2026-11-04). Roles (var:gp_role_*) and temperaments (government / capital / faith) act here only.
 # Convention (as vanilla gag_guelphs: multiplier = { add = -0.75 } "much less likely"): the multiplier is read as
 # (1 + value) times the final score, so -0.4 = x0.6 and +0.3 = x1.3. GP TODO verify in the AI war-planning tooltip.
-# Nothing here uses never_attack: the engine's own threat / win-chance / coalition checks stay in charge.
+# A target is picked only when its final score reaches EXPANSION_TARGET_SCORE_NEEDED_TO_PICK = 20, so lowering the
+# multiplier of every target is how a calm role "waits between wars" without any modifier.
+# Strength values are relative_strength shares 0..1 (0.71 = 2.5x). Nothing uses never_attack.
 ###################################
 
-# 1. Zone discipline: a target that is neither a neighbour nor in our home region is worth less the farther it lies.
-#    Empires and steppe hordes are exempt (they think in sub-continents).
+# ================================================================================================
+# Zones and neighbourhood
+# ================================================================================================
+
+# Zone discipline: a target that is neither a neighbour nor in our home region is worth less the farther it lies.
+# Empires and steppe hordes are exempt (they think in sub-continents).
 gp_score_distance_discipline = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
 		exists = capital
-		NOT = { has_country_modifier = gp_role_empire }
+		NOT = { has_variable = gp_role_empire }
 		NOT = { gp_is_steppe = yes }
 	}
 	target_trigger = {
@@ -36,8 +44,12 @@ gp_score_distance_discipline = {
 	}
 }
 
-# 2. Common front: the countries that name the same regional threat as we do (and share our faith group) are not
-#    targets while that threat stands - "we are enemies, but for now it drives us together".
+# ================================================================================================
+# Regional threat, common front, intruders
+# ================================================================================================
+
+# Common front: the countries that name the same regional threat as we do (and share our faith group) are not
+# targets while that threat stands - "we are enemies, but for now it drives us together".
 gp_score_common_front = {
 	attacker_potential = {
 		is_ai = yes
@@ -53,14 +65,14 @@ gp_score_common_front = {
 	}
 }
 
-# 3. Containment: our regional threat is a preferred target as long as it is not hopelessly stronger
-#    (gp_threat_ratio_containable = 2.5; the engine's win-chance check still applies).
+# Containment: our regional threat is a preferred target as long as it is at most 2.5x as strong (share 0.71);
+# the engine's win-chance check still applies.
 gp_score_contain_threat = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
 		has_variable = gp_threat
-		var:gp_threat_ratio <= 2.5
+		var:gp_threat_share <= 0.71
 	}
 	target_trigger = {
 		this ?= scope:attacker.var:gp_threat
@@ -73,7 +85,7 @@ gp_score_contain_threat = {
 	}
 }
 
-# 4. Expel the intruder: a power from another sub-continent / faith holding land in our home region.
+# Expel the intruder: a power from another sub-continent / faith holding land in our home region.
 gp_score_expel_intruder = {
 	attacker_potential = {
 		is_ai = yes
@@ -91,7 +103,7 @@ gp_score_expel_intruder = {
 	}
 }
 
-# 5. Holy restraint: while our regional threat is of another faith group, co-religionists are attacked less eagerly.
+# Holy restraint: while our regional threat is of another faith group, co-religionists are attacked less eagerly.
 gp_score_heathen_threat_restraint = {
 	attacker_potential = {
 		is_ai = yes
@@ -110,13 +122,75 @@ gp_score_heathen_threat_restraint = {
 	}
 }
 
-# 6. Hegemon restraint: a regional hegemon prefers to dominate the small co-religionist neighbours of its region
-#    (subjects, influence) rather than to eat them.
+# ================================================================================================
+# Roles (var:gp_role_*, set yearly by gp_update_role)
+# ================================================================================================
+
+# Consolidator: wants the land of its own region and its neighbours - more eager there.
+gp_score_role_consolidator = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_role_consolidator
+		exists = capital
+	}
+	target_trigger = {
+		OR = {
+			is_neighbor_of = scope:attacker
+			any_owned_location = { region = scope:attacker.capital.region }
+		}
+	}
+	multiplier = {
+		add = 0.25
+		if = {
+			limit = { gp_is_strong_mode = yes }
+			add = 0.15
+		}
+	}
+}
+
+# Regional power: keeps expanding inside its region, a little more eagerly than vanilla.
+gp_score_role_regional = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_role_regional
+		exists = capital
+	}
+	target_trigger = {
+		any_owned_location = { region = scope:attacker.capital.region }
+	}
+	multiplier = {
+		add = 0.1
+		if = {
+			limit = { gp_is_strong_mode = yes }
+			add = 0.15
+		}
+	}
+}
+
+# Hegemon: keeps the peace at home - after a war it waits (3 years) before the next one, and it prefers to dominate
+# the small co-religionist neighbours of its region (subjects, influence) rather than to eat them.
+gp_score_role_hegemon_pause = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_role_hegemon
+		months_since_war < 36
+	}
+	target_trigger = {
+		NOT = { this ?= scope:attacker.var:gp_threat }
+	}
+	multiplier = {
+		add = -0.5
+	}
+}
+
 gp_score_hegemon_restraint = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
-		has_country_modifier = gp_role_hegemon
+		has_variable = gp_role_hegemon
 		exists = capital
 	}
 	target_trigger = {
@@ -130,7 +204,76 @@ gp_score_hegemon_restraint = {
 	}
 }
 
-# 7. Isolationist civilizations: Chinese, Japanese and Korean states value targets outside their home region very little.
+# Empire: digests one conquest before the next - two quiet years after every war.
+gp_score_role_empire_digest = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_role_empire
+		months_since_war < 24
+	}
+	target_trigger = {
+		NOT = { this ?= scope:attacker.var:gp_threat }
+	}
+	multiplier = {
+		add = -0.4
+		if = {
+			limit = { gp_is_strong_mode = yes }
+			add = 0.2
+		}
+	}
+}
+
+# Status quo minors rarely start anything that is not about their own threat.
+gp_score_status_quo = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_role_status_quo
+	}
+	target_trigger = {
+		NOT = { this ?= scope:attacker.var:gp_threat }
+	}
+	multiplier = {
+		add = -0.5
+	}
+}
+
+# Besieged countries fight only their threat.
+gp_score_besieged = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_role_besieged
+	}
+	target_trigger = {
+		NOT = { this ?= scope:attacker.var:gp_threat }
+	}
+	multiplier = {
+		add = -0.8
+	}
+}
+
+# ================================================================================================
+# Civilizational temperaments (read on the fly)
+# ================================================================================================
+
+# The horde wars, raids and takes tribute.
+gp_score_temper_steppe = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		gp_is_steppe = yes
+	}
+	target_trigger = {
+		is_neighbor_of = scope:attacker
+	}
+	multiplier = {
+		add = 0.25
+	}
+}
+
+# Chinese, Japanese and Korean states value targets outside their home region very little.
 gp_score_isolationist_civ = {
 	attacker_potential = {
 		is_ai = yes
@@ -152,32 +295,34 @@ gp_score_isolationist_civ = {
 	}
 }
 
-# 8. Status quo minors rarely start anything that is not about their own threat.
-gp_score_status_quo = {
+# The states of the Indian subcontinent contend with one another.
+gp_score_temper_indian = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
-		has_country_modifier = gp_role_status_quo
+		gp_is_indian = yes
 	}
 	target_trigger = {
-		NOT = { this ?= scope:attacker.var:gp_threat }
+		exists = capital
+		capital.sub_continent = sub_continent:south_asia
 	}
 	multiplier = {
-		add = -0.5
+		add = 0.1
 	}
 }
 
-# 9. Besieged countries fight only their threat.
-gp_score_besieged = {
+# Dar al-Islam: the lands of the infidel next door are the preferred prize.
+gp_score_temper_islamic = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
-		has_country_modifier = gp_role_besieged
+		gp_is_near_east_muslim = yes
 	}
 	target_trigger = {
-		NOT = { this ?= scope:attacker.var:gp_threat }
+		is_neighbor_of = scope:attacker
+		NOT = { religion.group = religion_group:muslim }
 	}
 	multiplier = {
-		add = -0.8
+		add = 0.2
 	}
 }

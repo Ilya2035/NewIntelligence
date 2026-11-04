@@ -2,9 +2,11 @@
 # New Intelligence: Geopolicy - core effects (prefix gp_)
 #
 # One yearly pass per real country (gp_on_actions.txt): home-region share -> regional threat -> intruders ->
-# common front -> (AI only) temperament, stage zones, role. Nothing runs monthly.
-# Scopes saved with save_scope_as live for the whole effect chain; the game-start loop therefore clears them with
-# clear_saved_scope (vanilla: clear_saved_scope = court_host) before the next country is processed.
+# common front -> role (plain variables) -> (AI only) stage zones. Nothing runs monthly.
+# NO country modifiers (author's rule 2026-11-04: no buffs, only behaviour). What a role changes is read by the AI's own
+# war-target scoring (ai_scripted_expansion_score), target lists, diplomatic objectives and zones of interest.
+# The country is saved as scope:gp_c at the start of gp_yearly_update and used instead of root: in the game-start loop
+# (every_country inside on_game_started_after_lobby) root is NOT the country (first in-game test, 2026-11-04).
 ###################################
 
 # ---- entry points --------------------------------------------------------------------------------
@@ -19,68 +21,32 @@ gp_on_game_start_effect = {
 	debug_log = "GP_REPORT game start: setup finished"
 }
 
-# root = country (game start, newly formed country, released country)
+# country scope (game start, newly formed country, released country)
 gp_setup_country = {
 	gp_assign_zone_profile = yes
 	gp_yearly_update = yes
 }
 
-# root = country (yearly_country_pulse)
+# country scope (yearly_country_pulse, game start loop, decision "Geopolitical overview")
 gp_yearly_update = {
+	save_scope_as = gp_c
 	gp_compute_region_share = yes
 	gp_update_threat = yes
 	gp_update_intruders = yes
 	gp_update_common_front = yes
 	if = {
-		limit = {
-			is_ai = yes
-			gp_is_active = yes
-		}
-		gp_apply_temperament = yes
-		gp_update_stage_zones = yes
+		limit = { gp_is_active = yes }
 		gp_update_role = yes
+		if = {
+			limit = { is_ai = yes }
+			gp_update_stage_zones = yes
+		}
 	}
 	else = {
-		gp_clear_ai_modifiers = yes
+		gp_clear_roles = yes
 	}
 	gp_debug_report = yes
-}
-
-# ---- diagnostics (test builds) --------------------------------------------------------------------
-
-# One block of "GP_REPORT <country>: ..." lines in debug.log per marquee country (gp_is_debug_country) at game start
-# and every year. debug_log takes a localization string (eu5.exe effect docs: "ROOT, SCOPE and PREV available");
-# the country is passed as a saved scope because the game-start loop has no country ROOT. Variable display syntax:
-# vanilla loc [COUNTRY.MakeScope.GetVariable('x').GetValue|2] and [...GetVariable('x').GetCountry.GetName].
-# GP TODO remove the call in gp_yearly_update before a public release.
-gp_debug_report = {
-	if = {
-		limit = { gp_is_debug_country = yes }
-		save_scope_as = gp_dbg
-		debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: region share [SCOPE.sCountry('gp_dbg').MakeScope.GetVariable('gp_region_share').GetValue|2]"
-		if = {
-			limit = { has_variable = gp_threat }
-			debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: threat [SCOPE.sCountry('gp_dbg').MakeScope.GetVariable('gp_threat').GetCountry.GetName], ratio [SCOPE.sCountry('gp_dbg').MakeScope.GetVariable('gp_threat_ratio').GetValue|2]"
-		}
-		else = {
-			debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: no regional threat"
-		}
-		if = {
-			limit = { has_variable = gp_has_profile }
-			debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: zone profile historical"
-		}
-		else = {
-			debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: zone profile generic"
-		}
-		if = { limit = { has_country_modifier = gp_role_consolidator } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role consolidator" }
-		if = { limit = { has_country_modifier = gp_role_regional } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role regional power" }
-		if = { limit = { has_country_modifier = gp_role_hegemon } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role hegemon" }
-		if = { limit = { has_country_modifier = gp_role_empire } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role empire" }
-		if = { limit = { has_country_modifier = gp_role_besieged } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role besieged" }
-		if = { limit = { has_country_modifier = gp_role_status_quo } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: role status quo" }
-		if = { limit = { is_ai = no } debug_log = "GP_REPORT [SCOPE.sCountry('gp_dbg').GetName]: player country, no AI role" }
-		clear_saved_scope = gp_dbg
-	}
+	clear_saved_scope = gp_c
 }
 
 # ---- home region share ---------------------------------------------------------------------------
@@ -94,10 +60,10 @@ gp_compute_region_share = {
 		limit = { exists = capital }
 		capital.region = {
 			every_ownable_location_in_region = {
-				root = { change_variable = { name = gp_total_tmp add = 1 } }
+				scope:gp_c = { change_variable = { name = gp_total_tmp add = 1 } }
 				if = {
-					limit = { owner ?= root }
-					root = { change_variable = { name = gp_owned_tmp add = 1 } }
+					limit = { owner ?= scope:gp_c }
+					scope:gp_c = { change_variable = { name = gp_owned_tmp add = 1 } }
 				}
 			}
 		}
@@ -110,24 +76,24 @@ gp_compute_region_share = {
 # ---- regional threat -----------------------------------------------------------------------------
 
 # Strongest qualifying power present in our home region (fallback: among our neighbours) -> var:gp_threat,
-# var:gp_threat_ratio = its strength / ours. Opinion of it is refreshed (remove + add, so it never stacks).
+# var:gp_threat_share = its relative_strength against us (0..1; 0.6 = 1.5x, 0.75 = 3x). Opinion of it is refreshed
+# (remove + add, so it never stacks).
 gp_update_threat = {
 	if = {
 		limit = { has_variable = gp_threat }
 		var:gp_threat ?= {
-			root = {
+			scope:gp_c = {
 				remove_opinion = { target = prev modifier = gp_opinion_regional_threat }
 			}
 		}
 		remove_variable = gp_threat
 	}
 	if = {
-		limit = { has_variable = gp_threat_ratio }
-		remove_variable = gp_threat_ratio
+		limit = { has_variable = gp_threat_share }
+		remove_variable = gp_threat_share
 	}
 	if = {
 		limit = { exists = capital }
-		save_scope_as = gp_self
 		capital.region = {
 			ordered_present_country = {
 				limit = { gp_is_threat_candidate = yes }
@@ -149,13 +115,12 @@ gp_update_threat = {
 			limit = { exists = scope:gp_found_threat }
 			set_variable = { name = gp_threat value = scope:gp_found_threat }
 			set_variable = {
-				name = gp_threat_ratio
-				value = "scope:gp_found_threat.relative_strength(root)"
+				name = gp_threat_share
+				value = "scope:gp_found_threat.relative_strength(scope:gp_c)"
 			}
 			add_opinion = { target = scope:gp_found_threat modifier = gp_opinion_regional_threat }
 		}
 		clear_saved_scope = gp_found_threat
-		clear_saved_scope = gp_self
 	}
 }
 
@@ -167,8 +132,8 @@ gp_update_intruders = {
 		limit = { exists = capital }
 		capital.region = {
 			every_present_country = {
-				limit = { gp_is_intruder = yes }
-				root = {
+				limit = { gp_is_intruder_of = { COUNTRY = scope:gp_c } }
+				scope:gp_c = {
 					remove_opinion = { target = prev modifier = gp_opinion_foreign_intruder }
 					add_opinion = { target = prev modifier = gp_opinion_foreign_intruder }
 				}
@@ -189,63 +154,19 @@ gp_update_common_front = {
 		capital.region = {
 			every_present_country = {
 				limit = {
-					NOT = { this = root }
+					NOT = { this = scope:gp_c }
 					gp_is_real_country = yes
-					gp_shares_threat_with = { COUNTRY = root }
-					religion.group = root.religion.group
-					NOT = { this ?= root.var:gp_threat }
+					gp_shares_threat_with = { COUNTRY = scope:gp_c }
+					religion.group = scope:gp_c.religion.group
+					NOT = { this ?= scope:gp_c.var:gp_threat }
 				}
-				root = {
+				scope:gp_c = {
 					remove_opinion = { target = prev modifier = gp_opinion_common_enemy }
 					add_opinion = { target = prev modifier = gp_opinion_common_enemy }
 				}
 			}
 		}
 	}
-}
-
-# ---- temperament ---------------------------------------------------------------------------------
-
-gp_apply_temperament = {
-	gp_remove_temper_modifiers = yes
-	if = {
-		limit = { gp_is_steppe = yes }
-		add_country_modifier = { modifier = gp_temper_steppe months = 14 mode = replace }
-	}
-	else_if = {
-		limit = { gp_is_sinic = yes }
-		add_country_modifier = { modifier = gp_temper_sinic months = 14 mode = replace }
-	}
-	else_if = {
-		limit = {
-			OR = {
-				gp_is_japanese = yes
-				gp_is_korean = yes
-			}
-		}
-		add_country_modifier = { modifier = gp_temper_insular_east months = 14 mode = replace }
-	}
-	else_if = {
-		limit = { gp_is_indian = yes }
-		add_country_modifier = { modifier = gp_temper_indian months = 14 mode = replace }
-	}
-	else_if = {
-		limit = { gp_is_near_east_muslim = yes }
-		add_country_modifier = { modifier = gp_temper_islamic months = 14 mode = replace }
-	}
-	else_if = {
-		limit = { gp_is_european = yes }
-		add_country_modifier = { modifier = gp_temper_european months = 14 mode = replace }
-	}
-}
-
-gp_remove_temper_modifiers = {
-	if = { limit = { has_country_modifier = gp_temper_steppe } remove_country_modifier = gp_temper_steppe }
-	if = { limit = { has_country_modifier = gp_temper_sinic } remove_country_modifier = gp_temper_sinic }
-	if = { limit = { has_country_modifier = gp_temper_insular_east } remove_country_modifier = gp_temper_insular_east }
-	if = { limit = { has_country_modifier = gp_temper_indian } remove_country_modifier = gp_temper_indian }
-	if = { limit = { has_country_modifier = gp_temper_islamic } remove_country_modifier = gp_temper_islamic }
-	if = { limit = { has_country_modifier = gp_temper_european } remove_country_modifier = gp_temper_european }
 }
 
 # ---- stages --------------------------------------------------------------------------------------
@@ -268,17 +189,17 @@ gp_update_stage_zones = {
 	}
 }
 
-# ---- roles ---------------------------------------------------------------------------------------
+# ---- roles (plain variables, invisible to the player) ----------------------------------------------
 
 gp_update_role = {
-	gp_remove_role_modifiers = yes
+	gp_clear_roles = yes
 	if = {
 		limit = {
 			has_variable = gp_threat
-			var:gp_threat_ratio >= 3
-			var:gp_threat ?= { is_neighbor_of = root }
+			var:gp_threat_share >= 0.75
+			var:gp_threat ?= { is_neighbor_of = scope:gp_c }
 		}
-		add_country_modifier = { modifier = gp_role_besieged months = 14 mode = replace }
+		set_variable = gp_role_besieged
 	}
 	else_if = {
 		limit = {
@@ -293,11 +214,11 @@ gp_update_role = {
 				}
 			}
 		}
-		add_country_modifier = { modifier = gp_role_empire months = 14 mode = replace }
+		set_variable = gp_role_empire
 	}
 	else_if = {
 		limit = { var:gp_region_share >= 0.55 }
-		add_country_modifier = { modifier = gp_role_hegemon months = 14 mode = replace }
+		set_variable = gp_role_hegemon
 	}
 	else_if = {
 		limit = {
@@ -309,7 +230,7 @@ gp_update_role = {
 				}
 			}
 		}
-		add_country_modifier = { modifier = gp_role_regional months = 14 mode = replace }
+		set_variable = gp_role_regional
 	}
 	else_if = {
 		limit = {
@@ -320,36 +241,73 @@ gp_update_role = {
 			NOT = { ai_personality = ai_personality:ai_expansionist }
 			NOT = { ai_personality = ai_personality:ai_opportunistic }
 		}
-		add_country_modifier = { modifier = gp_role_status_quo months = 14 mode = replace }
+		set_variable = gp_role_status_quo
 	}
 	else = {
-		add_country_modifier = { modifier = gp_role_consolidator months = 14 mode = replace }
+		set_variable = gp_role_consolidator
 	}
+}
+
+gp_clear_roles = {
+	if = { limit = { has_variable = gp_role_consolidator } remove_variable = gp_role_consolidator }
+	if = { limit = { has_variable = gp_role_regional } remove_variable = gp_role_regional }
+	if = { limit = { has_variable = gp_role_hegemon } remove_variable = gp_role_hegemon }
+	if = { limit = { has_variable = gp_role_empire } remove_variable = gp_role_empire }
+	if = { limit = { has_variable = gp_role_besieged } remove_variable = gp_role_besieged }
+	if = { limit = { has_variable = gp_role_status_quo } remove_variable = gp_role_status_quo }
+}
+
+# ---- diagnostics (test builds) --------------------------------------------------------------------
+
+# A block of "GP_REPORT ..." lines in debug.log per marquee country (gp_is_debug_country) at game start and every year.
+# First test (2026-11-04): debug_log loc cannot see saved scopes ([SCOPE.sCountry('x')] printed a null country), so the
+# country is named by a literal tag (switch on tag, verified in game) and values are printed as literal buckets. One
+# "loc check" line probes whether [ROOT...] works (yes in the yearly pulse expected, no at game start).
+# GP TODO remove the call in gp_yearly_update before a public release.
+gp_debug_report = {
 	if = {
-		limit = {
-			gp_is_strong_mode = yes
-			OR = {
-				has_country_modifier = gp_role_consolidator
-				has_country_modifier = gp_role_regional
-				has_country_modifier = gp_role_empire
-			}
+		limit = { gp_is_debug_country = yes }
+		switch = {
+			trigger = tag
+			BRA = { debug_log = "GP_REPORT BRA Brandenburg" }
+			HUN = { debug_log = "GP_REPORT HUN Hungary" }
+			TUR = { debug_log = "GP_REPORT TUR Ottomans" }
+			FRA = { debug_log = "GP_REPORT FRA France" }
+			ENG = { debug_log = "GP_REPORT ENG England" }
+			POL = { debug_log = "GP_REPORT POL Poland" }
+			MOS = { debug_log = "GP_REPORT MOS Muscovy" }
+			CAS = { debug_log = "GP_REPORT CAS Castile" }
+			BYZ = { debug_log = "GP_REPORT BYZ Byzantium" }
+			SER = { debug_log = "GP_REPORT SER Serbia" }
+			BOH = { debug_log = "GP_REPORT BOH Bohemia" }
+			HAB = { debug_log = "GP_REPORT HAB Austria" }
+			LIT = { debug_log = "GP_REPORT LIT Lithuania" }
+			DAN = { debug_log = "GP_REPORT DAN Denmark" }
+			MAM = { debug_log = "GP_REPORT MAM Mamluks" }
+			SCO = { debug_log = "GP_REPORT SCO Scotland" }
+			NOV = { debug_log = "GP_REPORT NOV Novgorod" }
+			VEN = { debug_log = "GP_REPORT VEN Venice" }
 		}
-		add_country_modifier = { modifier = gp_strong_tempo months = 14 mode = replace }
+		if = { limit = { var:gp_region_share >= 0.55 } debug_log = "GP_REPORT    region share >= 0.55" }
+		else_if = { limit = { var:gp_region_share >= 0.25 } debug_log = "GP_REPORT    region share 0.25 - 0.55" }
+		else_if = { limit = { var:gp_region_share >= 0.1 } debug_log = "GP_REPORT    region share 0.10 - 0.25" }
+		else = { debug_log = "GP_REPORT    region share < 0.10" }
+		if = {
+			limit = { has_variable = gp_threat }
+			if = { limit = { var:gp_threat_share >= 0.75 } debug_log = "GP_REPORT    threat found, 3x or more" }
+			else_if = { limit = { var:gp_threat_share >= 0.67 } debug_log = "GP_REPORT    threat found, 2x - 3x" }
+			else = { debug_log = "GP_REPORT    threat found, 1.5x - 2x" }
+		}
+		else = { debug_log = "GP_REPORT    no regional threat" }
+		if = { limit = { has_variable = gp_has_profile } debug_log = "GP_REPORT    zone profile historical" }
+		else = { debug_log = "GP_REPORT    zone profile generic" }
+		if = { limit = { has_variable = gp_role_consolidator } debug_log = "GP_REPORT    role consolidator" }
+		if = { limit = { has_variable = gp_role_regional } debug_log = "GP_REPORT    role regional power" }
+		if = { limit = { has_variable = gp_role_hegemon } debug_log = "GP_REPORT    role hegemon" }
+		if = { limit = { has_variable = gp_role_empire } debug_log = "GP_REPORT    role empire" }
+		if = { limit = { has_variable = gp_role_besieged } debug_log = "GP_REPORT    role besieged" }
+		if = { limit = { has_variable = gp_role_status_quo } debug_log = "GP_REPORT    role status quo" }
+		if = { limit = { is_ai = no } debug_log = "GP_REPORT    player country" }
+		debug_log = "GP_REPORT    loc check: root [ROOT.GetCountry.GetName], threat [ROOT.GetCountry.MakeScope.GetVariable('gp_threat').GetCountry.GetName], share [ROOT.GetCountry.MakeScope.GetVariable('gp_region_share').GetValue|2]"
 	}
-}
-
-gp_remove_role_modifiers = {
-	if = { limit = { has_country_modifier = gp_role_consolidator } remove_country_modifier = gp_role_consolidator }
-	if = { limit = { has_country_modifier = gp_role_regional } remove_country_modifier = gp_role_regional }
-	if = { limit = { has_country_modifier = gp_role_hegemon } remove_country_modifier = gp_role_hegemon }
-	if = { limit = { has_country_modifier = gp_role_empire } remove_country_modifier = gp_role_empire }
-	if = { limit = { has_country_modifier = gp_role_besieged } remove_country_modifier = gp_role_besieged }
-	if = { limit = { has_country_modifier = gp_role_status_quo } remove_country_modifier = gp_role_status_quo }
-	if = { limit = { has_country_modifier = gp_strong_tempo } remove_country_modifier = gp_strong_tempo }
-}
-
-# Player took the tag (or the game rule is off): no AI-only modifiers must remain visible on the country.
-gp_clear_ai_modifiers = {
-	gp_remove_role_modifiers = yes
-	gp_remove_temper_modifiers = yes
 }

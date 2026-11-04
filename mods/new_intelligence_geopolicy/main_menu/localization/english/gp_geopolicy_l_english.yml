@@ -20,44 +20,16 @@
  gp_opinion_foreign_intruder: "Foreign power in our region"
  gp_opinion_common_enemy: "Shares our regional threat"
 
- ### Behavioral modifiers - roles (main_menu/common/static_modifiers/gp_country_modifiers.txt)
- STATIC_MODIFIER_NAME_gp_role_consolidator: "Geopolicy: Consolidator"
- STATIC_MODIFIER_DESC_gp_role_consolidator: "This country is still gathering its own [area|e] and [region|e]. It wants land rather than subjects, waits less between wars and strikes when the moment comes."
- STATIC_MODIFIER_NAME_gp_role_regional: "Geopolicy: Regional Power"
- STATIC_MODIFIER_DESC_gp_role_regional: "This country owns a good part of its home [region|e]. It keeps expanding there and begins to prefer control over the small states around it to outright annexation."
- STATIC_MODIFIER_NAME_gp_role_hegemon: "Geopolicy: Regional Hegemon"
- STATIC_MODIFIER_DESC_gp_role_hegemon: "This country dominates its home [region|e]. It projects power beyond it, cultivates the minors of its region, keeps the peace at home and looks to distant ambitions."
- STATIC_MODIFIER_NAME_gp_role_empire: "Geopolicy: Empire"
- STATIC_MODIFIER_DESC_gp_role_empire: "This country spans several regions. Far lands become subjects rather than provinces, and it digests one conquest before the next."
- STATIC_MODIFIER_NAME_gp_role_besieged: "Geopolicy: Besieged"
- STATIC_MODIFIER_DESC_gp_role_besieged: "A far stronger neighbour threatens this country's whole [region|e]. It defends, arms, seeks allies and a protector, and starts no other war."
- STATIC_MODIFIER_NAME_gp_role_status_quo: "Geopolicy: Status Quo"
- STATIC_MODIFIER_DESC_gp_role_status_quo: "A small and content state: it trades, keeps its stability and rarely starts anything."
- STATIC_MODIFIER_NAME_gp_strong_tempo: "Geopolicy: Strong Tempo"
- STATIC_MODIFIER_DESC_gp_strong_tempo: "Game rule $setting_gp_mode_strong$: the expanding roles wait less between wars and fear coalitions a little less."
 
- ### Behavioral modifiers - temperaments
- STATIC_MODIFIER_NAME_gp_temper_european: "Temperament: European"
- STATIC_MODIFIER_DESC_gp_temper_european: "Expands, invests in institutions and trade, and favours colonial policies."
- STATIC_MODIFIER_NAME_gp_temper_steppe: "Temperament: Steppe"
- STATIC_MODIFIER_DESC_gp_temper_steppe: "The horde wars, raids and takes tribute; it fears no coalition and does not wait to integrate what it has taken."
- STATIC_MODIFIER_NAME_gp_temper_sinic: "Temperament: Middle Kingdom"
- STATIC_MODIFIER_DESC_gp_temper_sinic: "Looks inward: unites the Chinese lands, keeps stability and institutions, and has little interest in the world beyond."
- STATIC_MODIFIER_NAME_gp_temper_insular_east: "Temperament: Island Realm"
- STATIC_MODIFIER_DESC_gp_temper_insular_east: "Japan and Korea stay at home: wars only with a [casus_belli|e], long pauses between them, trade over conquest."
- STATIC_MODIFIER_NAME_gp_temper_indian: "Temperament: Indian"
- STATIC_MODIFIER_DESC_gp_temper_indian: "The states of the subcontinent contend with one another and care little for distant coalitions."
- STATIC_MODIFIER_NAME_gp_temper_islamic: "Temperament: Dar al-Islam"
- STATIC_MODIFIER_DESC_gp_temper_islamic: "The lands of the infidel are the preferred prize; religious unity matters."
 
  ### Game rules (main_menu/common/game_rules/gp_game_rules.txt)
  rule_gp_rule_mode: "Geopolicy AI"
  setting_gp_mode_standard: "Standard"
  setting_gp_mode_standard_desc: "AI countries play geopolitical roles: they secure their own area and region first, respect zones of interest, react to the regional threat and to foreign intruders, and prefer clean borders."
  setting_gp_mode_strong: "Strong"
- setting_gp_mode_strong_desc: "As standard, and the expanding roles (consolidators, regional powers, empires) keep a faster tempo between wars and tolerate coalitions a little more."
+ setting_gp_mode_strong_desc: "As standard, and consolidators and regional powers value targets in their own region even more, while empires wait less after a war before the next one."
  setting_gp_mode_off: "Off"
- setting_gp_mode_off_desc: "No roles, stages, threat reactions or scripted war scoring. The define changes (whole areas and regions over scattered locations, closed exclaves, unattractive far land, faith-aware outrage) and the new formable countries remain."
+ setting_gp_mode_off_desc: "No roles, stages, threat reactions or scripted war-target scoring. The define changes (whole areas and regions over scattered locations, closed exclaves, unattractive far land, faith-aware outrage) and the new formable countries remain."
 
  ### Decision (in_game/common/decisions/gp_decisions.txt)
  gp_geopolitical_overview.title: "Geopolitical Overview"
@@ -84,6 +56,13 @@
  gp_score_isolationist_civ: "Beyond our world"
  gp_score_status_quo: "We prefer the status quo"
  gp_score_besieged: "We are besieged"
+ gp_score_role_consolidator: "We gather our own region"
+ gp_score_role_regional: "Our region comes first"
+ gp_score_role_hegemon_pause: "A hegemon keeps the peace after a war"
+ gp_score_role_empire_digest: "An empire digests its conquests first"
+ gp_score_temper_steppe: "The horde raids its neighbours"
+ gp_score_temper_indian: "The princes of Hindustan contend"
+ gp_score_temper_islamic: "The lands of the infidel next door"
 
  ### Diplomatic objectives
  gp_obj_common_front: "Common front against the regional threat"

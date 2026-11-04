@@ -3,7 +3,8 @@
 #
 # Static values are referenced by name wherever a number is accepted (_script_values.info). The role / stage thresholds
 # are ALSO written as literals in gp_effects.txt (comparisons "var:x >= 0.25"), because a named value on the right-hand
-# side of a variable comparison is unverified - keep both in sync (GP TODO verify: replace the literals by these names).
+# side of a variable comparison is unverified - keep both in sync.
+# Strength values are SHARES 0..1 (relative_strength = our strength / (our + their)): ratio R -> share R / (1 + R).
 ###################################
 
 # ---- stages (share of the home region's ownable locations that we own) ----------------------
@@ -15,10 +16,10 @@ gp_empire_min_locations = 220		# hegemon share + this many locations -> empire
 gp_empire_rank_min_locations = 150	# empire rank + this many locations -> empire
 gp_status_quo_max_locations = 8		# tiny county with a quiet personality -> status quo
 
-# ---- threat ----------------------------------------------------------------------------------
-gp_threat_ratio_min = 1.5			# a candidate must be at least this much stronger than us (relative_strength)
-gp_threat_ratio_besieged = 3		# ... and this much stronger + bordering us -> role besieged
-gp_threat_ratio_containable = 2.5	# below this the threat is a preferred war target (containment)
+# ---- threat (relative_strength shares) -------------------------------------------------------
+gp_threat_share_min = 0.6			# a candidate must be at least 1.5x as strong as we are
+gp_threat_share_besieged = 0.75		# 3x as strong and bordering us -> role besieged (literal in gp_update_role)
+gp_threat_share_containable = 0.71	# up to 2.5x as strong the threat is a preferred war target (literal in scores / targets)
 
 # ---- helpers (country scope) -----------------------------------------------------------------
 

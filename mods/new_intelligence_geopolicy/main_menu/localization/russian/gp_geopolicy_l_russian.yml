@@ -20,42 +20,14 @@
  gp_opinion_foreign_intruder: "Иноземная сила в нашем регионе"
  gp_opinion_common_enemy: "Общая угроза региону"
 
- ### Поведенческие модификаторы - роли (main_menu/common/static_modifiers/gp_country_modifiers.txt)
- STATIC_MODIFIER_NAME_gp_role_consolidator: "Геополитика: собиратель"
- STATIC_MODIFIER_DESC_gp_role_consolidator: "Страна ещё собирает свою [area|e] и свой [region|e]. Ей нужна земля, а не подданные; она меньше ждёт между войнами и бьёт, когда приходит момент."
- STATIC_MODIFIER_NAME_gp_role_regional: "Геополитика: региональная держава"
- STATIC_MODIFIER_DESC_gp_role_regional: "Страна владеет заметной частью домашнего [region|e]. Она продолжает расширяться там и начинает предпочитать контроль над малыми соседями прямой аннексии."
- STATIC_MODIFIER_NAME_gp_role_hegemon: "Геополитика: региональный гегемон"
- STATIC_MODIFIER_DESC_gp_role_hegemon: "Страна господствует в домашнем [region|e]. Она проецирует силу вовне, опекает малые государства региона, бережёт мир дома и смотрит на дальние амбиции."
- STATIC_MODIFIER_NAME_gp_role_empire: "Геополитика: империя"
- STATIC_MODIFIER_DESC_gp_role_empire: "Страна раскинулась на несколько регионов. Дальние земли становятся подданными, а не провинциями, и каждое завоевание переваривается перед следующим."
- STATIC_MODIFIER_NAME_gp_role_besieged: "Геополитика: осаждённая"
- STATIC_MODIFIER_DESC_gp_role_besieged: "Гораздо более сильный сосед угрожает всему [region|e] этой страны. Она обороняется, вооружается, ищет союзников и защитника и не начинает других войн."
- STATIC_MODIFIER_NAME_gp_role_status_quo: "Геополитика: статус-кво"
- STATIC_MODIFIER_DESC_gp_role_status_quo: "Маленькое и довольное государство: торгует, бережёт стабильность и редко что-то начинает."
- STATIC_MODIFIER_NAME_gp_strong_tempo: "Геополитика: усиленный темп"
- STATIC_MODIFIER_DESC_gp_strong_tempo: "Правило игры $setting_gp_mode_strong$: расширяющиеся роли меньше ждут между войнами и чуть меньше боятся коалиций."
 
- ### Поведенческие модификаторы - темпераменты
- STATIC_MODIFIER_NAME_gp_temper_european: "Темперамент: европейский"
- STATIC_MODIFIER_DESC_gp_temper_european: "Расширяется, вкладывается в институты и торговлю, склоняется к колониальной политике."
- STATIC_MODIFIER_NAME_gp_temper_steppe: "Темперамент: степной"
- STATIC_MODIFIER_DESC_gp_temper_steppe: "Орда воюет, грабит и берёт дань; коалиций не боится и не ждёт, пока захваченное усвоится."
- STATIC_MODIFIER_NAME_gp_temper_sinic: "Темперамент: Срединное государство"
- STATIC_MODIFIER_DESC_gp_temper_sinic: "Смотрит внутрь: объединяет китайские земли, бережёт стабильность и институты и мало интересуется внешним миром."
- STATIC_MODIFIER_NAME_gp_temper_insular_east: "Темперамент: островное царство"
- STATIC_MODIFIER_DESC_gp_temper_insular_east: "Япония и Корея сидят дома: войны только с [casus_belli|e], долгие паузы между ними, торговля вместо завоеваний."
- STATIC_MODIFIER_NAME_gp_temper_indian: "Темперамент: индийский"
- STATIC_MODIFIER_DESC_gp_temper_indian: "Государства субконтинента соперничают друг с другом и мало думают о дальних коалициях."
- STATIC_MODIFIER_NAME_gp_temper_islamic: "Темперамент: Дар аль-ислам"
- STATIC_MODIFIER_DESC_gp_temper_islamic: "Земли неверных - желанная добыча; религиозное единство важно."
 
  ### Правила игры (main_menu/common/game_rules/gp_game_rules.txt)
  rule_gp_rule_mode: "Геополитика ИИ"
  setting_gp_mode_standard: "Стандартная"
  setting_gp_mode_standard_desc: "Страны ИИ играют геополитические роли: сначала собирают свою область и регион, уважают зоны интересов, реагируют на угрозу региону и на иноземных пришельцев и предпочитают красивые границы."
  setting_gp_mode_strong: "Усиленная"
- setting_gp_mode_strong_desc: "Как стандартная, но расширяющиеся роли (собиратели, региональные державы, империи) держат более быстрый темп между войнами и чуть терпимее к коалициям."
+ setting_gp_mode_strong_desc: "Как стандартная, но собиратели и региональные державы ещё сильнее ценят цели в своём регионе, а империи меньше выжидают после войны перед следующей."
  setting_gp_mode_off: "Выключена"
  setting_gp_mode_off_desc: "Без ролей, стадий, реакции на угрозу и скриптовой оценки целей войны. Изменения defines (целые области и регионы вместо разрозненных локаций, закрытые анклавы, непривлекательная дальняя земля, возмущение с учётом веры) и новые формируемые страны остаются."
 
@@ -84,6 +56,13 @@
  gp_score_isolationist_civ: "За пределами нашего мира"
  gp_score_status_quo: "Мы предпочитаем статус-кво"
  gp_score_besieged: "Мы осаждены"
+ gp_score_role_consolidator: "Собираем свой регион"
+ gp_score_role_regional: "Сначала наш регион"
+ gp_score_role_hegemon_pause: "Гегемон бережёт мир после войны"
+ gp_score_role_empire_digest: "Империя сначала переваривает завоёванное"
+ gp_score_temper_steppe: "Орда ходит в набеги на соседей"
+ gp_score_temper_indian: "Князья Индостана соперничают"
+ gp_score_temper_islamic: "Земли неверных по соседству"
 
  ### Дипломатические цели
  gp_obj_common_front: "Общий фронт против угрозы региону"

@@ -12,9 +12,9 @@ gp_target_contain_threat = {
 		is_ai = yes
 		gp_is_active = yes
 		has_variable = gp_threat
-		var:gp_threat_ratio <= 2.5
+		var:gp_threat_share <= 0.71		# at most 2.5x as strong (relative_strength share)
 		months_since_war >= 24
-		NOT = { has_country_modifier = gp_role_status_quo }
+		NOT = { has_variable = gp_role_status_quo }
 	}
 	candidate_list = {
 		var:gp_threat ?= {
@@ -47,8 +47,8 @@ gp_target_expel_intruder = {
 		gp_is_active = yes
 		exists = capital
 		months_since_war >= 12
-		NOT = { has_country_modifier = gp_role_status_quo }
-		NOT = { has_country_modifier = gp_role_besieged }
+		NOT = { has_variable = gp_role_status_quo }
+		NOT = { has_variable = gp_role_besieged }
 	}
 	candidate_list = {
 		capital.region = {
@@ -92,7 +92,7 @@ gp_target_home_region = {
 					NOT = { has_truce_with = root }
 					relative_strength = {
 						target = root
-						value < 0.7
+						value < 0.41		# weaker than 0.7x our strength (share)
 					}
 				}
 				add_to_list = source

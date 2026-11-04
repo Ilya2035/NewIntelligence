@@ -87,7 +87,9 @@ for my $rel ('in_game/common/area_preferences/gp_zones.txt', 'in_game/common/for
 	my $fm = slurp("$mod/in_game/common/formable_countries/gp_formables.txt");
 	while ($fm =~ /^(gp_[a-z_0-9]+_f)\s*=\s*\{/mg) { for my $k ($1, "$1_desc") { next if $lockeys{$k}; $errors++; print "ERROR  loc: missing '$k'\n" } }
 	for my $tag (sort keys %formable_tags) { for my $k ($tag, "${tag}_ADJ") { next if $lockeys{$k}; $errors++; print "ERROR  loc: missing '$k'\n" } }
-	my $sm = slurp("$mod/main_menu/common/static_modifiers/gp_country_modifiers.txt");
+	# country modifiers were removed on 2026-11-04 (no buffs); check them only if such a file comes back
+	my $smf = "$mod/main_menu/common/static_modifiers/gp_country_modifiers.txt";
+	my $sm = -f $smf ? slurp($smf) : "";
 	while ($sm =~ /^(gp_[a-z_0-9]+)\s*=\s*\{/mg) { for my $k ("STATIC_MODIFIER_NAME_$1", "STATIC_MODIFIER_DESC_$1") { next if $lockeys{$k}; $errors++; print "ERROR  loc: missing '$k'\n" } }
 	# coat of arms for every formable tag
 	my $coa = ''; for my $f (glob("$mod/main_menu/common/coat_of_arms/coat_of_arms/*.txt")) { $coa .= slurp($f) }
