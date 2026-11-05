@@ -365,3 +365,18 @@ gp_age_scale = {
 	else_if = { limit = { current_age = age_5_absolutism } add = 4 }
 	else_if = { limit = { current_age = age_6_revolutions } add = 5 }
 }
+
+# v0.3 "Balance of power" tab: the region share as a whole percent, and the share for ordering (0 without the variable).
+gp_region_pct_value = {
+	value = gp_region_share_value
+	multiply = 100
+	round = yes
+}
+
+gp_region_share_or_zero = {
+	value = 0
+	if = {
+		limit = { has_variable = gp_region_share }
+		add = var:gp_region_share
+	}
+}

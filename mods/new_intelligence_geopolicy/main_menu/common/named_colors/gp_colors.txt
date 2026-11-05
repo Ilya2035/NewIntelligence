@@ -1,6 +1,7 @@
 ﻿# New Intelligence: Geopolicy - map colors of the new formable countries (format: named_colors/02_map.txt)
 colors = {
 	map_GAE = rgb { 36 86 160 }			# Alba - saltire blue
+	map_GHU = rgb { 140 60 60 }			# Great Hungary - Arpad red
 	map_AMC = rgb { 70 70 80 }			# Armorica - ermine black-grey
 	map_AGV = rgb { 185 40 50 }			# Angevin Empire - Plantagenet red
 	map_WND = rgb { 200 170 60 }		# Kingdom of the Wends - Mecklenburg gold

@@ -1,0 +1,215 @@
+﻿###################################
+# New Intelligence: Geopolicy - "Balance of power" tab of the Geopolitics window (v0.3)
+#
+# Overrides the vanilla template geopolitics_tabs (in_game/gui/maritime_lateralview.gui; used by the expansion,
+# expeditions, maritime and diseases lateral views) by name - the last loaded template wins, as with
+# gp_disposition_tooltip.gui. A mod cannot register a lateral view of its own, so the tab opens the vanilla 'expansion'
+# view and sets the GUI variable gp_balance = yes; the panel below the tabs is then shown with a minimum height larger
+# than the screen, which pushes the vanilla content of the view out of sight. The vanilla tabs set gp_balance = no.
+# Vanilla tab behaviour kept: texts, tooltips, the landlocked check of the maritime tab; the "Open tab" action tooltip
+# is replaced by plain onclick (two onclick lines run in order, vanilla game_rules.gui / food_production_lateralview.gui).
+# Data: script lists gp_bp_* on the player (gp_update_balance, in_game/common/scripted_effects/gp_region_effects.txt),
+# shown with MakeScope.GetList as vanilla treasure_fleet "visited_countries". Battle mod GUI lessons: no percent sizes
+# inside list items, no datamodel query inside the items of the same datamodel.
+# Text: GP_BP_* (gp_geopolicy_l_*.yml), customizable_localization/gp_brief.txt (gp_bp_*).
+###################################
+
+template geopolitics_tabs {
+	header_main_tabs = { #TABS
+		blockoverride "content" {
+			button_main_tab_alt = {
+				layoutpolicy_horizontal = expanding
+				blockoverride "tab_text"{
+					text = "GP_BALANCE_TAB"
+				}
+				tooltip = "GP_BALANCE_TAB_TT"
+				onclick = "[GetVariableSystem.Set('gp_balance', 'yes')]"
+				onclick = "[OpenLateralView('expansion')]"
+				down = "[And(GetVariableSystem.HasValue('gp_balance', 'yes'), IsLateralViewOpened('expansion'))]"
+			}
+
+			button_main_tab_alt = {
+				layoutpolicy_horizontal = expanding
+				blockoverride "tab_text"{
+					text = "EXPANSION_TAB"
+				}
+				tooltipwidget = {
+					using = TabExpansionTooltip
+				}
+				onclick = "[GetVariableSystem.Set('gp_balance', 'no')]"
+				onclick = "[OpenLateralView('expansion')]"
+				down = "[And(IsLateralViewOpened('expansion'), Not(GetVariableSystem.HasValue('gp_balance', 'yes')))]"
+			}
+
+			button_main_tab_alt = {
+				layoutpolicy_horizontal = expanding
+				blockoverride "tab_text"{
+					text = "EXPEDITIONS_TAB"
+				}
+				tooltipwidget = {
+					using = SubTabExpeditionsTooltip
+				}
+				onclick = "[GetVariableSystem.Set('gp_balance', 'no')]"
+				onclick = "[OpenLateralView('expeditions')]"
+				down = "[IsLateralViewOpened('expeditions')]"
+			}
+
+			button_main_tab_alt = {
+				layoutpolicy_horizontal = expanding
+				blockoverride "tab_text"{
+					text = "MARITIME_TAB"
+				}
+				tooltipwidget = {
+					using = TabMaritimeTooltip
+				}
+				enabled = "[GreaterThan_CFixedPoint(Player.GetTotalCoastalPopulation, '(CFixedPoint)0')]"
+				onclick = "[GetVariableSystem.Set('gp_balance', 'no')]"
+				onclick = "[OpenLateralView('maritime')]"
+				down = "[IsLateralViewOpened('maritime')]"
+			}
+		}
+	}
+
+	# ---- the Balance of power panel ----
+	vbox = {
+		name = "gp_balance_panel"
+		visible = "[And(GetVariableSystem.HasValue('gp_balance', 'yes'), IsLateralViewOpened('expansion'))]"
+		datacontext = "[Player]"
+		layoutpolicy_horizontal = expanding
+		minimumsize = { -1 3000 }
+		using = bg_main_inner_alt
+		using = window_main_tabs_margin_alt
+		spacing = 6
+
+		# ---- our region ----
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			default_format = "#yellow_titles"
+			using = Font_Size_Medium
+			text = "GP_BP_TITLE"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_OUR_SHARE"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_STATUS"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			visible = "[Player.MakeScope.GetVariable('gp_bp_holder').IsSet]"
+			text = "GP_BP_HOLDER"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_TENSION"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_RIGHT"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			visible = "[Player.MakeScope.GetVariable('gp_threat').IsSet]"
+			text = "GP_BRIEF_THREAT"
+		}
+
+		# ---- the contenders of our region ----
+		text_single = {
+			layoutpolicy_horizontal = expanding
+			default_format = "#yellow_titles"
+			text = "GP_BP_CONTENDERS_TITLE"
+		}
+		vbox = {
+			layoutpolicy_horizontal = expanding
+			datamodel = "[Player.MakeScope.GetList('gp_bp_contenders')]"
+			item = {
+				hbox = {
+					layoutpolicy_horizontal = expanding
+					spacing = 6
+					country_flag_small = {
+						datacontext = "[Scope.GetCountry]"
+					}
+					text_multi = {
+						datacontext = "[Scope.GetCountry]"
+						layoutpolicy_horizontal = expanding
+						text = "GP_BP_ROW"
+					}
+				}
+			}
+		}
+
+		# ---- outside powers holding land in our region ----
+		text_single = {
+			layoutpolicy_horizontal = expanding
+			default_format = "#yellow_titles"
+			text = "GP_BP_OUTSIDERS_TITLE"
+		}
+		text_single = {
+			layoutpolicy_horizontal = expanding
+			visible = "[Not(Player.MakeScope.GetVariable('gp_has_intruder').IsSet)]"
+			text = "GP_BP_OUTSIDERS_NOTE"
+		}
+		vbox = {
+			layoutpolicy_horizontal = expanding
+			datamodel = "[Player.MakeScope.GetList('gp_bp_outsiders')]"
+			item = {
+				hbox = {
+					layoutpolicy_horizontal = expanding
+					spacing = 6
+					country_flag_small = {
+						datacontext = "[Scope.GetCountry]"
+					}
+					text_multi = {
+						datacontext = "[Scope.GetCountry]"
+						layoutpolicy_horizontal = expanding
+						text = "GP_BP_OUTSIDER_ROW"
+					}
+				}
+			}
+		}
+
+		# ---- the macro-region ----
+		text_single = {
+			layoutpolicy_horizontal = expanding
+			default_format = "#yellow_titles"
+			text = "GP_BP_MACRO_TITLE"
+		}
+		vbox = {
+			layoutpolicy_horizontal = expanding
+			datamodel = "[Player.MakeScope.GetList('gp_bp_macro')]"
+			item = {
+				hbox = {
+					layoutpolicy_horizontal = expanding
+					spacing = 6
+					country_flag_small = {
+						datacontext = "[Scope.GetCountry]"
+					}
+					text_multi = {
+						datacontext = "[Scope.GetCountry]"
+						layoutpolicy_horizontal = expanding
+						text = "GP_BP_MACRO_ROW"
+					}
+				}
+			}
+		}
+
+		# ---- refresh ----
+		hbox = {
+			layoutpolicy_horizontal = expanding
+			button_regular = {
+				size = { 195 25 }
+				tooltip = "GP_BP_REFRESH_TT"
+				onclick = "[GetScriptedGui('gp_sgui_refresh_balance').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+				text_single = {
+					parentanchor = center
+					text = "GP_BP_REFRESH"
+				}
+			}
+			expand = {}
+		}
+
+		expand = {}
+	}
+}

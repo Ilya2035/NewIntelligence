@@ -418,3 +418,65 @@ gp_khorasan_f = {
 		set_country_rank_effect = { rank = country_rank:rank_kingdom }
 	}
 }
+
+# v0.3 Great Hungary (author, 2026-11-05: "Hungary forms Great Hungary if it takes all of the Carpathians"): a Hungarian
+# country holding 90 % of the Carpathian region. Flag: the Hungarian coat of arms.
+gp_great_hungary_f = {
+	level = 3
+	required_locations_fraction = 0.9
+	rule = plausible
+	content_priority = 700
+
+	potential = {
+		culture = { has_culture_group = culture_group:hungarian_group }
+	}
+
+	allow = {
+		owns = location:buda
+	}
+
+	name = GHU
+	flag = HUN
+	adjective = GHU_ADJ
+	tag = GHU
+	color = map_GHU
+
+	regions = {
+		carpathia_region
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# v0.3 The Commonwealth by the sword (author: "Poland forms the Commonwealth when it takes 90 % of the Baltic region"):
+# a second road to the vanilla Polish-Lithuanian Commonwealth (PLC_f needs Poland and Lithuania joined) - a Polish
+# country holding 90 % of the Baltic region.
+gp_commonwealth_f = {
+	level = 3
+	required_locations_fraction = 0.9
+	rule = plausible
+	content_priority = 700
+
+	potential = {
+		culture = { has_culture_group = culture_group:polish_group }
+		NOT = { tag = PLC }
+	}
+
+	allow = {
+		owns = location:krakow
+	}
+
+	name = PLC
+	flag = PLC
+	adjective = PLC_ADJ
+	tag = PLC
+	color = map_PLC
+
+	regions = {
+		baltic_region
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}

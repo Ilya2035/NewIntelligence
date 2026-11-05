@@ -115,3 +115,111 @@ gp_brief_situation = {
 	}
 }
 
+
+# ---- v0.3 "Balance of power" tab (in_game/gui/gp_balance_tab.gui), country = the player ----
+
+gp_bp_status = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_status_subject
+		trigger = { is_subject = yes }
+	}
+	text = {
+		localization_key = gp_bp_status_contender
+		trigger = { has_variable = gp_contender }
+	}
+	text = {
+		localization_key = gp_bp_status_hopeless
+		trigger = { has_variable = gp_hopeless }
+	}
+	text = {
+		localization_key = gp_bp_status_minor
+		fallback = yes
+	}
+}
+
+gp_bp_tension = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_tension_turmoil
+		trigger = { has_variable = gp_region_turmoil }
+	}
+	text = {
+		localization_key = gp_bp_tension_tense
+		trigger = {
+			has_variable = gp_calm_years
+			var:gp_calm_years >= 10
+		}
+	}
+	text = {
+		localization_key = gp_bp_tension_war
+		trigger = { at_war = yes }
+	}
+	text = {
+		localization_key = gp_bp_tension_calm
+		fallback = yes
+	}
+}
+
+gp_bp_cohesion = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_cohesion_united
+		trigger = {
+			var:gp_bp_holder ?= {
+				has_variable = gp_region_share
+				var:gp_region_share >= 0.9
+			}
+		}
+	}
+	text = {
+		localization_key = gp_bp_cohesion_dominated
+		trigger = {
+			var:gp_bp_holder ?= {
+				has_variable = gp_region_share
+				var:gp_region_share >= 0.55
+			}
+		}
+	}
+	text = {
+		localization_key = gp_bp_cohesion_contested
+		trigger = {
+			var:gp_bp_holder ?= {
+				has_variable = gp_region_share
+				var:gp_region_share >= 0.25
+			}
+		}
+	}
+	text = {
+		localization_key = gp_bp_cohesion_fragmented
+		fallback = yes
+	}
+}
+
+gp_bp_right = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_right_german
+		trigger = { NOT = { gp_region_is_unifiable = yes } }
+	}
+	text = {
+		localization_key = gp_bp_right_claim
+		trigger = { has_variable = gp_region_claim }
+	}
+	text = {
+		localization_key = gp_bp_right_yes
+		trigger = { gp_has_unification_right = yes }
+	}
+	text = {
+		localization_key = gp_bp_right_no
+		fallback = yes
+	}
+}

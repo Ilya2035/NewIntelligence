@@ -50,6 +50,10 @@ gp_yearly_update = {
 	gp_update_region_claim = yes
 	gp_update_control = yes
 	if = {
+		limit = { is_ai = no }
+		gp_update_balance = yes	# v0.3 data of the "Balance of power" tab (gp_region_effects.txt)
+	}
+	if = {
 		limit = { gp_is_active = yes }
 		gp_update_role = yes
 		if = {
@@ -139,6 +143,7 @@ gp_compute_region_share = {
 		set_variable = { name = gp_region_total value = 1 }
 	}
 	set_variable = { name = gp_region_share value = gp_region_share_value }
+	set_variable = { name = gp_region_pct value = gp_region_pct_value }	# v0.3 whole percent for the "Balance of power" tab
 	remove_variable = gp_owned_tmp
 }
 

@@ -86,15 +86,20 @@ for my $rel ('in_game/common/area_preferences/gp_zones.txt', 'in_game/common/for
 	while ($z =~ /^(gp_[a-z_0-9]+)\s*=\s*\{/mg) { next if $lockeys{$1}; $warnings++; print "WARN   loc: no English name for area preference '$1'\n" }
 	my $fm = slurp("$mod/in_game/common/formable_countries/gp_formables.txt");
 	while ($fm =~ /^(gp_[a-z_0-9]+_f)\s*=\s*\{/mg) { for my $k ($1, "$1_desc") { next if $lockeys{$k}; $errors++; print "ERROR  loc: missing '$k'\n" } }
-	for my $tag (sort keys %formable_tags) { for my $k ($tag, "${tag}_ADJ") { next if $lockeys{$k}; $errors++; print "ERROR  loc: missing '$k'\n" } }
+	# a formable may reuse a vanilla tag (gp_commonwealth_f forms the vanilla PLC): its name may come from vanilla loc
+	my $vloc = ''; for my $f (glob("$game/game/main_menu/localization/english/*.yml")) { $vloc .= slurp($f) }
+	for my $tag (sort keys %formable_tags) { for my $k ($tag, "${tag}_ADJ") { next if $lockeys{$k} || $vloc =~ /^\s+\Q$k\E:/m; $errors++; print "ERROR  loc: missing '$k'\n" } }
 	# country modifiers were removed on 2026-11-04 (no buffs); check them only if such a file comes back
 	my $smf = "$mod/main_menu/common/static_modifiers/gp_country_modifiers.txt";
 	my $sm = -f $smf ? slurp($smf) : "";
 	while ($sm =~ /^(gp_[a-z_0-9]+)\s*=\s*\{/mg) { for my $k ("STATIC_MODIFIER_NAME_$1", "STATIC_MODIFIER_DESC_$1") { next if $lockeys{$k}; $errors++; print "ERROR  loc: missing '$k'\n" } }
 	# coat of arms for every formable tag
 	my $coa = ''; for my $f (glob("$mod/main_menu/common/coat_of_arms/coat_of_arms/*.txt")) { $coa .= slurp($f) }
-	for my $tag (sort keys %formable_tags) { next if $coa =~ /^\Q$tag\E\s*=\s*\{/m; $errors++; print "ERROR  coat_of_arms: no arms for formable tag '$tag'\n" }
+	# arms are looked up by each formable's flag key, in the mod or in vanilla (gp_great_hungary_f uses flag = HUN)
+	my $vcoa = ''; for my $f (glob("$game/game/main_menu/common/coat_of_arms/coat_of_arms/*.txt")) { $vcoa .= slurp($f) }
+	while ($fm =~ /^\s*flag\s*=\s*([A-Z0-9_]+)/mg) { my $fl = $1; next if $coa =~ /^\Q$fl\E\s*=\s*\{/m || $vcoa =~ /^\Q$fl\E\s*=\s*\{/m; $errors++; print "ERROR  coat_of_arms: no arms for flag '$fl'\n" }
 	my $colors = slurp("$mod/main_menu/common/named_colors/gp_colors.txt");
+	for my $f (glob("$game/game/main_menu/common/named_colors/*.txt")) { $colors .= slurp($f) }
 	while ($fm =~ /^\s*color\s*=\s*(map_[A-Za-z0-9_]+)/mg) { next if $colors =~ /\b\Q$1\E\s*=/; $errors++; print "ERROR  named_colors: missing '$1'\n" }
 	# emblem textures used by the arms exist
 	my $texdir = "$game/game/main_menu/gfx/coat_of_arms";

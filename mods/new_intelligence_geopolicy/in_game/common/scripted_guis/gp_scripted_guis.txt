@@ -1,0 +1,14 @@
+﻿###################################
+# New Intelligence: Geopolicy - scripted GUIs (prefix gp_)
+#
+# Called from in_game/gui/gp_balance_tab.gui with the local player as root (same form as the Battle mod,
+# cw_scripted_guis.txt): [GetScriptedGui('gp_sgui_x').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]
+###################################
+
+# "Refresh" on the Balance of power tab.
+gp_sgui_refresh_balance = {
+	scope = country
+	effect = {
+		gp_refresh_balance = yes
+	}
+}

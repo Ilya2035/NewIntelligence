@@ -11,6 +11,7 @@
 | `in_game/common/scripted_effects/gp_zone_effects.txt` | профили зон по тегу (`switch = { trigger = tag }`), три стадии, групповые сферы |
 | `in_game/common/scripted_effects/gp_relations_effects.txt` | v0.2: история до 1337 (давняя вражда и дружба, стартовые намерения), память войн, симпатии и неприязни правителя с 10 лет, чужеземный сюзерен, колониальная зона, страсти региона (годы мира, смутное время) |
 | `in_game/common/scripted_effects/gp_region_effects.txt` | v0.3: ведущие державы регионов и покровители (старт), ведущая / безнадёжная страна (год), менталитет ИИ по состоянию, право на остаток региона (90 %), удержание земель (модификаторы локаций) |
+| `in_game/gui/gp_balance_tab.gui`, `in_game/common/scripted_guis/gp_scripted_guis.txt` | v0.3.1: вкладка «Расклад сил» окна «Геополитика» (переопределение шаблона `geopolitics_tabs`) и кнопка «Обновить» |
 | `in_game/common/area_preferences/gp_zones.txt` | сами зоны: ~70 профилей × ядро / сфера / дальняя, общий `gp_generic_home_region`, `gp_anatolia_sphere`, `gp_persia_sphere` |
 | `in_game/common/scripted_triggers/gp_triggers.txt` | `gp_is_real_country`, правила игры, темпераменты, кандидат в угрозы, пришелец (`gp_is_intruder_of = { COUNTRY = … }`), общая угроза |
 | `in_game/common/script_values/gp_values.txt` | ручки (пороги) и `gp_region_share_value` |
@@ -86,6 +87,11 @@
 | 40 | Производительность: ежегодный обход всех локаций страны с проверкой соседей (около 20 тыс. локаций в мире) | `gp_update_control` | январские рывки в `performance_degradation.log` не больше прежних; иначе — правило «Удержание земель» выключить |
 | 41 | Повод `gp_cb_regional_unification`: `speed = 50`, `war_goal_type = superiority`, `casus_belli = casus_belli:…` в списке целей | `gp_casus_belli.txt`, `gp_target_regional_unification` | в регионе в напряжении ведущие державы воюют между собой с этим поводом |
 | 42 | `current_date < 1600.1.1` в триггере (ваниль: `current_date > 1346.10.1`) | `gp_is_before_1600`, `gp_control_location` | после 1600 года строки оценки «За пределами нашего региона» исчезают |
+| 43 | Переопределение шаблона `geopolitics_tabs` по имени (последний загруженный побеждает, как `AiDisposition_tooltip`); два `onclick` подряд; `GetVariableSystem.Set/HasValue('gp_balance', …)` | `gp_balance_tab.gui` | в окне «Геополитика» четыре вкладки, «Расклад сил» первая; ванильные вкладки работают как прежде |
+| 44 | Панель с `minimumsize = { -1 3000 }` вытесняет содержимое вида «Открытия» за край экрана | `gp_balance_tab.gui` | на вкладке «Расклад сил» не видно списка колоний; на «Открытиях» — виден |
+| 45 | `Player.MakeScope.GetList('gp_bp_*')` с `Scope.GetCountry` (ваниль: `GetList('visited_countries')`), `add_to_variable_list` / `clear_variable_list`, `ordered_country` | `gp_update_balance` | списки стран с флагами на вкладке; кнопка «Обновить» (`gp_sgui_refresh_balance`) их пересчитывает |
+| 46 | `[Country.GetCapital.GetRegion.GetName]`, `.GetSubContinent.GetName`, `GetVariable('x').GetValue|0` в loc | `GP_BP_*` | название региона и макрорегиона, доли в процентах без дробей |
+| 47 | Формируемые с ванильным тегом / гербом: `tag = PLC` во втором определении, `flag = HUN` для `GHU` | `gp_formables.txt` | в списке формируемых — «Великая Венгрия» у Венгрии и «Речь Посполитая мечом» у Польши |
 
 ## 4. Производительность
 

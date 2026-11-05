@@ -379,3 +379,80 @@ gp_control_add_shape_enclave = {
 gp_control_add_shape_salient = {
 	add_location_modifier = { modifier = gp_control_salient days = -1 }
 }
+
+# ================================================================================================
+# "Balance of power" tab of the Geopolitics window (in_game/gui/gp_balance_tab.gui), players only.
+# Country scope, scope:gp_c = the player. Lists (variable lists of countries, shown with MakeScope.GetList as vanilla
+# treasure_fleet "visited_countries"):
+#   gp_bp_contenders - the five strongest independent countries with their capital in our home region
+#   gp_bp_outsiders  - the four strongest countries from outside holding at least three locations in it
+#   gp_bp_macro      - the six strongest independent countries of our macro-region (sub-continent)
+# and var:gp_bp_holder - the country of our region holding the largest share of it.
+# Refreshed yearly (gp_yearly_update) and by the tab's refresh button (gp_scripted_guis.txt).
+# ================================================================================================
+
+gp_update_balance = {
+	if = { limit = { has_variable_list = gp_bp_contenders } clear_variable_list = gp_bp_contenders }
+	if = { limit = { has_variable_list = gp_bp_outsiders } clear_variable_list = gp_bp_outsiders }
+	if = { limit = { has_variable_list = gp_bp_macro } clear_variable_list = gp_bp_macro }
+	if = { limit = { has_variable = gp_bp_holder } remove_variable = gp_bp_holder }
+	if = {
+		limit = { exists = capital }
+		capital.region = {
+			ordered_present_country = {
+				limit = {
+					gp_is_real_country = yes
+					is_subject = no
+					exists = capital
+					capital.region = scope:gp_c.capital.region
+				}
+				order_by = country_strength
+				max = 5
+				scope:gp_c = { add_to_variable_list = { name = gp_bp_contenders target = prev } }
+			}
+			ordered_present_country = {
+				limit = {
+					gp_is_real_country = yes
+					exists = capital
+					NOT = { capital.region = scope:gp_c.capital.region }
+					any_owned_location = {
+						count >= 3
+						region = scope:gp_c.capital.region
+					}
+				}
+				order_by = country_strength
+				max = 4
+				scope:gp_c = { add_to_variable_list = { name = gp_bp_outsiders target = prev } }
+			}
+			ordered_present_country = {
+				limit = {
+					gp_is_real_country = yes
+					exists = capital
+					capital.region = scope:gp_c.capital.region
+				}
+				order_by = gp_region_share_or_zero
+				max = 1
+				scope:gp_c = { set_variable = { name = gp_bp_holder value = prev } }
+			}
+		}
+		ordered_country = {
+			limit = {
+				gp_is_real_country = yes
+				is_subject = no
+				exists = capital
+				capital.sub_continent = scope:gp_c.capital.sub_continent
+			}
+			order_by = country_strength
+			max = 6
+			scope:gp_c = { add_to_variable_list = { name = gp_bp_macro target = prev } }
+		}
+	}
+}
+
+# The tab's refresh button: today's region share and lists, without the yearly side effects (momentum, calm years).
+gp_refresh_balance = {
+	save_scope_as = gp_c
+	gp_compute_region_share = yes
+	gp_update_balance = yes
+	clear_saved_scope = gp_c
+}
