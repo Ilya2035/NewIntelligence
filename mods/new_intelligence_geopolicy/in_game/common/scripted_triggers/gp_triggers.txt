@@ -264,6 +264,12 @@ gp_is_front_partner_of = {
 	$COUNTRY$ = { has_variable = gp_threat }
 	religion.group = $COUNTRY$.religion.group
 	NOT = { this ?= $COUNTRY$.var:gp_threat }
+	# v0.3: contenders of the same region stay rivals unless the threat is overwhelming (3x, share 0.75) - Novgorod and
+	# Smolensk do not make friends just because Moscow grows (author, 1400 test).
+	OR = {
+		NOT = { gp_is_regional_rival_of = { COUNTRY = $COUNTRY$ } }
+		$COUNTRY$ = { var:gp_threat_share >= 0.75 }
+	}
 	OR = {
 		gp_shares_threat_with = { COUNTRY = $COUNTRY$ }
 		$COUNTRY$.var:gp_threat ?= { is_at_war_with = prev }
@@ -277,6 +283,51 @@ gp_threat_is_pressing = {
 	OR = {
 		var:gp_threat ?= { has_variable = gp_is_expanding }
 		var:gp_threat ?= { gp_is_intruder_of = { COUNTRY = root } }
+	}
+}
+
+# ---- v0.3 the region as the arena (gp_region_effects.txt) --------------------------------------------
+
+# Until 1600 the home region is the whole game for all but hegemons and empires (author, 2026-11-05).
+gp_is_before_1600 = {
+	current_date < 1600.1.1
+}
+
+# Regions that history never united by war (the German lands of the Empire) get no unification casus belli.
+gp_region_is_unifiable = {
+	exists = capital
+	NOT = { capital.region = region:north_german_region }
+	NOT = { capital.region = region:south_german_region }
+}
+
+# this and $COUNTRY$ are contenders of the same home region (Novgorod - Moscow - Smolensk).
+gp_is_regional_rival_of = {
+	NOT = { this = $COUNTRY$ }
+	has_variable = gp_contender
+	$COUNTRY$ = { has_variable = gp_contender }
+	exists = capital
+	$COUNTRY$ = { exists = capital }
+	capital.region = $COUNTRY$.capital.region
+	NOT = { is_subject_or_below_of = $COUNTRY$ }
+	NOT = { $COUNTRY$ = { is_subject_or_below_of = prev } }
+}
+
+# root may use gp_cb_regional_unification: its region can be united by war, and either it holds 90 % of it and the claim
+# came up (gp_region_claim), or it is a contender and the region is in tension (ten years of peace or a time of troubles).
+gp_has_unification_right = {
+	gp_region_is_unifiable = yes
+	OR = {
+		has_variable = gp_region_claim
+		AND = {
+			has_variable = gp_contender
+			OR = {
+				has_variable = gp_region_turmoil
+				AND = {
+					has_variable = gp_calm_years
+					var:gp_calm_years >= 10
+				}
+			}
+		}
 	}
 }
 

@@ -220,12 +220,15 @@ gp_score_light_expansion = {
 	}
 }
 
-# First twenty years: countries mind their own region (except hegemons, empires and steppe hordes).
-gp_score_early_restraint = {
+# v0.3 The region first (author, 2026-11-05: "until 1600 countries work fully for their own region, and a little on the
+# lands next to it"): a target with no land in our home region is worth a third as much (the old 20-year early restraint
+# is folded in here). Who holds 75 % of the home region has earned the right to the neighbouring regions of its
+# macro-region (x0.8 there). Hegemons, empires and steppe hordes are exempt; prepared wars and easy prey are not held back.
+gp_score_region_first = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
-		gp_is_early_game = yes
+		gp_is_before_1600 = yes
 		exists = capital
 		NOT = { has_variable = gp_role_hegemon }
 		NOT = { has_variable = gp_role_empire }
@@ -237,7 +240,75 @@ gp_score_early_restraint = {
 		NOT = { this ?= scope:attacker.var:gp_war_target }	# the historical openings (gp_history_postures) are not held back
 	}
 	multiplier = {
-		add = -0.5
+		add = -0.65
+		if = {
+			limit = {
+				scope:attacker = { var:gp_region_share >= 0.75 }
+				scope:target = {
+					exists = capital
+					capital.sub_continent = scope:attacker.capital.sub_continent
+				}
+			}
+			add = 0.45
+		}
+	}
+}
+
+# v0.3 The contenders fight for the region: a contender wants the land of its own home region more.
+gp_score_region_home = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_contender
+		exists = capital
+		NOT = { gp_is_calm_posture = yes }
+	}
+	target_trigger = {
+		any_owned_location = { region = scope:attacker.capital.region }
+	}
+	multiplier = {
+		add = 0.25
+	}
+}
+
+# v0.3 ... and each other: Novgorod, Moscow and Smolensk are rivals before they are Russians.
+gp_score_regional_rival = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_contender
+		NOT = { gp_is_calm_posture = yes }
+	}
+	target_trigger = {
+		gp_is_regional_rival_of = { COUNTRY = scope:attacker }
+	}
+	score = {
+		add = 4
+	}
+	multiplier = {
+		add = 0.2
+	}
+}
+
+# v0.3 The small ones stay small: a country that is not a contender of its region attacks little but easy prey, and a
+# hopeless one (a power twice its size in the region) almost nothing - it defends and looks for friends.
+gp_score_minor_passive = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		NOT = { has_variable = gp_contender }
+		NOT = { gp_is_steppe = yes }
+	}
+	target_trigger = {
+		NOT = { gp_is_tiny_target_of_attacker = yes }
+		NOT = { this ?= scope:attacker.var:gp_war_target }
+	}
+	multiplier = {
+		add = -0.45
+		if = {
+			limit = { scope:attacker = { has_variable = gp_hopeless } }
+			add = -0.3
+		}
 	}
 }
 

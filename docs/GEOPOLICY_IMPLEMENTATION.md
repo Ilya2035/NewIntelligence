@@ -10,6 +10,7 @@
 | `in_game/common/scripted_effects/gp_effects.txt` | ядро: доля домашнего региона, угроза, пришельцы, общий фронт, темперамент, стадии, роли |
 | `in_game/common/scripted_effects/gp_zone_effects.txt` | профили зон по тегу (`switch = { trigger = tag }`), три стадии, групповые сферы |
 | `in_game/common/scripted_effects/gp_relations_effects.txt` | v0.2: история до 1337 (давняя вражда и дружба, стартовые намерения), память войн, симпатии и неприязни правителя с 10 лет, чужеземный сюзерен, колониальная зона, страсти региона (годы мира, смутное время) |
+| `in_game/common/scripted_effects/gp_region_effects.txt` | v0.3: ведущие державы регионов и покровители (старт), ведущая / безнадёжная страна (год), менталитет ИИ по состоянию, право на остаток региона (90 %), удержание земель (модификаторы локаций) |
 | `in_game/common/area_preferences/gp_zones.txt` | сами зоны: ~70 профилей × ядро / сфера / дальняя, общий `gp_generic_home_region`, `gp_anatolia_sphere`, `gp_persia_sphere` |
 | `in_game/common/scripted_triggers/gp_triggers.txt` | `gp_is_real_country`, правила игры, темпераменты, кандидат в угрозы, пришелец (`gp_is_intruder_of = { COUNTRY = … }`), общая угроза |
 | `in_game/common/script_values/gp_values.txt` | ручки (пороги) и `gp_region_share_value` |
@@ -79,6 +80,12 @@
 | 34 | `defensive_support = yes` в дипломатической цели (readme) | `gp_obj_sphere_minor` | гегемон вступается за малого клиента своего региона |
 | 35 | `has_area_preference` / `add_area_preference` / `remove_area_preference` для колоний (ваниль `hidden_events_for_ai_conquest.txt`) | `gp_ensure_colonial_profile` | у колониальной нации зона «Освоить свой колониальный регион» |
 | 36 | Новые ключи `NAI` (подданные в мире, доля союзникам, крепости на границе, обращение, колонии, города) принимаются парсером | `gp_defines.txt` | нет ошибок про defines в `error.log` |
+| 37 | `set_personality = ai_personality:…` из скрипта (ваниль `ai_personalities_setup.txt`) переживает год и не сбрасывается правилом «личности по правителю» | `gp_apply_personality` | в «Менталитете державы» ИИ-стран — Оборона / Экспансионизм / Агрессия по их состоянию, «Разносторонности» почти нет |
+| 38 | `country_strength > scope:gp_c.country_strength` внутри `any_present_country` региона | `gp_update_contender` | в отчёте `GP_REPORT … contender of the region` у сильнейших стран регионов без исторических лидеров |
+| 39 | `any_neighbor_location = { count >= 3 owner ?= … }`, `has_location_modifier`, `remove_location_modifier`, `sub_continent` локации, `dominant_culture ?= { has_shared_culture_group }`, `dominant_religion ?=` | `gp_control_location` | у анклава модификатор «Отрезанное владение», у земли в другом регионе — «Вдали от сердца державы»; нет ошибок в `error.log` |
+| 40 | Производительность: ежегодный обход всех локаций страны с проверкой соседей (около 20 тыс. локаций в мире) | `gp_update_control` | январские рывки в `performance_degradation.log` не больше прежних; иначе — правило «Удержание земель» выключить |
+| 41 | Повод `gp_cb_regional_unification`: `speed = 50`, `war_goal_type = superiority`, `casus_belli = casus_belli:…` в списке целей | `gp_casus_belli.txt`, `gp_target_regional_unification` | в регионе в напряжении ведущие державы воюют между собой с этим поводом |
+| 42 | `current_date < 1600.1.1` в триггере (ваниль: `current_date > 1346.10.1`) | `gp_is_before_1600`, `gp_control_location` | после 1600 года строки оценки «За пределами нашего региона» исчезают |
 
 ## 4. Производительность
 

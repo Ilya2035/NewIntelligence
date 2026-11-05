@@ -40,3 +40,18 @@ gp_rule_terrain = {
 		flag = general_rule
 	}
 }
+
+# Holding the land: control penalties for land outside the home region (until 1600 / 1700), enclaves and narrow salients
+# (location modifiers for every owner, recomputed yearly; main_menu/common/static_modifiers/gp_control_modifiers.txt).
+gp_rule_control = {
+	default = gp_control_on
+
+	gp_control_on = {
+		flag = gp_control_on
+		flag = general_rule
+	}
+	gp_control_off = {
+		flag = gp_control_off
+		flag = general_rule
+	}
+}

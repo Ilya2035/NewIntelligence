@@ -1,0 +1,38 @@
+﻿###################################
+# New Intelligence: Geopolicy - holding the land (location modifiers, prefix gp_), v0.3
+#
+# Requested by the author (2026-11-05): land far from the home region and ragged borders are hard to control. Location
+# modifiers for whoever owns the land, kept up to date yearly by gp_update_control
+# (in_game/common/scripted_effects/gp_region_effects.txt) unless the game rule "Holding the land" is off.
+# local_max_control is a percent modifier (modifier_type_definitions: percent = yes): -0.25 = -25 % max control.
+###################################
+
+# Another region of our macro-region (before 1600), or another macro-region (1600-1700).
+gp_control_far_1 = {
+	game_data = { category = location }
+	local_max_control = -0.25
+}
+
+# Another macro-region before 1600.
+gp_control_far_2 = {
+	game_data = { category = location }
+	local_max_control = -0.5
+}
+
+# The owner has just lost a war: the outer lands slip first.
+gp_control_shaken = {
+	game_data = { category = location }
+	local_max_control = -0.15
+}
+
+# No neighbouring location of ours: an enclave brings almost nothing.
+gp_control_enclave = {
+	game_data = { category = location }
+	local_max_control = -0.5
+}
+
+# A narrow salient: at most two neighbours of ours and at least three foreign ones.
+gp_control_salient = {
+	game_data = { category = location }
+	local_max_control = -0.2
+}

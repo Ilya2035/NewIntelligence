@@ -240,3 +240,48 @@ gp_target_outer_dominion = {
 		add = scope:target.country_tax_base
 	}
 }
+
+# 7. v0.3 Unite the region (gp_cb_regional_unification): a contender in a region in tension (or the 90 % holder with its
+#    claim) goes for the weaker countries of its own home region - the internal wars that unite a region.
+gp_target_regional_unification = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		at_war = no
+		months_since_war >= 24
+		gp_has_unification_right = yes
+		NOT = { gp_is_calm_posture = yes }
+	}
+	candidate_list = {
+		every_neighbor_country = {
+			limit = {
+				gp_is_real_country = yes
+				is_subject = no
+				exists = capital
+				capital.region = root.capital.region
+				NOT = { has_truce_with = root }
+				NOT = { is_allied_with = { target = root } }
+				NOT = { this ?= root.var:gp_ruler_like }
+				NOT = { this ?= root.var:gp_patron }
+				relative_strength = {
+					target = root
+					value < 0.45		# weaker than ~0.8x the attacker
+				}
+			}
+			add_to_list = source
+		}
+	}
+	casus_belli = casus_belli:gp_cb_regional_unification
+	score = {
+		add = 24
+		add = {
+			value = scope:target.country_tax_base
+			divide = 100
+		}
+	}
+	sort_value = {
+		add = 500
+		add = scope:target.country_tax_base
+	}
+}

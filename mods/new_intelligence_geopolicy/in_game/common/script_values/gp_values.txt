@@ -193,6 +193,8 @@ gp_ps_expansion = {
 	add = { value = gp_nobles_power multiply = 25 }
 	add = gp_calm_pressure
 	if = { limit = { has_variable = gp_region_turmoil } add = 10 }
+	if = { limit = { has_variable = gp_contender } add = 20 }	# v0.3 the contenders of a region drive it
+	if = { limit = { has_variable = gp_hopeless } add = -35 }	# v0.3 no chance against the big neighbour
 	if = { limit = { has_variable = gp_posture_expansion } add = 15 }
 	if = { limit = { var:gp_noise = 1 } add = gp_noise_amount }
 }
@@ -209,6 +211,8 @@ gp_ps_preparation = {
 	add = { value = gp_rp_preparation multiply = gp_ruler_weight }
 	add = { value = gp_nobles_power multiply = 15 }
 	add = gp_calm_pressure
+	if = { limit = { has_variable = gp_contender } add = 10 }
+	if = { limit = { has_variable = gp_hopeless } add = -30 }
 	if = { limit = { has_variable = gp_posture_preparation } add = 15 }
 	if = { limit = { var:gp_noise = 2 } add = gp_noise_amount }
 }
@@ -239,6 +243,7 @@ gp_ps_consolidation = {
 	add = { value = gp_rp_consolidation multiply = gp_ruler_weight }
 	add = { value = gp_burghers_power multiply = 10 }
 	if = { limit = { has_variable = gp_region_turmoil } add = -10 }
+	if = { limit = { has_variable = gp_hopeless } add = 10 }
 	if = { limit = { has_variable = gp_posture_consolidation } add = 15 }
 	if = { limit = { var:gp_noise = 4 } add = gp_noise_amount }
 }
@@ -264,6 +269,7 @@ gp_ps_defense = {
 	if = { limit = { has_variable = gp_role_besieged } add = 40 }
 	add = { value = gp_rp_defense multiply = gp_ruler_weight }
 	add = { value = gp_peasants_power multiply = 10 }
+	if = { limit = { has_variable = gp_hopeless } add = 25 }	# v0.3 the small one defends and looks for friends
 	if = { limit = { has_variable = gp_posture_defense } add = 15 }
 	if = { limit = { var:gp_noise = 5 } add = gp_noise_amount }
 }
@@ -316,6 +322,8 @@ gp_ps_peace = {
 	add = { value = gp_peasants_power multiply = 15 }
 	subtract = gp_calm_pressure
 	if = { limit = { has_variable = gp_region_turmoil } add = -15 }
+	if = { limit = { has_variable = gp_hopeless } add = 15 }
+	if = { limit = { NOT = { has_variable = gp_contender } } add = 5 }
 	if = { limit = { has_variable = gp_posture_peace } add = 15 }
 	if = { limit = { var:gp_noise = 8 } add = gp_noise_amount }
 }

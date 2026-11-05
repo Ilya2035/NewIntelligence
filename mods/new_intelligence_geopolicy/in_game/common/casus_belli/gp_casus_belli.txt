@@ -75,3 +75,40 @@ gp_cb_establish_dominion = {
 		}
 	}
 }
+
+# v0.3 Unite the region (author: "a region in tension erupts into internal wars - the casus belli forms by itself and
+# helps the region unite"): a contender of a region that is not yet held by one country (the German regions excluded,
+# they were never united by war) gets it against any other country of its home region while the region is in tension
+# (ten years of peace, or a time of troubles); a country holding 90 % of its region gets it on the rest with 10 % a year
+# (gp_update_region_claim). Available to players too; quick to create (speed 50 = two months).
+gp_cb_regional_unification = {
+	years = 5
+	speed = 50
+
+	create_visible = {
+		gp_is_active = yes
+		gp_has_unification_right = yes
+		scope:target ?= {
+			exists = capital
+			capital.region = root.capital.region
+			NOT = {
+				AND = {
+					has_variable = gp_region_share
+					var:gp_region_share >= 0.9
+				}
+			}
+		}
+	}
+	create_enabled = {
+		NOT = { has_truce_with = scope:target }
+	}
+
+	war_goal_type = superiority
+
+	ai_will_do = {
+		add = {
+			desc = "BASE"
+			value = 20
+		}
+	}
+}

@@ -16,6 +16,7 @@
 gp_on_game_start_effect = {
 	debug_log = "GP_REPORT game start: setting up every real country"
 	gp_history_relations = yes
+	gp_history_contenders = yes
 	every_country = {
 		limit = { gp_is_real_country = yes }
 		gp_setup_country = yes
@@ -38,6 +39,7 @@ gp_yearly_update = {
 	gp_update_momentum = yes
 	gp_update_threat = yes
 	gp_update_calm = yes
+	gp_update_contender = yes
 	gp_update_region_relations = yes
 	gp_age_defeat = yes
 	# v0.2 relations between nations and rulers (gp_relations_effects.txt)
@@ -45,6 +47,8 @@ gp_yearly_update = {
 	gp_update_ruler_affinity = yes
 	gp_update_foreign_overlord = yes
 	gp_ensure_colonial_profile = yes
+	gp_update_region_claim = yes
+	gp_update_control = yes
 	if = {
 		limit = { gp_is_active = yes }
 		gp_update_role = yes
@@ -245,11 +249,20 @@ gp_update_region_relations = {
 						set_variable = gp_has_front_partner
 					}
 				}
+				# v0.3 contenders of one region watch each other (gp_region_effects.txt)
+				if = {
+					limit = { gp_is_regional_rival_of = { COUNTRY = scope:gp_c } }
+					scope:gp_c = {
+						remove_opinion = { target = prev modifier = gp_opinion_regional_rival }
+						add_opinion = { target = prev modifier = gp_opinion_regional_rival }
+					}
+				}
 				# v0.2 kin next door (gp_relations_effects.txt header)
 				if = {
 					limit = {
 						is_neighbor_of = scope:gp_c
 						gp_shares_culture_group_with = { COUNTRY = scope:gp_c }
+						NOT = { gp_is_regional_rival_of = { COUNTRY = scope:gp_c } }
 					}
 					scope:gp_c = {
 						remove_opinion = { target = prev modifier = gp_opinion_kin }
@@ -531,6 +544,7 @@ gp_choose_posture = {
 gp_set_posture = {
 	gp_clear_postures = yes
 	set_variable = gp_posture_$POSTURE$
+	gp_apply_personality = yes	# v0.3: the mentality follows the course (gp_region_effects.txt)
 }
 
 gp_clear_postures = {
@@ -674,6 +688,11 @@ gp_debug_report = {
 		if = { limit = { has_variable = gp_has_front_partner } debug_log = "GP_REPORT    has common-front partners" }
 		if = { limit = { has_variable = gp_recent_defeat } debug_log = "GP_REPORT    lost a war recently" }
 		if = { limit = { has_variable = gp_region_turmoil } debug_log = "GP_REPORT    time of troubles in the region" }
+		if = { limit = { has_variable = gp_historic_contender } debug_log = "GP_REPORT    historic contender" }
+		if = { limit = { has_variable = gp_contender } debug_log = "GP_REPORT    contender of the region" }
+		if = { limit = { has_variable = gp_hopeless } debug_log = "GP_REPORT    hopeless minor" }
+		if = { limit = { has_variable = gp_region_claim } debug_log = "GP_REPORT    region claim (90 %)" }
+		if = { limit = { gp_has_unification_right = yes } debug_log = "GP_REPORT    may use the unification casus belli" }
 		if = { limit = { var:gp_calm_years < 1 } debug_log = "GP_REPORT    at war this year" }
 		else_if = { limit = { var:gp_calm_years >= 20 } debug_log = "GP_REPORT    long peace, 20+ years" }
 		else_if = { limit = { var:gp_calm_years >= 10 } debug_log = "GP_REPORT    peace 10 - 20 years" }

@@ -1,0 +1,381 @@
+﻿###################################
+# New Intelligence: Geopolicy - the region as the arena (prefix gp_), v0.3
+#
+# Author, 2026-11-05 (after the 1400 test): "until 1600 countries fight for their own region; each region is built around
+# a few contenders (Russia: Novgorod, Moscow, Smolensk); the small ones defend and look for allies; a region in tension
+# erupts into internal wars that unite it; land far from the home region and ragged borders are hard to control".
+# Country entry points run inside gp_yearly_update, where scope:gp_c is the country.
+###################################
+
+# ================================================================================================
+# Historical contenders and patrons (game start)
+# ================================================================================================
+
+gp_history_contender = {
+	c:$TAG$ ?= { set_variable = gp_historic_contender }
+}
+
+# A small country that historically leaned on a bigger one (Halych and Volhynia on Poland, the Karasids on the Ottomans).
+gp_history_patron = {
+	c:$CLIENT$ ?= {
+		if = {
+			limit = { country_exists = c:$PATRON$ }
+			set_variable = { name = gp_patron value = c:$PATRON$ }
+		}
+	}
+}
+
+gp_history_contenders = {
+	# Russia
+	gp_history_contender = { TAG = NOV }
+	gp_history_contender = { TAG = MOS }
+	gp_history_contender = { TAG = SMO }
+	# the Baltic and Ruthenia
+	gp_history_contender = { TAG = POL }
+	gp_history_contender = { TAG = LIT }
+	gp_history_contender = { TAG = LIV }
+	gp_history_contender = { TAG = KIE }
+	# the British Isles
+	gp_history_contender = { TAG = ENG }
+	gp_history_contender = { TAG = SCO }
+	gp_history_contender = { TAG = WLS }
+	gp_history_contender = { TAG = TYR }
+	# France
+	gp_history_contender = { TAG = FRA }
+	gp_history_contender = { TAG = BUR }
+	gp_history_contender = { TAG = BRI }
+	gp_history_contender = { TAG = NRM }
+	gp_history_contender = { TAG = PRO }
+	# Iberia
+	gp_history_contender = { TAG = CAS }
+	gp_history_contender = { TAG = POR }
+	gp_history_contender = { TAG = ARA }
+	# Italy
+	gp_history_contender = { TAG = MLO }
+	gp_history_contender = { TAG = VEN }
+	gp_history_contender = { TAG = NAP }
+	# Scandinavia
+	gp_history_contender = { TAG = DAN }
+	gp_history_contender = { TAG = SWE }
+	gp_history_contender = { TAG = NOR }
+	# the Carpathians, the Balkans, Anatolia
+	gp_history_contender = { TAG = HUN }
+	gp_history_contender = { TAG = SER }
+	gp_history_contender = { TAG = BYZ }
+	gp_history_contender = { TAG = BUL }
+	gp_history_contender = { TAG = TUR }
+	# the German lands
+	gp_history_contender = { TAG = BRA }
+	gp_history_contender = { TAG = HAB }
+	gp_history_contender = { TAG = BOH }
+	# the steppe, the Caucasus, Egypt, the Maghreb
+	gp_history_contender = { TAG = GLH }
+	gp_history_contender = { TAG = GEO }
+	gp_history_contender = { TAG = MAM }
+	gp_history_contender = { TAG = MOR }
+	# patrons
+	gp_history_patron = { CLIENT = HAL PATRON = POL }
+	gp_history_patron = { CLIENT = VOL PATRON = POL }
+	gp_history_patron = { CLIENT = KRD PATRON = TUR }
+	gp_history_patron = { CLIENT = PSK PATRON = NOV }
+	gp_history_patron = { CLIENT = WAL PATRON = HUN }
+	gp_history_patron = { CLIENT = MOL PATRON = HUN }
+}
+
+# ================================================================================================
+# Contender or minor (yearly, before the region relations)
+# ================================================================================================
+
+# Contender: a historical contender, or a country holding a quarter of its region, or - when no historical contender is
+# left in the region - its strongest independent country (the Eretnids take the Ottomans' place only if the Ottomans are
+# gone). Hopeless: not a contender, little of the region, and a country at least twice as strong has its capital in the
+# region - such a country defends and looks for friends instead of carving a sausage-shaped realm.
+gp_update_contender = {
+	if = { limit = { has_variable = gp_contender } remove_variable = gp_contender }
+	if = { limit = { has_variable = gp_hopeless } remove_variable = gp_hopeless }
+	if = {
+		limit = {
+			exists = capital
+			is_subject = no
+		}
+		if = {
+			limit = {
+				OR = {
+					has_variable = gp_historic_contender
+					var:gp_region_share >= 0.25
+					AND = {
+						NOT = {
+							capital.region = {
+								any_present_country = {
+									has_variable = gp_historic_contender
+									is_subject = no
+									exists = capital
+									capital.region = scope:gp_c.capital.region
+								}
+							}
+						}
+						NOT = {
+							capital.region = {
+								any_present_country = {
+									NOT = { this = scope:gp_c }
+									gp_is_real_country = yes
+									is_subject = no
+									exists = capital
+									capital.region = scope:gp_c.capital.region
+									country_strength > scope:gp_c.country_strength
+								}
+							}
+						}
+					}
+				}
+			}
+			set_variable = gp_contender
+		}
+		else_if = {
+			limit = {
+				var:gp_region_share < 0.1
+				capital.region = {
+					any_present_country = {
+						NOT = { this = scope:gp_c }
+						gp_is_real_country = yes
+						exists = capital
+						capital.region = scope:gp_c.capital.region
+						relative_strength = {
+							target = scope:gp_c
+							value >= 0.67
+						}
+					}
+				}
+			}
+			set_variable = gp_hopeless
+		}
+	}
+}
+
+# ================================================================================================
+# The country's mentality follows its course (author: "not 'balanced' everywhere - defense, status quo or conquest").
+# Vanilla AI personalities (in_game/common/ai_personalities, effect set_personality as in ai_personalities_setup.txt).
+# Called from gp_set_posture, so every change of course changes the mentality.
+# ================================================================================================
+
+gp_apply_personality = {
+	if = {
+		limit = {
+			is_ai = yes
+			gp_is_active = yes
+		}
+		if = {
+			limit = { has_variable = gp_posture_preparation }
+			set_personality = ai_personality:ai_aggressive
+		}
+		else_if = {
+			limit = { has_variable = gp_posture_expansion }
+			set_personality = ai_personality:ai_expansionist
+		}
+		else_if = {
+			limit = { has_variable = gp_posture_opportunism }
+			set_personality = ai_personality:ai_opportunistic
+		}
+		else_if = {
+			limit = {
+				OR = {
+					has_variable = gp_posture_defense
+					has_variable = gp_posture_common_front
+				}
+			}
+			set_personality = ai_personality:ai_defensive
+		}
+		else_if = {
+			limit = {
+				OR = {
+					has_variable = gp_posture_consolidation
+					has_variable = gp_posture_recovery
+				}
+			}
+			set_personality = ai_personality:ai_cautious
+		}
+		else_if = {
+			limit = { has_variable = gp_posture_peace }
+			set_personality = ai_personality:ai_friendly
+		}
+		else_if = {
+			limit = { has_variable = gp_posture_isolation }
+			set_personality = ai_personality:ai_isolationist
+		}
+	}
+}
+
+# ================================================================================================
+# The region's own claim (author: "who holds 90 % of a region gets, with 10 % a year, a casus belli on the rest")
+# ================================================================================================
+
+gp_update_region_claim = {
+	if = {
+		limit = { has_variable = gp_region_claim_years }
+		change_variable = { name = gp_region_claim_years add = -1 }
+		if = {
+			limit = { var:gp_region_claim_years <= 0 }
+			remove_variable = gp_region_claim_years
+			if = { limit = { has_variable = gp_region_claim } remove_variable = gp_region_claim }
+		}
+	}
+	if = {
+		limit = {
+			var:gp_region_share >= 0.9
+			NOT = { has_variable = gp_region_claim }
+		}
+		random_list = {
+			10 = {
+				set_variable = gp_region_claim
+				set_variable = { name = gp_region_claim_years value = 10 }
+			}
+			90 = { }
+		}
+	}
+}
+
+# ================================================================================================
+# Control of the land (game rule "Holding the land", location modifiers for every owner; requested by the author)
+#   - another region of the home macro-region (sub-continent): -25 % max control until 1600;
+#   - another macro-region: -50 % until 1600, -25 % until 1700; nothing after 1700;
+#   - land of our culture group and faith counts as home (acclimatised), wherever it lies;
+#   - a country that has just lost a war (gp_recent_defeat) loses its grip on the outer lands first: another -15 %;
+#   - ragged borders: a location with no neighbour of ours (enclave) -50 %, a narrow salient (at most two neighbours of
+#     ours and at least three foreign ones) -20 %.
+# Static modifiers: main_menu/common/static_modifiers/gp_control_modifiers.txt. Recomputed yearly per owned location.
+# ================================================================================================
+
+gp_update_control = {
+	if = {
+		limit = {
+			exists = capital
+			NOT = { has_game_rule = gp_control_off }
+		}
+		every_owned_location = {
+			gp_control_location = yes
+		}
+	}
+}
+
+# location scope, owner = scope:gp_c
+gp_control_location = {
+	# ---- distance from the home region ----
+	if = {
+		limit = {
+			OR = {
+				region = scope:gp_c.capital.region
+				AND = {
+					dominant_culture ?= { has_shared_culture_group = scope:gp_c.culture }
+					dominant_religion ?= scope:gp_c.religion
+				}
+			}
+		}
+		gp_control_set_distance = { LEVEL = none }
+	}
+	else_if = {
+		limit = { sub_continent = scope:gp_c.capital.sub_continent }
+		if = {
+			limit = { current_date < 1600.1.1 }
+			gp_control_set_distance = { LEVEL = 1 }
+		}
+		else = {
+			gp_control_set_distance = { LEVEL = none }
+		}
+	}
+	else = {
+		if = {
+			limit = { current_date < 1600.1.1 }
+			gp_control_set_distance = { LEVEL = 2 }
+		}
+		else_if = {
+			limit = { current_date < 1700.1.1 }
+			gp_control_set_distance = { LEVEL = 1 }
+		}
+		else = {
+			gp_control_set_distance = { LEVEL = none }
+		}
+	}
+	# ---- the grip after a defeat (outer lands only) ----
+	if = {
+		limit = {
+			scope:gp_c = { has_variable = gp_recent_defeat }
+			NOT = { region = scope:gp_c.capital.region }
+		}
+		if = {
+			limit = { NOT = { has_location_modifier = gp_control_shaken } }
+			add_location_modifier = { modifier = gp_control_shaken days = -1 }
+		}
+	}
+	else_if = {
+		limit = { has_location_modifier = gp_control_shaken }
+		remove_location_modifier = gp_control_shaken
+	}
+	# ---- the shape of the border ----
+	if = {
+		limit = {
+			NOT = { any_neighbor_location = { owner ?= scope:gp_c } }
+		}
+		gp_control_set_shape = { LEVEL = enclave }
+	}
+	else_if = {
+		limit = {
+			NOT = {
+				any_neighbor_location = {
+					count >= 3
+					owner ?= scope:gp_c
+				}
+			}
+			any_neighbor_location = {
+				count >= 3
+				exists = owner
+				NOT = { owner ?= scope:gp_c }
+			}
+		}
+		gp_control_set_shape = { LEVEL = salient }
+	}
+	else = {
+		gp_control_set_shape = { LEVEL = none }
+	}
+}
+
+# Keeps exactly one of the distance modifiers (or none). LEVEL = none / 1 / 2.
+gp_control_set_distance = {
+	if = {
+		limit = { has_location_modifier = gp_control_far_1 }
+		remove_location_modifier = gp_control_far_1
+	}
+	if = {
+		limit = { has_location_modifier = gp_control_far_2 }
+		remove_location_modifier = gp_control_far_2
+	}
+	gp_control_add_far_$LEVEL$ = yes
+}
+
+gp_control_add_far_none = { }
+gp_control_add_far_1 = {
+	add_location_modifier = { modifier = gp_control_far_1 days = -1 }
+}
+gp_control_add_far_2 = {
+	add_location_modifier = { modifier = gp_control_far_2 days = -1 }
+}
+
+# LEVEL = none / enclave / salient.
+gp_control_set_shape = {
+	if = {
+		limit = { has_location_modifier = gp_control_enclave }
+		remove_location_modifier = gp_control_enclave
+	}
+	if = {
+		limit = { has_location_modifier = gp_control_salient }
+		remove_location_modifier = gp_control_salient
+	}
+	gp_control_add_shape_$LEVEL$ = yes
+}
+
+gp_control_add_shape_none = { }
+gp_control_add_shape_enclave = {
+	add_location_modifier = { modifier = gp_control_enclave days = -1 }
+}
+gp_control_add_shape_salient = {
+	add_location_modifier = { modifier = gp_control_salient days = -1 }
+}

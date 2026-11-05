@@ -114,6 +114,10 @@ gp_obj_seek_protector = {
 			add = 40
 		}
 		if = {
+			limit = { scope:recipient ?= scope:actor.var:gp_patron }
+			add = 100
+		}
+		if = {
 			limit = { scope:recipient ?= scope:actor.var:gp_ruler_like }
 			add = 60
 		}
@@ -208,6 +212,7 @@ gp_obj_kin_gathering = {
 			capital.region = scope:actor.capital.region
 			is_neighbor_of = scope:actor
 			gp_shares_culture_group_with = { COUNTRY = scope:actor }
+			NOT = { gp_is_regional_rival_of = { COUNTRY = scope:actor } }
 			NOT = { is_rival_of = scope:actor }
 			NOT = { is_at_war_with = scope:actor }
 			NOT = { this ?= scope:actor.var:gp_ruler_dislike }
@@ -345,5 +350,94 @@ gp_obj_prepare_target = {
 	improve_relation = no
 	antagonise = yes
 	spy_network_target = 40
+	max_allowed = 1
+}
+
+# 7. v0.3 Patron and client (author: "Halych and Volhynia historically fall into Poland's orbit"): the patron set at
+#    game start (gp_history_patron) cultivates its client, defends it and spreads its influence there.
+gp_obj_patron_client = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			gp_is_real_country = yes
+			scope:actor ?= var:gp_patron
+			NOT = { is_at_war_with = scope:actor }
+			NOT = { is_rival_of = scope:actor }
+		}
+	}
+
+	recipient_priority = {
+		add = 50
+	}
+
+	pause_trigger = {
+		scope:actor = { at_war = yes }
+	}
+
+	improve_relation = yes
+	improve_relation_limit = 150
+	defensive_support = yes
+	country_interactions = {
+		influence_nation = yes
+	}
+	max_allowed = 2
+}
+
+# 8. v0.3 Balance of power between regions (author: "France should keep Spain from uniting Iberia - hinder, not
+#    conquer"): a contender secure at home (40 % of its region) befriends the countries of a neighbouring region of its
+#    macro-region whose regional threat is close to uniting that region (55 % of it) - Portugal and Aragon against a
+#    Castile that swallows Iberia - and stands up for them.
+gp_obj_balance_of_power = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_contender
+		is_subject = no
+		exists = capital
+		var:gp_region_share >= 0.4
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			gp_is_real_country = yes
+			is_subject = no
+			exists = capital
+			NOT = { capital.region = scope:actor.capital.region }
+			capital.sub_continent = scope:actor.capital.sub_continent
+			has_variable = gp_threat
+			NOT = { scope:actor ?= var:gp_threat }
+			var:gp_threat ?= {
+				has_variable = gp_region_share
+				var:gp_region_share >= 0.55
+				NOT = { is_allied_with = { target = scope:actor } }
+			}
+			NOT = { is_rival_of = scope:actor }
+			NOT = { is_at_war_with = scope:actor }
+		}
+	}
+
+	recipient_priority = {
+		add = 30
+		add = "scope:recipient.opinion(scope:actor)"
+		divide = 4
+	}
+
+	pause_trigger = {
+		scope:actor = { at_war = yes }
+	}
+
+	improve_relation = yes
+	defensive_support = yes
+	country_relations = {
+		alliance = yes
+	}
 	max_allowed = 1
 }

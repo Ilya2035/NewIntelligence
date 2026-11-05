@@ -26,6 +26,12 @@ gp_opinion_common_enemy = {
 	months = 14
 }
 
+# v0.3 Another contender of our home region (Novgorod - Moscow - Smolensk): rivals, whatever their kinship.
+gp_opinion_regional_rival = {
+	value = -20
+	months = 14
+}
+
 # Kin next door: a neighbour of our culture group in our home region (Novgorod - Pskov - Beloozero).
 gp_opinion_kin = {
 	value = 15
