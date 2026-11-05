@@ -1405,3 +1405,45 @@ gp_tun_far = {
 	area = sardinia_area
 	area = cyrenaica_area
 }
+
+# ================================================================================================
+# v0.4 Directions of a dominant power (author, 2026-11-06: "each region has its own paths of development - Poland goes
+# Baltic -> Ruthenia -> the Pontic steppe -> Russia; the Mongols go to Manchuria, Siberia, Xinjiang, Khorasan and only then
+# to China; China grows inside itself, then north, Korea and the south-east; India then Persia and Indochina").
+# Given by home region to a country holding 60 % of it (gp_update_directions, gp_region_effects.txt). The region is the
+# target, the direction only orders the targets beyond it. Modifier 2 = between sphere (3) and far (1.5).
+# ================================================================================================
+
+gp_dir_british = { preference_type = conquest modifier = 2 region = ireland_region region = france_region }
+gp_dir_irish = { preference_type = conquest modifier = 2 region = great_britain_region }
+gp_dir_french = { preference_type = conquest modifier = 2 region = italy_region region = north_german_region }
+gp_dir_iberian = { preference_type = conquest modifier = 2 region = maghreb_region }
+gp_dir_italian = { preference_type = conquest modifier = 2 region = balkan_region region = maghreb_region }
+gp_dir_north_german = { preference_type = conquest modifier = 2 region = baltic_region region = scandinavian_region }
+gp_dir_south_german = { preference_type = conquest modifier = 2 region = carpathia_region region = italy_region }
+gp_dir_scandinavian = { preference_type = conquest modifier = 2 region = baltic_region region = north_german_region }
+gp_dir_baltic = { preference_type = conquest modifier = 2 region = ruthenia_region region = steppes_region }
+gp_dir_ruthenian = { preference_type = conquest modifier = 2 region = steppes_region region = baltic_region }
+gp_dir_russian = { preference_type = conquest modifier = 2 region = ural_region region = steppes_region region = baltic_region }
+gp_dir_carpathian = { preference_type = conquest modifier = 2 region = balkan_region region = ruthenia_region }
+gp_dir_balkan = { preference_type = conquest modifier = 2 region = anatolia_region region = carpathia_region }
+gp_dir_anatolian = { preference_type = conquest modifier = 2 region = balkan_region region = crescent_region region = caucasus_region }
+gp_dir_caucasian = { preference_type = conquest modifier = 2 region = anatolia_region region = persia_region }
+gp_dir_steppe = { preference_type = conquest modifier = 2 region = caucasus_region region = ruthenia_region region = russian_region }
+gp_dir_maghrebi = { preference_type = conquest modifier = 2 region = iberia_region region = egypt_region }
+gp_dir_egyptian = { preference_type = conquest modifier = 2 region = crescent_region region = arabia_region region = nubia_region }
+gp_dir_crescent = { preference_type = conquest modifier = 2 region = anatolia_region region = persia_region region = arabia_region }
+gp_dir_persian = { preference_type = conquest modifier = 2 region = khorasan_region region = crescent_region region = caucasus_region }
+gp_dir_khorasani = { preference_type = conquest modifier = 2 region = persia_region region = hindustan_region }
+gp_dir_mongol = { preference_type = conquest modifier = 2 region = manchuria_region region = west_siberia_region region = xinjiang_region region = khorasan_region }
+gp_dir_chinese = { preference_type = conquest modifier = 2 region = north_china_region region = east_china_region region = south_china_region region = west_china_region region = korea_region region = manchuria_region region = indochina_region }
+gp_dir_indian = { preference_type = conquest modifier = 2 region = hindustan_region region = bengal_region region = central_india_region region = western_india_region region = deccan_region region = khorasan_region region = indochina_region }
+
+# v0.4 Colonial ambition (author: "as soon as a country dominates even a little, it goes overseas"): the explorer's
+# preference for the New World and the African coast; vanilla "avoid_*_colonization" preferences are lifted at the same
+# time (gp_update_overseas).
+gp_colonial_ambition = {
+	preference_type = exploration
+	modifier = 2
+	continent = america
+}

@@ -55,7 +55,7 @@ NAI = {
 	COLONY_REGION_COMPLETION_UTILITY_BONUS = 8.0				# l.636   5.0
 	# --- v0.3: only the great powers of their regions colonise (author: "first and second of France, Britain, Iberia, Italy,
 	# Scandinavia... only they have the right") - the tax-base gate rises; the eager tags (Sweden, Portugal) stay exempt ---
-	AI_COLONIZE_TAX_BASE_THRESHOLD = 250					# l.641   100
+	AI_COLONIZE_TAX_BASE_THRESHOLD = 180					# l.641   100  (v0.4: 250 -> 180, dominant powers get the colonial preferences instead)
 }
 
 NDiplomacy = {

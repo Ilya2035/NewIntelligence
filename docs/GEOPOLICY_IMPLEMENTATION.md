@@ -92,6 +92,9 @@
 | 45 | `Player.MakeScope.GetList('gp_bp_*')` с `Scope.GetCountry` (ваниль: `GetList('visited_countries')`), `add_to_variable_list` / `clear_variable_list`, `ordered_country` | `gp_update_balance` | списки стран с флагами на вкладке; кнопка «Обновить» (`gp_sgui_refresh_balance`) их пересчитывает |
 | 46 | `[Country.GetCapital.GetRegion.GetName]`, `.GetSubContinent.GetName`, `GetVariable('x').GetValue|0` в loc | `GP_BP_*` | название региона и макрорегиона, доли в процентах без дробей |
 | 47 | Формируемые с ванильным тегом / гербом: `tag = PLC` во втором определении, `flag = HUN` для `GHU` | `gp_formables.txt` | в списке формируемых — «Великая Венгрия» у Венгрии и «Речь Посполитая мечом» у Польши |
+| 48 | `has_area_preference` / `remove_area_preference` для ванильных `avoid_*_colonization` (выданы `setup_area_preferences` при старте) и `preference_type = exploration` с `continent = america` | `gp_update_overseas`, `gp_colonial_ambition` | доминирующая Франция / Англия / Кастилия создают колониальные хартии раньше; в `GP_REPORT` нет ошибок |
+| 49 | Однострочные блоки area_preferences `gp_dir_x = { preference_type = conquest modifier = 2 region = … }`; макрос `gp_dir_pick = { REGION = … DIR = … }` с `region:$REGION$` и `gp_dir_$DIR$` | `gp_zones.txt`, `gp_update_directions` | у страны с 60 % региона в зонах интересов «Направление …» |
+| 50 | `every_ally` в стране, `add_opinion` со `scale` (накопление до `min = -40`) | `gp_update_alliance_fatigue` | у давних союзников без общей угрозы в отношениях «Союз без общей цели тяготит», растёт на 6 в год |
 
 ## 4. Производительность
 

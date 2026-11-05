@@ -380,3 +380,10 @@ gp_region_share_or_zero = {
 		add = var:gp_region_share
 	}
 }
+
+# v0.4 Alliance fatigue grows in the later ages.
+gp_alliance_fatigue_scale = {
+	value = 1
+	if = { limit = { current_date >= 1600.1.1 } add = 0.5 }
+	if = { limit = { current_date >= 1700.1.1 } add = 0.5 }
+}

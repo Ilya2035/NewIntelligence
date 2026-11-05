@@ -456,3 +456,206 @@ gp_refresh_balance = {
 	gp_update_balance = yes
 	clear_saved_scope = gp_c
 }
+
+# ================================================================================================
+# v0.4 Beyond the region (author, 2026-11-06: "no concentration on one region only - as soon as a country dominates even
+# a little it goes overseas; each civilisation has its own directions; no eternal allies")
+# ================================================================================================
+
+# Directions of a dominant power (60 % of its home region): one gp_dir_* conquest preference chosen by the home region
+# (gp_zones.txt). AI only (area preferences steer the AI); called in gp_yearly_update after the stage zones.
+gp_update_directions = {
+	gp_dir_clear = yes
+	if = {
+		limit = {
+			exists = capital
+			var:gp_region_share >= 0.6
+		}
+		gp_dir_pick = { REGION = great_britain_region DIR = british }
+		gp_dir_pick = { REGION = ireland_region DIR = irish }
+		gp_dir_pick = { REGION = france_region DIR = french }
+		gp_dir_pick = { REGION = iberia_region DIR = iberian }
+		gp_dir_pick = { REGION = italy_region DIR = italian }
+		gp_dir_pick = { REGION = north_german_region DIR = north_german }
+		gp_dir_pick = { REGION = south_german_region DIR = south_german }
+		gp_dir_pick = { REGION = scandinavian_region DIR = scandinavian }
+		gp_dir_pick = { REGION = baltic_region DIR = baltic }
+		gp_dir_pick = { REGION = ruthenia_region DIR = ruthenian }
+		gp_dir_pick = { REGION = russian_region DIR = russian }
+		gp_dir_pick = { REGION = carpathia_region DIR = carpathian }
+		gp_dir_pick = { REGION = balkan_region DIR = balkan }
+		gp_dir_pick = { REGION = anatolia_region DIR = anatolian }
+		gp_dir_pick = { REGION = caucasus_region DIR = caucasian }
+		gp_dir_pick = { REGION = steppes_region DIR = steppe }
+		gp_dir_pick = { REGION = maghreb_region DIR = maghrebi }
+		gp_dir_pick = { REGION = egypt_region DIR = egyptian }
+		gp_dir_pick = { REGION = crescent_region DIR = crescent }
+		gp_dir_pick = { REGION = persia_region DIR = persian }
+		gp_dir_pick = { REGION = khorasan_region DIR = khorasani }
+		gp_dir_pick = { REGION = mongolia_region DIR = mongol }
+		gp_dir_pick = { REGION = north_china_region DIR = chinese }
+		gp_dir_pick = { REGION = east_china_region DIR = chinese }
+		gp_dir_pick = { REGION = south_china_region DIR = chinese }
+		gp_dir_pick = { REGION = west_china_region DIR = chinese }
+		gp_dir_pick = { REGION = hindustan_region DIR = indian }
+		gp_dir_pick = { REGION = bengal_region DIR = indian }
+		gp_dir_pick = { REGION = central_india_region DIR = indian }
+		gp_dir_pick = { REGION = western_india_region DIR = indian }
+		gp_dir_pick = { REGION = deccan_region DIR = indian }
+	}
+}
+
+gp_dir_pick = {
+	if = {
+		limit = {
+			capital.region = region:$REGION$
+			NOT = { has_area_preference = gp_dir_$DIR$ }
+		}
+		add_area_preference = gp_dir_$DIR$
+	}
+}
+
+gp_dir_drop = {
+	if = {
+		limit = { has_area_preference = gp_dir_$DIR$ }
+		remove_area_preference = gp_dir_$DIR$
+	}
+}
+
+gp_dir_clear = {
+	gp_dir_drop = { DIR = british }
+	gp_dir_drop = { DIR = irish }
+	gp_dir_drop = { DIR = french }
+	gp_dir_drop = { DIR = iberian }
+	gp_dir_drop = { DIR = italian }
+	gp_dir_drop = { DIR = north_german }
+	gp_dir_drop = { DIR = south_german }
+	gp_dir_drop = { DIR = scandinavian }
+	gp_dir_drop = { DIR = baltic }
+	gp_dir_drop = { DIR = ruthenian }
+	gp_dir_drop = { DIR = russian }
+	gp_dir_drop = { DIR = carpathian }
+	gp_dir_drop = { DIR = balkan }
+	gp_dir_drop = { DIR = anatolian }
+	gp_dir_drop = { DIR = caucasian }
+	gp_dir_drop = { DIR = steppe }
+	gp_dir_drop = { DIR = maghrebi }
+	gp_dir_drop = { DIR = egyptian }
+	gp_dir_drop = { DIR = crescent }
+	gp_dir_drop = { DIR = persian }
+	gp_dir_drop = { DIR = khorasani }
+	gp_dir_drop = { DIR = mongol }
+	gp_dir_drop = { DIR = chinese }
+	gp_dir_drop = { DIR = indian }
+}
+
+# Overseas: a contender holding 40 % of its home region (or anyone holding 60 %) of the colonising regions (author:
+# France, Britain, Ireland, Iberia, the Maghreb, Italy, the Balkans, Anatolia, the German lands, Scandinavia) loses the
+# vanilla "avoid_*_colonization" preferences (setup_area_preferences gives them to every AI at game start) and gets the
+# explorer's taste for the New World; Russia opens Siberia, India and China open South-East Asia. Losing the position
+# restores the vanilla preferences. AI only.
+gp_update_overseas = {
+	if = {
+		limit = {
+			exists = capital
+			is_subject = no
+			OR = {
+				var:gp_region_share >= 0.6
+				AND = {
+					has_variable = gp_contender
+					var:gp_region_share >= 0.4
+				}
+			}
+		}
+		if = {
+			limit = {
+				OR = {
+					capital.sub_continent = sub_continent:western_europe
+					capital.region = region:maghreb_region
+					capital.region = region:balkan_region
+					capital.region = region:anatolia_region
+				}
+			}
+			gp_pref_drop = { PREF = avoid_american_colonization }
+			gp_pref_drop = { PREF = avoid_african_colonization }
+			gp_pref_drop = { PREF = avoid_south_east_asica_colonization }
+			if = {
+				limit = { NOT = { has_area_preference = gp_colonial_ambition } }
+				add_area_preference = gp_colonial_ambition
+			}
+			set_variable = gp_overseas_open
+		}
+		if = {
+			limit = { capital.region = region:russian_region }
+			gp_pref_drop = { PREF = avoid_siberia_colonization }
+			set_variable = gp_overseas_open
+		}
+		if = {
+			limit = {
+				OR = {
+					capital.sub_continent = sub_continent:south_asia
+					gp_is_sinic = yes
+				}
+			}
+			gp_pref_drop = { PREF = avoid_south_east_asica_colonization }
+			set_variable = gp_overseas_open
+		}
+	}
+	else_if = {
+		limit = { has_variable = gp_overseas_open }
+		remove_variable = gp_overseas_open
+		gp_pref_drop = { PREF = gp_colonial_ambition }
+		if = {
+			limit = { exists = capital }
+			if = {
+				limit = { NOT = { capital.continent = continent:america } }
+				gp_pref_keep = { PREF = avoid_american_colonization }
+			}
+			if = {
+				limit = { NOT = { capital.continent = continent:africa } }
+				gp_pref_keep = { PREF = avoid_african_colonization }
+			}
+			if = {
+				limit = { NOT = { capital.sub_continent = sub_continent:south_east_asia } }
+				gp_pref_keep = { PREF = avoid_south_east_asica_colonization }
+			}
+			gp_pref_keep = { PREF = avoid_siberia_colonization }
+		}
+	}
+}
+
+gp_pref_drop = {
+	if = {
+		limit = { has_area_preference = $PREF$ }
+		remove_area_preference = $PREF$
+	}
+}
+
+gp_pref_keep = {
+	if = {
+		limit = { NOT = { has_area_preference = $PREF$ } }
+		add_area_preference = $PREF$
+	}
+}
+
+# No eternal allies (author: "there are no eternal allies and no eternal enemies, especially late in the game"): from
+# 1450 every year of an alliance that no common threat holds together cools our opinion of the ally a little; the
+# memory fades three times faster than it grows once the alliance is gone (gp_opinion_alliance_fatigue). Stronger after
+# 1600 and 1700 (gp_alliance_fatigue_scale). Old enmities already fade by themselves (gp_opinions.txt).
+gp_update_alliance_fatigue = {
+	if = {
+		limit = { current_date >= 1450.1.1 }
+		every_ally = {
+			limit = {
+				gp_is_real_country = yes
+				NOT = { is_subject_or_below_of = scope:gp_c }
+				NOT = { scope:gp_c = { is_subject_or_below_of = prev } }
+				NOT = { gp_shares_threat_with = { COUNTRY = scope:gp_c } }
+				NOT = { this ?= scope:gp_c.var:gp_ruler_like }
+			}
+			scope:gp_c = {
+				add_opinion = { target = prev modifier = gp_opinion_alliance_fatigue scale = gp_alliance_fatigue_scale }
+			}
+		}
+	}
+}

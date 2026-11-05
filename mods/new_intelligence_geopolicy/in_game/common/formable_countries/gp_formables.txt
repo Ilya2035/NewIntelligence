@@ -422,7 +422,7 @@ gp_khorasan_f = {
 # v0.3 Great Hungary (author, 2026-11-05: "Hungary forms Great Hungary if it takes all of the Carpathians"): a Hungarian
 # country holding 90 % of the Carpathian region. Flag: the Hungarian coat of arms.
 gp_great_hungary_f = {
-	level = 3
+	level = 4
 	required_locations_fraction = 0.9
 	rule = plausible
 	content_priority = 700
@@ -475,6 +475,644 @@ gp_commonwealth_f = {
 
 	regions = {
 		baltic_region
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+###################################
+# Regional formables, batch 2 (2026-11-06). Author: "many more formable countries for different regions, Europe first,
+# then the Middle East / North Africa, Persia, China" - none of them a copy of a vanilla formable.
+# New tags (checked against setup, country loc, coat_of_arms and 00_formable_countries.txt): MDC VSM BCR DNM LRS SGK LOM
+# MGB CLF TCM FRS SSO NYU YEN. gp_vladimir_f and gp_jochi_f re-form the vanilla tags VLR and GLH once those are gone
+# (the way gp_commonwealth_f forms PLC): a new tag would have been a second "Vladimir" and a second "Jochi".
+# Flags reuse vanilla arms; colors in gp_colors.txt (vanilla map_VLR / map_golden_horde for the two vanilla tags);
+# names in gp_formables_l_*.yml. No modifiers - only the tag, the map color and the rank change.
+# Left out because vanilla already has them: the Kingdom of Arles (BGP_f "Burgundy": Provence, Savoy, Lyonnais, Free
+# County, Vaud), an Iberian Union (SPA_f: an Iberian country with 75 % of iberia_region) and the Sultanate of Rum
+# (RUM_f: a non-Ottoman Turkic beylik with 85 % of anatolia_region).
+###################################
+
+# The Mediterranean Crown - since the Vespers of 1282 the House of Barcelona has gathered Sicily, Majorca and Sardinia;
+# Alfonso V added Naples in 1442 and ruled the western sea from one court. Aragon holding all of its crowns.
+gp_mediterranean_crown_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = historical
+	content_priority = 700
+
+	potential = {
+		OR = {
+			tag = ARA
+			culture = culture:catalan
+			culture = culture:aragonese
+		}
+	}
+
+	allow = {
+		owns = location:barcelona
+		owns = location:palermo
+	}
+
+	name = MDC
+	flag = ARA
+	adjective = MDC_ADJ
+	tag = MDC
+	color = map_MDC
+
+	areas = {
+		aragon_area
+		catalonia_area
+		valencia_area
+		balearics_area
+		sardinia_area
+		sicily_area
+		campania_area
+		apulia_area
+		basilicata_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Stato da Mar - Venice's empire of ports: Zara and the Dalmatian coast (lost to Hungary in 1358), Modon and Coron,
+# Negroponte and Crete. The Republic holding the Adriatic and the road to the Levant at once.
+gp_stato_da_mar_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = historical
+	content_priority = 700
+
+	potential = {
+		OR = {
+			tag = VEN
+			culture = culture:venetian
+		}
+	}
+
+	allow = {
+		owns = location:venice
+		owns = location:candia
+	}
+
+	name = VSM
+	flag = VEN
+	adjective = VSM_ADJ
+	tag = VSM
+	color = map_VSM
+
+	areas = {
+		veneto_area
+		croatia_area
+		morea_area
+	}
+	provinces = {
+		crete_province
+		euboea_province
+		ionian_islands_province
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Lands of the Bohemian Crown - in 1348 Charles IV declared the Corona regni Bohemiae an indivisible union of
+# Bohemia, Moravia, Silesia and Upper Lusatia; Lower Lusatia joined it in 1367. A Bohemian king holding all of it.
+gp_bohemian_crown_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = historical
+	content_priority = 700
+
+	potential = {
+		OR = {
+			tag = BOH
+			culture = { has_culture_group = culture_group:bohemian_group }
+		}
+	}
+
+	allow = {
+		owns = location:prague
+		owns = location:wroclaw
+	}
+
+	name = BCR
+	flag = BOH
+	adjective = BCR_ADJ
+	tag = BCR
+	color = map_BCR
+
+	areas = {
+		bohemia_area
+		moravia_area
+		silesia_area
+	}
+	provinces = {
+		oberlausitz_province
+		niederlausitz_province
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Danubian Monarchy - Albert of Habsburg wore the crowns of Hungary and Bohemia in 1438 and died the next year;
+# Ferdinand I won both back after Mohacs (1526). Austria holding Vienna, Prague and Buda. Rank empire: three kingdoms'
+# worth of land, larger than vanilla IRA_f (50 % of Persia), which also crowns an empire. Level 3, so the road to
+# Germany (GER_f, level 4) stays open.
+gp_danubian_monarchy_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = historical
+	content_priority = 700
+
+	potential = {
+		OR = {
+			tag = HAB
+			culture = culture:danube_bavarian
+			culture = culture:southern_bavarian
+		}
+	}
+
+	allow = {
+		owns = location:vienna
+		owns = location:prague
+		owns = location:buda
+	}
+
+	name = DNM
+	flag = HAB
+	adjective = DNM_ADJ
+	tag = DNM
+	color = map_DNM
+
+	areas = {
+		austria_area
+		upper_austria_area
+		styria_area
+		carinthia_area
+		bohemia_area
+		moravia_area
+		transdanubia_area
+		north_alfold_area
+		slovakia_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_empire }
+	}
+}
+
+# Lithuania and Rus' - Gediminas wrote himself king "of the Lithuanians and many Ruthenians", Algirdas held that all
+# Rus' must belong to Lithuania, and the crown sent to Vytautas in 1430 never reached him. The Grand Duchy with three
+# quarters of Ruthenia gets its crown.
+gp_lithuania_rus_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = historical
+	content_priority = 700
+
+	potential = {
+		OR = {
+			tag = LIT
+			culture = { has_culture_group = culture_group:lithuanian_group }
+		}
+	}
+
+	allow = {
+		owns = location:vilnius
+		owns = location:kyiv
+	}
+
+	name = LRS
+	flag = LIT
+	adjective = LRS_ADJ
+	tag = LRS
+	color = map_LRS
+
+	regions = {
+		ruthenia_region
+	}
+	areas = {
+		lithuania_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Empire of the Serbs and Greeks - Stefan Dusan was crowned emperor at Skopje at Easter 1346 and by 1348 ruled
+# Macedonia, Albania, Epirus and Thessaly; he died in 1355 with Constantinople still ahead of him. Level 4 and rank
+# empire like vanilla BYZ_f.
+gp_serbian_empire_f = {
+	level = 4
+	required_locations_fraction = 0.75
+	rule = historical
+	content_priority = 700
+
+	potential = {
+		OR = {
+			tag = SER
+			culture = culture:serbian
+		}
+	}
+
+	allow = {
+		owns = location:skopje
+	}
+
+	name = SGK
+	flag = SER
+	adjective = SGK_ADJ
+	tag = SGK
+	color = map_SGK
+
+	areas = {
+		serbia_area
+		macedonia_area
+		albania_area
+	}
+	provinces = {
+		thessaly_province
+		south_epirus_province
+		aetolia_province
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_empire }
+	}
+}
+
+# The Kingdom of Lombardy - Gian Galeazzo Visconti bought the ducal title in 1395 and was preparing a royal coronation
+# when the plague killed him in 1402. Milan holding Lombardy, Emilia, Piedmont and the Veneto mainland. Level 3, below
+# Italy (ITA_f, level 4).
+gp_lombardy_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = plausible
+	content_priority = 700
+
+	potential = {
+		OR = {
+			tag = MLO
+			culture = culture:lombard
+		}
+	}
+
+	allow = {
+		owns = location:milano
+	}
+
+	name = LOM
+	flag = MLO
+	adjective = LOM_ADJ
+	tag = LOM
+	color = map_LOM
+
+	areas = {
+		lombardy_area
+		emilia_area
+		piemonte_area
+	}
+	provinces = {
+		verona_province
+		vicenza_province
+		padua_province
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Grand Principality of Vladimir - the khan's patent for the throne of Vladimir passed between Moscow, Tver and
+# Suzdal (Dmitry of Suzdal held it in 1360-63, Mikhail of Tver won it in 1371). Re-forms the vanilla VLR (in personal
+# union under Moscow in 1337) once it is gone. Moscow is left out: its road is Russia (RUS_f), and changing tag would cut
+# it off from the vanilla Muscovite content.
+gp_vladimir_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = historical
+	content_priority = 700
+
+	potential = {
+		culture = { has_culture_group = culture_group:russian_group }
+		NOT = { tag = MOS }
+		NOT = { country_exists = c:VLR }
+		NOT = { has_or_had_tag = RUS }
+	}
+
+	allow = {
+		owns = location:vladimir
+	}
+
+	name = VLR
+	flag = VLR
+	adjective = VLR_ADJ
+	tag = VLR
+	color = map_VLR
+
+	areas = {
+		vladimir_area
+		suzdal_area
+		nizhny_novgorod_area
+		yaroslavl_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Ulus of Jochi - after 1359 more than twenty khans sat in Sarai in twenty years, until Tokhtamysh gathered the ulus
+# again in 1380. A steppe horde holding three quarters of the steppe re-forms the vanilla GLH once it is gone.
+gp_jochi_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = historical
+	content_priority = 700
+
+	potential = {
+		culture = { has_culture_group = culture_group:steppe_group }
+		NOT = { country_exists = c:GLH }
+	}
+
+	allow = {
+		owns = location:sarai_al_jadid
+	}
+
+	name = GLH
+	flag = GLH
+	adjective = GLH_ADJ
+	tag = GLH
+	color = map_golden_horde
+
+	regions = {
+		steppes_region
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Sultanate of the Maghreb - the Marinid Abu al-Hasan took Tlemcen in 1337 and Tunis in 1347: for a few months the
+# Maghreb from the Atlantic to Ifriqiya obeyed one sultan, as under the Almohads. Vanilla MOR_f / ALG_f / TUN_f stop at
+# one area each; this is the whole of it.
+gp_maghreb_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = plausible
+	content_priority = 700
+
+	potential = {
+		culture = { has_culture_group = culture_group:maghrebi_group }
+		religion.group = religion_group:muslim
+	}
+
+	allow = {
+		OR = {
+			owns = location:fez
+			owns = location:tlemcen
+			owns = location:tunis
+		}
+	}
+
+	name = MGB
+	flag = MOR
+	adjective = MGB_ADJ
+	tag = MGB
+	color = map_MGB
+
+	areas = {
+		morocco_area
+		sus_area
+		algiers_area
+		atlas_high_plateau
+		tunis_area
+		tripolitania_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Abbasid Caliphate restored - since 1261 the Abbasid heirs have sat in Cairo as guests of the Mamluk sultans,
+# caliphs without a caliphate. A Sunni power holding Baghdad, the Holy Cities and Cairo returns the caliph to the city
+# of al-Mansur. Level 4 and rank empire: four core areas of the old caliphate, more than vanilla RUM_f / IRA_f.
+gp_abbasid_f = {
+	level = 4
+	required_locations_fraction = 0.75
+	rule = plausible
+	content_priority = 700
+
+	potential = {
+		religion = religion:sunni
+	}
+
+	allow = {
+		owns = location:baghdad
+		owns = location:mecca
+		owns = location:cairo
+	}
+
+	name = CLF
+	flag = AIA
+	adjective = CLF_ADJ
+	tag = CLF
+	color = map_CLF
+
+	areas = {
+		iraq_arabi_area
+		levant_area
+		hedjaz_area
+		lower_egypt_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_empire }
+	}
+}
+
+# Turcomania - the Black Sheep took Tabriz and Baghdad early in the next century, and the White Sheep of Uzun Hasan
+# ruled from Diyarbakir to the Gulf. A Turkoman realm of eastern Anatolia, Azerbaijan, the Jazira and Iraq (European
+# maps called the land "Turcomania"). Neither Qara nor Aq Qoyunlu has vanilla arms: flag of the Turkoman Dulkadirids.
+gp_turkoman_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = historical
+	content_priority = 700
+
+	potential = {
+		OR = {
+			tag = QAR
+			tag = AQQ
+			culture = culture:azeri_culture
+			culture = culture:turkoman_culture
+		}
+		religion.group = religion_group:muslim
+	}
+
+	allow = {
+		owns = location:tabriz
+	}
+
+	name = TCM
+	flag = DUL
+	adjective = TCM_ADJ
+	tag = TCM
+	color = map_TCM
+
+	areas = {
+		azerbaijan_area
+		armenian_highlands_area
+		armenia_area
+		jazira_area
+		iraq_arabi_area
+		kordestan_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# Fars - from Yazd the Muzaffarids took Kerman (1340), Shiraz from the Injuids (1353) and Isfahan (1357); Hafez sang at
+# Shah Shuja's court until Timur ended the dynasty in 1393. A Persian kingdom of the south, a step below Persia (IRA_f,
+# level 4, half of persia_region).
+gp_fars_f = {
+	level = 3
+	required_locations_fraction = 0.75
+	rule = historical
+	content_priority = 700
+
+	potential = {
+		OR = {
+			tag = MZF
+			tag = INJ
+			tag = KRM
+			culture = culture:farsi_culture
+		}
+	}
+
+	allow = {
+		owns = location:shiraz
+	}
+
+	name = FRS
+	flag = MZF
+	adjective = FRS_ADJ
+	tag = FRS
+	color = map_FRS
+
+	areas = {
+		fars_area
+		kerman_area
+	}
+	provinces = {
+		isfahan_province
+		yazd_province
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Southern Song - the Mongols ended it at Yamen in 1279; the Red Turbans will rise in its name. EU5's
+# south_china_region is only Lingnan and Yunnan-Guizhou: the Southern Song heartland (Lin'an, Jiangnan, Fujian,
+# Huguang) lies in east_china_region, so the requirement is that heartland by areas. Level 3, below China (CHI_f).
+gp_southern_song_f = {
+	level = 3
+	required_locations_fraction = 0.8
+	rule = plausible
+	content_priority = 700
+
+	potential = {
+		culture = { has_culture_group = culture_group:chinese_group }
+		NOT = { tag = CHI }
+	}
+
+	allow = {
+		owns = location:hangzhou
+	}
+
+	name = SSO
+	flag = CSO
+	adjective = SSO_ADJ
+	tag = SSO
+	color = map_SSO
+
+	areas = {
+		zhejiang_area
+		jiangnan_area
+		fujian_area
+		jiangxi_area
+		huaidong_area
+		huaixi_area
+		hunan_area
+		hubei_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# Nanyue - Zhao Tuo founded the kingdom of Southern Yue at Panyu (Guangzhou) about 204 BC, and the Southern Han ruled
+# from the same city until 971. Lingnan behind its mountains: the Chinese core of south_china_region (Guangdong,
+# Guangxi, Hainan), without the Yunnan-Guizhou uplands. Flag of the Dongguan warlords (He Zhen) of the Red Turban era.
+gp_nanyue_f = {
+	level = 3
+	required_locations_fraction = 0.8
+	rule = plausible
+	content_priority = 700
+
+	potential = {
+		culture = { has_culture_group = culture_group:chinese_group }
+		NOT = { tag = CHI }
+	}
+
+	allow = {
+		owns = location:guangzhou
+	}
+
+	name = NYU
+	flag = CDN
+	adjective = NYU_ADJ
+	tag = NYU
+	color = map_NYU
+
+	areas = {
+		guangdong_area
+		guangxi_area
+		haibei_hainan_area
+		liangjiang_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Kingdom of Yan - Ji, capital of the Warring States kingdom of Yan, is the Mongols' Dadu; from here a Prince of Yan
+# would one day march south and take the throne (1399-1402). A Chinese country holding 90 % of north_china_region. Flag
+# of Mao Gui's Shandong of the Red Turban era.
+gp_yan_f = {
+	level = 3
+	required_locations_fraction = 0.9
+	rule = plausible
+	content_priority = 700
+
+	potential = {
+		culture = { has_culture_group = culture_group:chinese_group }
+		NOT = { tag = CHI }
+	}
+
+	allow = {
+		owns = location:dadu
+	}
+
+	name = YEN
+	flag = CMO
+	adjective = YEN_ADJ
+	tag = YEN
+	color = map_YEN
+
+	regions = {
+		north_china_region
 	}
 	form_effect = {
 		set_country_rank_effect = { rank = country_rank:rank_kingdom }

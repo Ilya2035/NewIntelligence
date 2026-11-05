@@ -87,3 +87,11 @@ gp_opinion_ancient_friendship = {
 	max = 40
 	yearly_decay = 0.25
 }
+
+# v0.4 No eternal allies: every year of an alliance without a common threat adds -6 (from 1450; x1.5 after 1600, x2 after
+# 1700), down to -40; it fades by 3 a year, so it only builds up while the alliance lasts.
+gp_opinion_alliance_fatigue = {
+	value = -6
+	min = -40
+	yearly_decay = 3
+}

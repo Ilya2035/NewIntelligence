@@ -579,6 +579,7 @@ gp_score_isolationist_civ = {
 		is_ai = yes
 		gp_is_active = yes
 		exists = capital
+		var:gp_region_share < 0.6	# v0.4: once the home region is held, China goes north, to Korea and the south-east
 		OR = {
 			gp_is_sinic = yes
 			gp_is_japanese = yes
@@ -828,5 +829,29 @@ gp_score_colonial_borders = {
 	}
 	multiplier = {
 		add = -0.85
+	}
+}
+
+# v0.4 The Empire is a wall (author, 2026-11-06: "the Netherlands cannot push into northern Germany - the Holy Roman
+# Empire is a stopper, a special region with special rights"): a power from outside the German regions values targets
+# whose capital lies in them much less.
+gp_score_empire_wall = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		NOT = { capital.region = region:north_german_region }
+		NOT = { capital.region = region:south_german_region }
+	}
+	target_trigger = {
+		exists = capital
+		OR = {
+			capital.region = region:north_german_region
+			capital.region = region:south_german_region
+		}
+		NOT = { this ?= scope:attacker.var:gp_war_target }
+	}
+	multiplier = {
+		add = -0.4
 	}
 }

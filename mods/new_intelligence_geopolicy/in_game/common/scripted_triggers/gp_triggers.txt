@@ -73,18 +73,14 @@ gp_is_near_east_muslim = {
 # Who may turn inward: the Chinese, Japanese and Korean states and the Pacific islands (author: "Hawaii could be
 # isolationist too"), and any country whose own laws and society shut it in (author: "if a country takes up something
 # that gives it isolation") - the closed-borders immigration law or a strongly inward society (> 50, vanilla scale).
+# v0.4 (author, 2026-11-06: "closedness only when access from outside is broken - countries always try to be active
+# abroad"): no country is isolationist by birth any more (China, Japan, Korea and the Pacific islands included); only
+# its own laws and society shut it in.
 gp_isolation_home = {
 	exists = capital
 	OR = {
 		has_policy = closed_borders_law
 		societal_value:outward_vs_inward > 50
-		gp_is_sinic = yes
-		gp_is_japanese = yes
-		gp_is_korean = yes
-		capital.region = region:polynesia_region
-		capital.region = region:micronesia_region
-		capital.region = region:melanesia_region
-		capital.region = region:new_zealand_region
 	}
 }
 

@@ -49,6 +49,7 @@ gp_yearly_update = {
 	gp_ensure_colonial_profile = yes
 	gp_update_region_claim = yes
 	gp_update_control = yes
+	gp_update_alliance_fatigue = yes
 	if = {
 		limit = { is_ai = no }
 		gp_update_balance = yes	# v0.3 data of the "Balance of power" tab (gp_region_effects.txt)
@@ -60,6 +61,8 @@ gp_yearly_update = {
 			limit = { is_ai = yes }
 			gp_update_posture = yes
 			gp_update_stage_zones = yes
+			gp_update_directions = yes	# v0.4 (gp_region_effects.txt)
+			gp_update_overseas = yes
 		}
 		else = {
 			gp_clear_postures = yes
