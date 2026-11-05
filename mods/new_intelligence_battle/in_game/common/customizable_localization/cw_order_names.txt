@@ -1,0 +1,50 @@
+﻿# New Intelligence: Battle (v0.6) - name of the order the player gave a vassal, recorded as var:cw_order_n by
+# cw_subject_read_order (cw_stance_effects.txt). Used by CW_SUBJ_DISOBEYS as [Country.Custom('cw_ordered_stance_name')]
+# while the vassal refuses the order. Format: customizable_localization/00_customizable_localization.txt (type country).
+cw_ordered_stance_name = {
+	type = country
+	text = {
+		localization_key = normal_military_stance
+		trigger = { has_variable = cw_order_n var:cw_order_n = 1 }
+	}
+	text = {
+		localization_key = aggressive_military_stance
+		trigger = { has_variable = cw_order_n var:cw_order_n = 2 }
+	}
+	text = {
+		localization_key = supportive_military_stance
+		trigger = { has_variable = cw_order_n var:cw_order_n = 3 }
+	}
+	text = {
+		localization_key = passive_military_stance
+		trigger = { has_variable = cw_order_n var:cw_order_n = 4 }
+	}
+	text = {
+		localization_key = defensive_military_stance
+		trigger = { has_variable = cw_order_n var:cw_order_n = 5 }
+	}
+	text = {
+		localization_key = siege_raider_military_stance
+		trigger = { has_variable = cw_order_n var:cw_order_n = 6 }
+	}
+	text = {
+		localization_key = cw_escort_military_stance
+		trigger = { has_variable = cw_order_n var:cw_order_n = 7 }
+	}
+	text = {
+		localization_key = cw_harass_military_stance
+		trigger = { has_variable = cw_order_n var:cw_order_n = 8 }
+	}
+	text = {
+		localization_key = cw_own_theater_military_stance
+		trigger = { has_variable = cw_order_n var:cw_order_n = 9 }
+	}
+	text = {
+		localization_key = cw_defend_home_military_stance
+		trigger = { has_variable = cw_order_n var:cw_order_n = 10 }
+	}
+	text = {
+		localization_key = CW_ORDER_UNKNOWN
+		fallback = yes
+	}
+}

@@ -41,10 +41,10 @@
 #   AI_AWAIT_REINFORCING_ARMY_DISTANCE_MIN           25       20       1132
 #   AI_WAIT_FOR_JOINING_UNIT_STRENGTH_THRESHOLD      0.2      0.33     1135
 #   AI_ATTACH_MIN_FRONTAGE_ROOM                      0.5      1.0      1139
-#   AI_REINFORCE_ONGOING_BATTLE_DISTANCE             3        2        1133
-#   AI_REINFORCE_BATTLE_DISTANCE_LIMIT               4        3        1587
+#   AI_REINFORCE_ONGOING_BATTLE_DISTANCE             4        2        1133
+#   AI_REINFORCE_BATTLE_DISTANCE_LIMIT               5        3        1587
 #   AI_CARPET_SIEGE_FAILED_PATHFIND_RETRY_DAYS       14       7        835    (v0.5, performance)
-#   AI_REINFORCE_BATTLE_STRENGTH_TRESHOLD            0.7      0.55     1589   (vanilla spelling "TRESHOLD")
+#   AI_REINFORCE_BATTLE_STRENGTH_TRESHOLD            0.8      0.55     1589   (vanilla spelling "TRESHOLD")
 #   AI_CALL_ALLY_STRENGTH_BALANCE_THRESHOLD          0.85     0.75     1435
 #   HEAVILY_OUTNUMBERED_RATIO                        0.45     0.40     1109
 #   OUTNUMBERED_BATTLE_ADVANTAGE                     0.5      0.60     1110
@@ -86,9 +86,9 @@ NAI = {
 	AI_AWAIT_REINFORCING_ARMY_DISTANCE_MIN = 25			# 20   (l.1132): ...and resume moving once they are this close
 	AI_WAIT_FOR_JOINING_UNIT_STRENGTH_THRESHOLD = 0.2	# 0.33 (l.1135): wait even for smaller joining units
 	AI_ATTACH_MIN_FRONTAGE_ROOM = 0.5					# 1.0  (l.1139): attach even as reserve depth
-	AI_REINFORCE_ONGOING_BATTLE_DISTANCE = 3			# 2    (l.1133) v0.5: 4 -> 3 (performance): nearby armies pile into the decisive battle...
-	AI_REINFORCE_BATTLE_DISTANCE_LIMIT = 4				# 3    (l.1587): ...from up to 4 locations away (v0.5: 5 -> 4, performance)
-	AI_REINFORCE_BATTLE_STRENGTH_TRESHOLD = 0.7			# 0.55 (l.1589): keep reinforcing until the own side holds 70% of the battle (decisive superiority)
+	AI_REINFORCE_ONGOING_BATTLE_DISTANCE = 4			# 2    (l.1133) v0.6: back to 4 (user: troops must gather into battles faster; v0.5 had 3): nearby armies pile into the decisive battle...
+	AI_REINFORCE_BATTLE_DISTANCE_LIMIT = 5				# 3    (l.1587): ...from up to 5 locations away (v0.6: back to 5, together with the march-to-battle ability)
+	AI_REINFORCE_BATTLE_STRENGTH_TRESHOLD = 0.8			# 0.55 (l.1589): v0.6 - keep reinforcing until the own side holds 80% of the battle (decisive superiority)
 	AI_CALL_ALLY_STRENGTH_BALANCE_THRESHOLD = 0.85		# 0.75 (l.1435): call allies into wars more often
 
 	# --- asymmetric warfare when outnumbered (§2.7; the engine-side "harassing" mode) ---

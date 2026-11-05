@@ -507,6 +507,142 @@ types CW_HQOverviewTypes
 		}
 	}
 
+	# v0.6 (user review 2026-11-06): one row per subject of the player (datamodel Player.GetDiplomacy.GetSubjects,
+	# colonial_revolution.gui:108; item context Country). Flag and name, army size, what the subject is DOING (obeys /
+	# refuses and guards its own land / at peace) and, on the right, the ORDER button: click = the vanilla order picker
+	# for this subject (scripted action change_military_stance, manage_subjects_lateralview.gui:336-345). The button shows
+	# the order the player gave: normally the subject's stance; while it disobeys (var:cw_disobeys, its real stance is
+	# then cw_defend_home) the recorded order var:cw_order_n (cw_stance_effects.txt) picks the icon.
+	type cw_subject_order_row = widget {
+		layoutpolicy_horizontal = expanding
+		size = { -1 46 }
+		using = bg_market_card
+		using = bg_cabinet_card_frame
+
+		hbox = {
+			size = { 100% 100% }
+			margin = { 6 0 }
+			spacing = 8
+
+			country_flag_small = {}
+
+			vbox = {
+				size = { 190 40 }
+				text_single = {
+					size = { 190 20 }
+					autoresize = no
+					elide = right
+					align = left|nobaseline
+					using = Font_Type_Headers
+					using = Font_Size_Small
+					default_format = "#yellow_titles"
+					text = "[Country.GetNameWithNoTooltip]"
+				}
+				text_single = {
+					size = { 190 18 }
+					autoresize = no
+					elide = right
+					align = left|nobaseline
+					default_format = "#subtle_name"
+					raw_text = "[Localize('CW_SUBJ_ARMY')] [Country.GetArmySize] @army_strength!"
+				}
+			}
+
+			# what the subject is doing
+			widget = {
+				layoutpolicy_horizontal = expanding
+				size = { -1 40 }
+				tooltip = "CW_SUBJ_STATUS_TT"
+
+				text_multi = {
+					visible = "[Not(Country.GetDiplomacy.IsAtWar)]"
+					size = { 100% 40 }
+					autoresize = no
+					align = left|nobaseline
+					default_format = "#subtle_name"
+					text = "CW_SUBJ_PEACE"
+				}
+				text_multi = {
+					visible = "[And(Country.GetDiplomacy.IsAtWar, Not(Country.MakeScope.GetVariable('cw_disobeys').IsSet))]"
+					size = { 100% 40 }
+					autoresize = no
+					align = left|nobaseline
+					text = "CW_SUBJ_OBEYS"
+				}
+				text_multi = {
+					visible = "[Country.MakeScope.GetVariable('cw_disobeys').IsSet]"
+					size = { 100% 40 }
+					autoresize = no
+					align = left|nobaseline
+					text = "CW_SUBJ_DISOBEYS"
+				}
+			}
+
+			# the order button
+			card_header_button_04 = {
+				size = { 46 36 }
+				visible = "[PdxGuiWidget.IsUberButtonVisible]"
+				enabled = "[PdxGuiWidget.IsUberButtonEnabled]"
+
+				scripted_action_tooltip = {
+					click_type = left
+					click_mode = single
+					action_name = "change_military_stance"
+					actor = "[Player]"
+					parameter = {
+						parameter_name = "subject"
+						parameter_value = "[Country.MakeScope]"
+					}
+				}
+
+				button_tooltip_override = {
+					title = "CW_SUBJ_ORDER_TITLE"
+				}
+
+				widget = {
+					size = { 30 30 }
+					parentanchor = center
+
+					icon = {
+						visible = "[Not(Country.MakeScope.GetVariable('cw_disobeys').IsSet)]"
+						size = { 30 30 }
+						texture = "[GetMilitaryStanceIcon(Country.GetMilitaryStance)]"
+					}
+					icon = {
+						visible = "[And(Country.MakeScope.GetVariable('cw_disobeys').IsSet, Not(GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_order_n').GetValue), '(float)1.5')))]"
+						size = { 30 30 }
+						texture = "gfx/interface/icons/military_stances/normal_military_stance.dds"
+					}
+					icon = {
+						visible = "[And3(Country.MakeScope.GetVariable('cw_disobeys').IsSet, GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_order_n').GetValue), '(float)1.5'), Not(GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_order_n').GetValue), '(float)2.5')))]"
+						size = { 30 30 }
+						texture = "gfx/interface/icons/military_stances/aggressive_military_stance.dds"
+					}
+					icon = {
+						visible = "[And3(Country.MakeScope.GetVariable('cw_disobeys').IsSet, GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_order_n').GetValue), '(float)2.5'), Not(GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_order_n').GetValue), '(float)3.5')))]"
+						size = { 30 30 }
+						texture = "gfx/interface/icons/military_stances/supportive_military_stance.dds"
+					}
+					icon = {
+						visible = "[And3(Country.MakeScope.GetVariable('cw_disobeys').IsSet, GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_order_n').GetValue), '(float)5.5'), Not(GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_order_n').GetValue), '(float)6.5')))]"
+						size = { 30 30 }
+						texture = "gfx/interface/icons/military_stances/siege_raider_military_stance.dds"
+					}
+					icon = {
+						visible = "[And3(Country.MakeScope.GetVariable('cw_disobeys').IsSet, GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_order_n').GetValue), '(float)6.5'), Not(GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_order_n').GetValue), '(float)7.5')))]"
+						size = { 30 30 }
+						texture = "gfx/interface/icons/military_stances/cw_escort_military_stance.dds"
+					}
+					icon = {
+						visible = "[And(Country.MakeScope.GetVariable('cw_disobeys').IsSet, GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_order_n').GetValue), '(float)7.5'))]"
+						size = { 30 30 }
+						texture = "gfx/interface/icons/military_stances/cw_harass_military_stance.dds"
+					}
+				}
+			}
+		}
+	}
+
 	type cw_hq_overview_window = window {
 		name = "cw_hq_overview_window"
 		layer = windows_layer

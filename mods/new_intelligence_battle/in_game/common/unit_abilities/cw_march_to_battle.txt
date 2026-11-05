@@ -1,0 +1,58 @@
+﻿# New Intelligence: Battle - "March to the battle" (v0.6, user review 2026-11-06).
+# Rule for everyone, the whole game: an army standing next to a location where a battle is being fought marches into it
+# 50% faster and loses 50% less morale on the way, so neighbouring troops gather into the fight quickly.
+# The engine has no "battle started" hook and no unit destination trigger, so the rule is a unit ability (format:
+# unit_abilities/readme.txt, fields as in march_to_sound_of_guns.txt / drill_army.txt) that is available ONLY while a
+# neighbouring location has a battle (location trigger has_combat, trigger_localization/location_triggers.txt:128):
+#   - the AI switches it on by itself whenever it is available (ai_will_do 1);
+#   - a player sees the button on the army and switches it on with one click.
+# It ends by itself once the army joins the battle, retreats, or no battle is next to it any more. It does NOT move the
+# army (the vanilla March to the Sound of the Guns advance still does that), so it never takes control from the player.
+# Icon: main_menu/gfx/interface/icons/unit_ability/cw_march_to_battle.dds (tools/make_icons.ps1).
+cw_march_to_battle = {
+	duration = -1
+	toggle = yes
+	army_only = yes
+	cancel_on_combat_end = no
+	map = yes
+
+	allow = {
+		is_army = yes
+		in_combat = no
+		in_retreat = no
+		is_exiled = no
+		has_only_prisoners = no
+		unit_location = {
+			any_neighbor_location = { has_combat = yes }
+		}
+	}
+
+	modifier = {
+		army_movement_speed = 0.5			# +50% speed into the neighbouring battle
+		land_morale_movement_cost = -0.5	# -50% morale lost on the march
+	}
+
+	finished_when = {
+		OR = {
+			in_combat = yes
+			in_retreat = yes
+			is_exiled = yes
+			NOT = {
+				unit_location = {
+					OR = {
+						has_combat = yes
+						any_neighbor_location = { has_combat = yes }
+					}
+				}
+			}
+		}
+	}
+
+	ai_will_do = {
+		value = 1
+	}
+
+	ai_will_revoke = {
+		value = 0
+	}
+}

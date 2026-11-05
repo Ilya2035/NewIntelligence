@@ -63,8 +63,9 @@ cw_escort_military_stance = {
 	friendly_naval_transport_priority = 3			# supportive 1: ferry the overlord's armies more willingly
 	# eagerness to enter a location holding enemy units (siege_raider uses 0.0 = never; vanilla engine
 	# analogues HUNT_ARMIES_CONFRONT_FACTOR 2.0 / CARPET_SIEGE_CONFRONT_FACTOR 0.5): join battles the
-	# main army is already fighting, do not start them alone
-	confront_factor = 0.5
+	# main army is already fighting, do not start them alone.
+	# v0.6 (user review 2026-11-06: subjects must stay closer and enter battles faster): 0.5 -> 1.0 (vanilla normal level)
+	confront_factor = 1.0
 }
 
 # =====================================================================================================

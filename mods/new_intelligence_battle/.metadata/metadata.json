@@ -1,7 +1,7 @@
 {
 	"name": "New Intelligence: Battle",
 	"id": "new_intelligence_battle",
-	"version": "0.5.0",
+	"version": "0.6.0",
 	"game_id": "eu5",
 	"supported_game_version": "1.4.*",
 	"short_description": "Headquarters regiments, concentrated AI armies, war stances and a warscore rework. Штабы армий, концентрация войск ИИ, стадии войны и переработка военного счёта.",

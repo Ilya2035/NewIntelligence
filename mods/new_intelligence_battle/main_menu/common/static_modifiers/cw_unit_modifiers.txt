@@ -18,6 +18,7 @@ cw_no_hq = {
 	assault_ability = -1.0			# cannot storm forts either
 	discipline = -0.5				# unorganised troops deal less damage (and take more)
 	land_morale_modifier = -0.5	# ...and break sooner
+	regiment_reinforcement_speed = -0.5	# v0.6: armies without an HQ are refilled last ("minimum effort on them, maximum on the HQ armies")
 }
 
 # Army with a COLONIAL headquarters operating on an overseas continent (not the capital's continent).
@@ -42,6 +43,7 @@ cw_no_hq_mild = {
 	assault_ability = -0.75
 	discipline = -0.3
 	land_morale_modifier = -0.3
+	regiment_reinforcement_speed = -0.25
 }
 
 cw_no_hq_harsh = {
@@ -52,6 +54,7 @@ cw_no_hq_harsh = {
 	assault_ability = -1.0
 	discipline = -0.6
 	land_morale_modifier = -0.6
+	regiment_reinforcement_speed = -0.5
 }
 
 # Army whose ONLY headquarters is a colonial one and which stands on non-overseas ground (home continent or a

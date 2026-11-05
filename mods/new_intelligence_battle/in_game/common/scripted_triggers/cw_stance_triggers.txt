@@ -404,3 +404,14 @@ cw_should_be_waiting = {
 	}
 }
 # 2 - Defensive is the remainder (no trigger needed).
+
+# v0.6. Subject scope. The player's recorded order (var:cw_order_n, cw_subject_read_order) sends the subject into risk:
+# every order except passive (4), defensive (5), cw_own_theater (9) and cw_defend_home (10). A disloyal subject refuses
+# only such orders (cw_subject_obedience_update). No recorded order (a stance of another mod) = not risky.
+cw_subject_order_is_risky = {
+	has_variable = cw_order_n
+	NOT = { var:cw_order_n = 4 }
+	NOT = { var:cw_order_n = 5 }
+	NOT = { var:cw_order_n = 9 }
+	NOT = { var:cw_order_n = 10 }
+}

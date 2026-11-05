@@ -1,4 +1,8 @@
-﻿###################################
+﻿# v0.6 RETIRED: the mod no longer applies any of these country modifiers (user rule: no country modifiers, the AI must
+# behave by itself). War stances now act through military stances (cw_apply_military_stance), subject obedience through
+# the subject's stance (cw_subject_obedience_update). The definitions stay only so that old saves which still carry them
+# load cleanly; the monthly passes remove them from every country.
+###################################
 # Concentrated Warfare - country modifiers
 # War stances are applied to AI countries only (see cw_update_war_stance, in_game/common/scripted_effects/cw_stance_effects.txt),
 # with months = 2 and mode = replace, refreshed monthly; they self-expire if the mod stops refreshing them.

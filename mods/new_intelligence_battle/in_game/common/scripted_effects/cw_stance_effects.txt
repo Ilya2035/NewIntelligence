@@ -108,6 +108,10 @@ cw_update_war_stance = {
 	cw_find_main_enemy = yes
 	if = {
 		limit = { exists = scope:cw_enemy }
+		# v0.6 (user review 2026-11-06): the regional picture. Every country fights its own war in its own region:
+		# is an enemy HQ army (the "brain" of an enemy force) on our land or in our capital's region, and does a war
+		# ally's HQ army stand there with us? Two plain country variables, rewritten every month.
+		cw_read_theatre = yes
 		if = {
 			limit = { cw_should_be_harassing = yes }
 			cw_try_switch_stance = { stance = harassing }
@@ -120,8 +124,15 @@ cw_update_war_stance = {
 			limit = { cw_should_be_waiting = yes }
 			cw_try_switch_stance = { stance = waiting }
 		}
+		else_if = {
+			# an enemy HQ army has come to our region: defend at once, even inside the 2-month lock
+			limit = { has_variable = cw_enemy_hq_near }
+			cw_force_switch_stance = { stance = defensive }
+		}
 		else = {
-			cw_try_switch_stance = { stance = defensive }
+			# v0.6: no enemy HQ army anywhere near us - it is busy elsewhere (Scotland while England fights France):
+			# raid, siege and burn the enemy land next to us, avoid its field army
+			cw_try_switch_stance = { stance = harassing }
 		}
 	}
 	else = {
@@ -167,21 +178,130 @@ cw_try_switch_stance = {
 	}
 }
 
+# v0.6: same as cw_try_switch_stance but ignores the 2-month lock (an enemy HQ army just entered our region; the
+# country must not keep raiding for another month while its homeland burns). Sets the lock and the delay as usual.
+cw_force_switch_stance = {
+	if = {
+		limit = { NOT = { cw_stance_is_$stance$ = yes } }
+		cw_set_stance = { stance = $stance$ }
+		set_variable = {
+			name = cw_stance_lock
+			value = yes
+			months = 2
+		}
+		set_variable = {
+			name = cw_stance_changed
+			value = yes
+			months = 1
+		}
+	}
+	else = {
+		cw_refresh_stance_modifier = yes
+	}
+}
+
 # -----------------------------------------------------------------------------------------------------
 # cw_set_stance = { stance = offensive|defensive|waiting|harassing }
-# Applies the matching country modifier (replacing the other three) and stores the id in var:cw_stance.
+# Stores the id in var:cw_stance and gives the country the matching MILITARY STANCE (cw_apply_military_stance).
+# v0.6 (user rule 2026-11-04 "no country modifiers, the AI must behave by itself"): the stance no longer adds a country
+# modifier; the legacy cw_stance_* modifiers of old saves are removed here.
 # Does NOT touch the lock or cw_stance_changed - callers decide (cw_try_switch_stance sets both; debug/manual
 # callers may not).
-# add_country_modifier form: events/culture/cultural_event.txt:236 (months = N mode = replace).
 # -----------------------------------------------------------------------------------------------------
 cw_set_stance = {
 	cw_remove_stance_modifiers = yes
-	add_country_modifier = {
-		modifier = cw_stance_$stance$
-		months = 2
-		mode = replace
-	}
 	cw_set_stance_id_$stance$ = yes
+	cw_apply_military_stance = yes
+}
+
+# v0.6. country scope. The war stance acts through the same military stances ("orders") the player gives subjects
+# (in_game/common/subject_military_stances: objective priorities and confront_factor read by the military AI), set with
+# set_country_military_stance (generic_actions/military_stance.txt:54). Only for AI countries that are NOT subjects:
+# an AI overlord sets its subjects' stances itself (military_stance.txt "ai_tick = never #handled in code"), and a
+# player's subjects follow the player's order (cw_subject_obedience_update).
+#   offensive  -> aggressive_military_stance   (supportive_military_stance while a war ally's HQ army stands with us)
+#   defensive  -> defensive_military_stance    (supportive_military_stance while a war ally's HQ army stands with us)
+#   waiting    -> passive_military_stance      (gathers and rests, no objectives in enemy land)
+#   harassing  -> cw_harass_military_stance    (avoids the enemy field army, raids and sieges enemy land nearby)
+# CW TODO verify (first game): the military AI of an INDEPENDENT country reads its own stance (the subject window shows
+# it only for subjects). If it does not, the stance still drives the plate and the raid / defend logic stays inert.
+cw_apply_military_stance = {
+	if = {
+		limit = {
+			is_ai = yes
+			is_subject = no
+		}
+		if = {
+			limit = {
+				OR = {
+					cw_stance_is_offensive = yes
+					cw_stance_is_defensive = yes
+				}
+				has_variable = cw_ally_hq_near
+			}
+			set_country_military_stance = subject_military_stance:supportive_military_stance
+		}
+		else_if = {
+			limit = { cw_stance_is_offensive = yes }
+			set_country_military_stance = subject_military_stance:aggressive_military_stance
+		}
+		else_if = {
+			limit = { cw_stance_is_defensive = yes }
+			set_country_military_stance = subject_military_stance:defensive_military_stance
+		}
+		else_if = {
+			limit = { cw_stance_is_waiting = yes }
+			set_country_military_stance = subject_military_stance:passive_military_stance
+		}
+		else_if = {
+			limit = { cw_stance_is_harassing = yes }
+			set_country_military_stance = subject_military_stance:cw_harass_military_stance
+		}
+	}
+}
+
+# v0.6. country scope, requires scope:cw_self (= this). Monthly regional picture for the stance choice:
+#   cw_enemy_hq_near - an HQ army of ANY country at war with us stands on our land or in our capital's region;
+#   cw_ally_hq_near  - an HQ army of a country fighting on our side stands in our capital's region.
+# Cheap location tests first, the regiment scan (cw_unit_has_hq) last. Plain variables, rewritten every month.
+cw_read_theatre = {
+	if = {
+		limit = {
+			exists = capital
+			any_country_at_war_with = {
+				any_army = {
+					unit_location = {
+						OR = {
+							owner = scope:cw_self
+							region = scope:cw_self.capital.region
+						}
+					}
+					cw_unit_has_hq = yes
+				}
+			}
+		}
+		set_variable = cw_enemy_hq_near
+	}
+	else_if = {
+		limit = { has_variable = cw_enemy_hq_near }
+		remove_variable = cw_enemy_hq_near
+	}
+	if = {
+		limit = {
+			exists = capital
+			any_country_together_in_war_with = {
+				any_army = {
+					unit_location = { region = scope:cw_self.capital.region }
+					cw_unit_has_hq = yes
+				}
+			}
+		}
+		set_variable = cw_ally_hq_near
+	}
+	else_if = {
+		limit = { has_variable = cw_ally_hq_near }
+		remove_variable = cw_ally_hq_near
+	}
 }
 
 # id writers (literal ints; keep in sync with cw_stance_id_* in cw_stance_values.txt)
@@ -198,27 +318,14 @@ cw_set_stance_id_harassing = {
 	set_variable = { name = cw_stance value = 4 }
 }
 
-# Re-applies the modifier of the current var:cw_stance (duration reset to 2 months); no-op without a stance.
+# Re-applies the military stance of the current var:cw_stance (the ally / enemy picture may have changed within a
+# stance); no-op without a stance. v0.6: no country modifier any more; legacy ones of old saves are removed.
 cw_refresh_stance_modifier = {
-	if = {
-		limit = { cw_stance_is_offensive = yes }
-		add_country_modifier = { modifier = cw_stance_offensive months = 2 mode = replace }
-	}
-	else_if = {
-		limit = { cw_stance_is_defensive = yes }
-		add_country_modifier = { modifier = cw_stance_defensive months = 2 mode = replace }
-	}
-	else_if = {
-		limit = { cw_stance_is_waiting = yes }
-		add_country_modifier = { modifier = cw_stance_waiting months = 2 mode = replace }
-	}
-	else_if = {
-		limit = { cw_stance_is_harassing = yes }
-		add_country_modifier = { modifier = cw_stance_harassing months = 2 mode = replace }
-	}
+	cw_remove_stance_modifiers = yes
+	cw_apply_military_stance = yes
 }
 
-# Removes whichever stance modifiers are present (guarded: no tooltip noise, no error for absent ones).
+# Removes the legacy (v0.1-v0.5) stance modifiers of old saves (guarded: no tooltip noise, no error for absent ones).
 cw_remove_stance_modifiers = {
 	if = {
 		limit = { has_country_modifier = cw_stance_offensive }
@@ -252,6 +359,22 @@ cw_clear_ai_stance = {
 	if = {
 		limit = { has_variable = cw_stance }
 		remove_variable = cw_stance
+		# v0.6: hand the military stance back to the vanilla default once the war is over
+		if = {
+			limit = {
+				is_ai = yes
+				is_subject = no
+			}
+			set_country_military_stance = subject_military_stance:normal_military_stance
+		}
+	}
+	if = {
+		limit = { has_variable = cw_enemy_hq_near }
+		remove_variable = cw_enemy_hq_near
+	}
+	if = {
+		limit = { has_variable = cw_ally_hq_near }
+		remove_variable = cw_ally_hq_near
 	}
 	if = {
 		limit = { has_variable = cw_stance_lock }
@@ -331,52 +454,168 @@ cw_record_player_enemy_stance = {
 	}
 }
 
-# country scope (AI). v0.3 - obedience of subjects by subject_loyalty (0-100, vanilla trigger, casus_belli/disloyal_subject.txt:16).
-#   < 33   cw_subject_reluctant : AI temperament that avoids battles and offensives - "barely fights"
-#   33-65  no modifier          : acts on its own judgement (vanilla behaviour + the stance its overlord set)
-#   >= 66  cw_subject_obedient  : commits to the overlord's war and follows the stance (order) the overlord set
-# Applied only while the subject is at war; removed otherwise. months = 2 + mode = replace, refreshed monthly.
+# =====================================================================================================
+# v0.6 (user review 2026-11-06) - obedience of a PLAYER's subjects, expressed through military stances only (no country
+# modifiers). The player's order is the subject's military stance; it is recorded as var:cw_order_n (ids below). While
+# the subject fights the overlord's war with subject_loyalty < 25 and the order sends it into risk (any order except
+# the four "stay home" ones), it disobeys: its real stance becomes cw_defend_home_military_stance ("I will guard my own
+# land") and var:cw_disobeys is set. The Military panel shows the ORDER (var:cw_order_n) and the refusal next to it.
+# As soon as loyalty recovers, the war ends or the player gives a safe order, the recorded order is restored.
+# A new order given while the subject disobeys is noticed (its stance is no longer the imposed one) and recorded.
+# Loyalty 25 instead of v0.3's 33: subjects obey more (user: "больше покорности, больше следования").
+# Order ids: 1 normal, 2 aggressive, 3 supportive, 4 passive, 5 defensive, 6 siege_raider, 7 cw_escort, 8 cw_harass,
+# 9 cw_own_theater, 10 cw_defend_home. Trigger country_stance = <subject_military_stance> (trigger loc
+# country_stance_equal, generic_actions/military_stance.txt:41 "scope:subject.country_stance").
+# Subjects of AI overlords are left to their overlord's AI. Legacy v0.3 modifiers are removed from every subject.
+# =====================================================================================================
 cw_subject_obedience_update = {
+	if = {
+		limit = { has_country_modifier = cw_subject_reluctant }
+		remove_country_modifier = cw_subject_reluctant
+	}
+	if = {
+		limit = { has_country_modifier = cw_subject_obedient }
+		remove_country_modifier = cw_subject_obedient
+	}
 	if = {
 		limit = {
 			is_subject = yes
-			at_war = yes
+			overlord ?= { is_ai = no }
 		}
+		# 1. record the order (unless the stance is the one we imposed while disobeying)
 		if = {
-			limit = { subject_loyalty < 33 }
-			add_country_modifier = { modifier = cw_subject_reluctant months = 2 mode = replace }
+			limit = {
+				NOT = {
+					AND = {
+						has_variable = cw_disobeys
+						country_stance = subject_military_stance:cw_defend_home_military_stance
+					}
+				}
+			}
+			cw_subject_read_order = yes
+		}
+		# 2. obey or refuse
+		if = {
+			limit = {
+				at_war = yes
+				overlord ?= { is_fighting_war_together_with = prev }
+				subject_loyalty < 25
+				cw_subject_order_is_risky = yes
+			}
 			if = {
-				limit = { has_country_modifier = cw_subject_obedient }
-				remove_country_modifier = cw_subject_obedient
+				limit = { NOT = { has_variable = cw_disobeys } }
+				set_variable = cw_disobeys
+			}
+			if = {
+				limit = { NOT = { country_stance = subject_military_stance:cw_defend_home_military_stance } }
+				set_country_military_stance = subject_military_stance:cw_defend_home_military_stance
 			}
 		}
 		else_if = {
-			limit = { subject_loyalty >= 66 }
-			add_country_modifier = { modifier = cw_subject_obedient months = 2 mode = replace }
-			if = {
-				limit = { has_country_modifier = cw_subject_reluctant }
-				remove_country_modifier = cw_subject_reluctant
-			}
-		}
-		else = {
-			if = {
-				limit = { has_country_modifier = cw_subject_reluctant }
-				remove_country_modifier = cw_subject_reluctant
-			}
-			if = {
-				limit = { has_country_modifier = cw_subject_obedient }
-				remove_country_modifier = cw_subject_obedient
-			}
+			limit = { has_variable = cw_disobeys }
+			remove_variable = cw_disobeys
+			cw_subject_restore_order = yes
 		}
 	}
 	else = {
 		if = {
-			limit = { has_country_modifier = cw_subject_reluctant }
-			remove_country_modifier = cw_subject_reluctant
+			limit = { has_variable = cw_disobeys }
+			remove_variable = cw_disobeys
 		}
 		if = {
-			limit = { has_country_modifier = cw_subject_obedient }
-			remove_country_modifier = cw_subject_obedient
+			limit = { has_variable = cw_order_n }
+			remove_variable = cw_order_n
+		}
+	}
+}
+
+# Records the current military stance as var:cw_order_n (ids above). A stance of another mod keeps the last id.
+cw_subject_read_order = {
+	if = {
+		limit = { country_stance = subject_military_stance:normal_military_stance }
+		set_variable = { name = cw_order_n value = 1 }
+	}
+	else_if = {
+		limit = { country_stance = subject_military_stance:aggressive_military_stance }
+		set_variable = { name = cw_order_n value = 2 }
+	}
+	else_if = {
+		limit = { country_stance = subject_military_stance:supportive_military_stance }
+		set_variable = { name = cw_order_n value = 3 }
+	}
+	else_if = {
+		limit = { country_stance = subject_military_stance:passive_military_stance }
+		set_variable = { name = cw_order_n value = 4 }
+	}
+	else_if = {
+		limit = { country_stance = subject_military_stance:defensive_military_stance }
+		set_variable = { name = cw_order_n value = 5 }
+	}
+	else_if = {
+		limit = { country_stance = subject_military_stance:siege_raider_military_stance }
+		set_variable = { name = cw_order_n value = 6 }
+	}
+	else_if = {
+		limit = { country_stance = subject_military_stance:cw_escort_military_stance }
+		set_variable = { name = cw_order_n value = 7 }
+	}
+	else_if = {
+		limit = { country_stance = subject_military_stance:cw_harass_military_stance }
+		set_variable = { name = cw_order_n value = 8 }
+	}
+	else_if = {
+		limit = { country_stance = subject_military_stance:cw_own_theater_military_stance }
+		set_variable = { name = cw_order_n value = 9 }
+	}
+	else_if = {
+		limit = { country_stance = subject_military_stance:cw_defend_home_military_stance }
+		set_variable = { name = cw_order_n value = 10 }
+	}
+}
+
+# Gives the subject back the stance recorded in var:cw_order_n (the player's order).
+cw_subject_restore_order = {
+	if = {
+		limit = { has_variable = cw_order_n }
+		if = {
+			limit = { var:cw_order_n = 1 }
+			set_country_military_stance = subject_military_stance:normal_military_stance
+		}
+		else_if = {
+			limit = { var:cw_order_n = 2 }
+			set_country_military_stance = subject_military_stance:aggressive_military_stance
+		}
+		else_if = {
+			limit = { var:cw_order_n = 3 }
+			set_country_military_stance = subject_military_stance:supportive_military_stance
+		}
+		else_if = {
+			limit = { var:cw_order_n = 4 }
+			set_country_military_stance = subject_military_stance:passive_military_stance
+		}
+		else_if = {
+			limit = { var:cw_order_n = 5 }
+			set_country_military_stance = subject_military_stance:defensive_military_stance
+		}
+		else_if = {
+			limit = { var:cw_order_n = 6 }
+			set_country_military_stance = subject_military_stance:siege_raider_military_stance
+		}
+		else_if = {
+			limit = { var:cw_order_n = 7 }
+			set_country_military_stance = subject_military_stance:cw_escort_military_stance
+		}
+		else_if = {
+			limit = { var:cw_order_n = 8 }
+			set_country_military_stance = subject_military_stance:cw_harass_military_stance
+		}
+		else_if = {
+			limit = { var:cw_order_n = 9 }
+			set_country_military_stance = subject_military_stance:cw_own_theater_military_stance
+		}
+		else_if = {
+			limit = { var:cw_order_n = 10 }
+			set_country_military_stance = subject_military_stance:cw_defend_home_military_stance
 		}
 	}
 }

@@ -442,7 +442,7 @@ lateralview = {
 
 							divider_solid_gold = {}
 
-							# ---- orders to subjects: the vanilla "apply to all subjects" action for every stance ----
+							# ---- v0.6 (user review 2026-11-06): orders to VASSALS - one row per subject with its order and what it does ----
 							text_single = {
 								autoresize = yes
 								align = left|nobaseline
@@ -460,76 +460,75 @@ lateralview = {
 							}
 
 							vbox = {
-								visible = "[GetScriptedGui('cw_sgui_player_has_subjects').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
 								layoutpolicy_horizontal = expanding
 								spacing = 3
 
-								datamodel = "[GetMilitaryStances]"
+								datamodel = "[Player.GetDiplomacy.GetSubjects]"
 								item = {
-									hbox = {
-										layoutpolicy_horizontal = expanding
-										size = { -1 32 }
-										spacing = 8
-										margin = { 8 0 }
-										using = bg_text_mask_container_brown
+									cw_subject_order_row = {}
+								}
+							}
 
-										tooltipwidget = {
-											ContextualTooltipType = {
-												blockoverride "title_icon" {
-													icon = {
-														using = tooltip_title_icon_size
-														texture = "[GetMilitaryStanceIcon(SubjectMilitaryStance.Self)]"
+							# one order to every subject at once (vanilla action ApplyMilitaryStanceToSubjects)
+							hbox = {
+								visible = "[GetScriptedGui('cw_sgui_player_has_subjects').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+								layoutpolicy_horizontal = expanding
+								spacing = 4
+								margin = { 8 2 }
+								using = bg_text_mask_container_brown
+
+								text_single = {
+									autoresize = yes
+									align = left|nobaseline
+									default_format = "#subtle_name"
+									text = "CW_MIL_APPLY_TO_ALL"
+								}
+
+								hbox = {
+									spacing = 2
+									datamodel = "[GetMilitaryStances]"
+									item = {
+										button_regular = {
+											size = { 34 34 }
+											tooltipwidget = {
+												ContextualTooltipType = {
+													blockoverride "title_icon" {
+														icon = {
+															using = tooltip_title_icon_size
+															texture = "[GetMilitaryStanceIcon(SubjectMilitaryStance.Self)]"
+														}
 													}
-												}
-												blockoverride "title_text" {
-													text = "[SubjectMilitaryStance.GetName]"
-												}
-												blockoverride "concept_link" {
-													text = "[subject_military_stance|e]"
-												}
-												blockoverride "tooltip_content" {
-													TooltipFlavorTextBlock = {
-														blockoverride "text" {
-															text = "[SubjectMilitaryStance.GetDescAll]"
+													blockoverride "title_text" {
+														text = "[SubjectMilitaryStance.GetName]"
+													}
+													blockoverride "concept_link" {
+														text = "[subject_military_stance|e]"
+													}
+													blockoverride "tooltip_content" {
+														TooltipFlavorTextBlock = {
+															blockoverride "text" {
+																text = "[SubjectMilitaryStance.GetDescAll]"
+															}
 														}
 													}
 												}
 											}
-										}
-
-										icon = {
-											size = { 26 26 }
-											texture = "[GetMilitaryStanceIcon(SubjectMilitaryStance.Self)]"
-										}
-										text_single = {
-											layoutpolicy_horizontal = expanding
-											size = { -1 26 }
-											autoresize = no
-											elide = right
-											align = left|nobaseline
-											text = "[SubjectMilitaryStance.GetName]"
-										}
-										button_regular = {
-											size = { 150 26 }
-											text = "CW_MIL_APPLY_TO_ALL"
 											action_tooltip = {
 												click_type = left
 												click_mode = confirm
 												title = "APPLY_MILITARY_STANCE_TO_ALL"
 												on_action = "[ApplyMilitaryStanceToSubjects(SubjectMilitaryStance.Self)]"
 											}
+											icon = {
+												size = { 28 28 }
+												parentanchor = center
+												texture = "[GetMilitaryStanceIcon(SubjectMilitaryStance.Self)]"
+											}
 										}
 									}
 								}
-							}
 
-							button_regular = {
-								visible = "[GetScriptedGui('cw_sgui_player_has_subjects').IsShown(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
-								layoutpolicy_horizontal = expanding
-								size = { -1 30 }
-								text = "CW_MIL_MANAGE_SUBJECTS"
-								tooltip = "CW_MIL_MANAGE_SUBJECTS_TT"
-								onclick = "[ShowManageSubjects]"
+								expand = {}
 							}
 
 							text_single = {
