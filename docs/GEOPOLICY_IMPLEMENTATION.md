@@ -13,6 +13,7 @@
 | `in_game/common/scripted_effects/gp_region_effects.txt` | v0.3: ведущие державы регионов и покровители (старт), ведущая / безнадёжная страна (год), менталитет ИИ по состоянию, право на остаток региона (90 %), удержание земель (модификаторы локаций) |
 | `in_game/common/scripted_effects/gp_scenarios_west.txt` | v0.5: сценарии Запада — Столетняя война, Ирландия, Шотландия, Иберия; повод `gp_cb_scenario_war`, цель `gp_target_scenario_war`, цель дипломатии `gp_obj_scenario_ally` |
 | `in_game/common/scripted_effects/gp_scenarios_central.txt` | v0.6: сценарии Италии (лига, итальянские войны, объединитель, венецианское море, обе Сицилии) и Империи (Габсбурги, чешские императоры, собиратель Германии, конец Империи); цель дипломатии `gp_obj_italian_league` |
+| `in_game/common/scripted_effects/gp_crisis_effects.txt`, `main_menu/common/static_modifiers/gp_scenario_modifiers.txt` | v0.7: кризис державы (оккупации, поражения), сепаратизм и распад на лены; модификаторы кризиса и сценариев |
 | `in_game/gui/gp_balance_tab.gui`, `in_game/common/scripted_guis/gp_scripted_guis.txt` | v0.3.1: вкладка «Расклад сил» окна «Геополитика» (переопределение шаблона `geopolitics_tabs`) и кнопка «Обновить» |
 | `in_game/common/area_preferences/gp_zones.txt` | сами зоны: ~70 профилей × ядро / сфера / дальняя, общий `gp_generic_home_region`, `gp_anatolia_sphere`, `gp_persia_sphere` |
 | `in_game/common/scripted_triggers/gp_triggers.txt` | `gp_is_real_country`, правила игры, темпераменты, кандидат в угрозы, пришелец (`gp_is_intruder_of = { COUNTRY = … }`), общая угроза |
@@ -101,6 +102,9 @@
 | 52 | `location:london.owner ?= scope:gp_c`, сравнение сохранённых стран `scope:gp_fra = scope:gp_eng` | `gp_west_scenarios` | ветки открываются (в `GP_REPORT` можно добавить строку, если не видно) |
 | 53 | `region:… = { every_ownable_location_in_region }` с подсчётом в переменную и `set_variable` с вложенным script value | `gp_sc_share` | ветки Ирландии 2Б/2В открываются при 75 % острова у Англии |
 | 54 | `international_organization:hre.leader_country` (ваниль: `?= root`), `exists = …leader_country`; `set_global_variable` со страной в значении и `global_var:x ?= scope` | `gp_scenarios_central.txt` | строка «Империя» меняется, когда император берёт Прагу / Буду; «Империи больше нет» не открывается в междуцарствие |
+| 55 | `random_core_in_location` (несуществующая страна с ядром) и `create_country_from_cores_in_our_locations = scope:…` (ваниль: освобождение стран) | `gp_crisis_release_fief` | при кризисе 120+ от страны отделяются независимые лены; в 1337 ничего не отделяется |
+| 56 | `NOT = { controller ?= scope:gp_c }` в локации, `capital.controller`; `add_country_modifier = { modifier years }`, `has_country_modifier`, `remove_country_modifier` | `gp_update_crisis`, `gp_crisis_apply` | у страны с оккупированной землёй растёт кризис; при 80+ модификатор «Сепаратизм» |
+| 57 | `international_organization:hre = { add_country_to_international_organization = prev }` | `gp_sc_hyw_french_collapse` | в ветке «Распад Франции» французские княжества становятся членами Империи |
 
 ## 4. Производительность
 

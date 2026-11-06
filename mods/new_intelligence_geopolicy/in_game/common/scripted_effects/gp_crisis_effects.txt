@@ -1,0 +1,140 @@
+﻿###################################
+# New Intelligence: Geopolicy - destabilisation and break-up of states (prefix gp_), v0.7
+#
+# Author, 2026-11-06: "a country that keeps losing wars falls apart into many small fiefs, and the fiefs become
+# independent at once; occupations and lost wars destabilise the land; first unrest, then separatism, then collapse".
+# Country variable gp_crisis (0..150), counted yearly in gp_yearly_update and on the end of a war:
+#   + 1 per own location held by an enemy at the yearly check (at most 20), + 10 when the capital itself is held,
+#   + 20 for every lost war (gp_crisis_war_end), + scenario shocks (gp_scenarios_west.txt);
+#   - 6 a year at peace, - 10 for a won war.
+# Tiers (game rule "Break-up of states", gp_rule_collapse, default on):
+#   40+  the outer lands slip (gp_control_shaken on every location outside the home region, gp_region_effects.txt)
+#   80+  separatism: country modifier gp_crisis_separatism (levy -25 %, manpower -20 %), and each year a 30 % chance that
+#        one fief of the outer lands breaks away as an independent country
+#   120+ collapse: up to six fiefs break away at once (outer lands first, then the home region away from the capital),
+#        and the crisis falls by 50
+# A fief = a country that has a core in our location but does not exist (vanilla create_country_from_cores_in_our_locations,
+# as the vanilla release effects use it).
+###################################
+
+gp_update_crisis = {
+	if = { limit = { NOT = { has_variable = gp_crisis } } set_variable = { name = gp_crisis value = 0 } }
+	# occupation of our land
+	set_variable = { name = gp_crisis_tmp value = 0 }
+	every_owned_location = {
+		limit = { NOT = { controller ?= scope:gp_c } }
+		scope:gp_c = { change_variable = { name = gp_crisis_tmp add = 1 } }
+	}
+	if = {
+		limit = { var:gp_crisis_tmp > 20 }
+		set_variable = { name = gp_crisis_tmp value = 20 }
+	}
+	change_variable = { name = gp_crisis add = var:gp_crisis_tmp }
+	remove_variable = gp_crisis_tmp
+	if = {
+		limit = {
+			exists = capital
+			NOT = { capital.controller ?= scope:gp_c }
+		}
+		change_variable = { name = gp_crisis add = 10 }
+	}
+	# a peaceful year heals
+	if = {
+		limit = { at_war = no }
+		change_variable = { name = gp_crisis add = -6 }
+	}
+	gp_crisis_clamp = yes
+	gp_crisis_apply = yes
+}
+
+gp_crisis_clamp = {
+	if = { limit = { var:gp_crisis < 0 } set_variable = { name = gp_crisis value = 0 } }
+	if = { limit = { var:gp_crisis > 150 } set_variable = { name = gp_crisis value = 150 } }
+}
+
+# Country scope (on_ending_war, run for both sides): the loser +20, the winner -10.
+gp_crisis_war_end = {
+	if = { limit = { NOT = { has_variable = gp_crisis } } set_variable = { name = gp_crisis value = 0 } }
+	if = {
+		limit = { scope:loser ?= root }
+		change_variable = { name = gp_crisis add = 20 }
+	}
+	else_if = {
+		limit = { scope:winner ?= root }
+		change_variable = { name = gp_crisis add = -10 }
+	}
+	gp_crisis_clamp = yes
+}
+
+# Country scope, scope:gp_c: a shock of $AMOUNT$ points (scenarios).
+gp_crisis_shock = {
+	if = { limit = { NOT = { has_variable = gp_crisis } } set_variable = { name = gp_crisis value = 0 } }
+	change_variable = { name = gp_crisis add = $AMOUNT$ }
+	gp_crisis_clamp = yes
+}
+
+gp_crisis_apply = {
+	# separatism modifier
+	if = {
+		limit = {
+			NOT = { has_game_rule = gp_collapse_off }
+			var:gp_crisis >= 80
+		}
+		if = {
+			limit = { NOT = { has_country_modifier = gp_crisis_separatism } }
+			add_country_modifier = { modifier = gp_crisis_separatism years = -1 }
+		}
+	}
+	else_if = {
+		limit = { has_country_modifier = gp_crisis_separatism }
+		remove_country_modifier = gp_crisis_separatism
+	}
+	if = {
+		limit = { NOT = { has_game_rule = gp_collapse_off } }
+		# collapse
+		if = {
+			limit = { var:gp_crisis >= 120 }
+			gp_crisis_release_fief = { WHERE = outer }
+			gp_crisis_release_fief = { WHERE = outer }
+			gp_crisis_release_fief = { WHERE = outer }
+			gp_crisis_release_fief = { WHERE = any }
+			gp_crisis_release_fief = { WHERE = any }
+			gp_crisis_release_fief = { WHERE = any }
+			change_variable = { name = gp_crisis add = -50 }
+		}
+		# separatism: one fief a year with 30 %
+		else_if = {
+			limit = { var:gp_crisis >= 80 }
+			random_list = {
+				30 = { gp_crisis_release_fief = { WHERE = outer } }
+				70 = { }
+			}
+		}
+	}
+}
+
+# One fief breaks away: a non-existing country with a core in one of our locations ($WHERE$ = outer: outside the home
+# region; any: anywhere but the capital's area). Our own tag is never released.
+gp_crisis_release_fief = {
+	random_owned_location = {
+		limit = {
+			gp_crisis_fief_location_$WHERE$ = yes
+			any_core_in_location = {
+				NOT = { country_exists = this }
+				NOT = { this = scope:gp_c }
+			}
+		}
+		random_core_in_location = {
+			limit = {
+				NOT = { country_exists = this }
+				NOT = { this = scope:gp_c }
+			}
+			save_scope_as = gp_fief
+		}
+	}
+	if = {
+		limit = { exists = scope:gp_fief }
+		create_country_from_cores_in_our_locations = scope:gp_fief
+	}
+	clear_saved_scope = gp_fief
+}

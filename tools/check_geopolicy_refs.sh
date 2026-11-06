@@ -76,7 +76,7 @@ for my $rel ('in_game/common/area_preferences/gp_zones.txt', 'in_game/common/for
 	my %defined; while ($z =~ /^(gp_[a-z_0-9]+)\s*=\s*\{/mg) { $defined{$1} = 1 }
 	my %used; while ($t =~ /PREF\s*=\s*(gp_[a-z_0-9]+)/g) { $used{$1} = 1 }
 	for my $p (sort keys %used) { next if $defined{$p}; $errors++; print "ERROR  gp_zone_effects.txt: preference '$p' is not defined in gp_zones.txt\n" }
-	for my $p (sort keys %defined) { next if $used{$p} || $p eq 'gp_generic_home_region' || $p eq 'gp_colonial_home_region' || $p eq 'gp_colonial_ambition' || $p =~ /^gp_dir_/; $warnings++; print "WARN   gp_zones.txt: preference '$p' is defined but never assigned\n" }
+	for my $p (sort keys %defined) { next if $used{$p} || $p eq 'gp_generic_home_region' || $p eq 'gp_colonial_home_region' || $p eq 'gp_colonial_ambition' || $p =~ /^gp_dir_/ || $p =~ /^gp_sc_/; $warnings++; print "WARN   gp_zones.txt: preference '$p' is defined but never assigned\n" }
 }
 # --- loc coverage of the preferences / formables / modifiers -----------------------------------------
 {

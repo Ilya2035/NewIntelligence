@@ -271,6 +271,14 @@ gp_bp_sc_hyw = {
 	}
 
 	text = {
+		localization_key = gp_bp_sc_hyw_6
+		trigger = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 6
+		}
+	}
+
+	text = {
 		localization_key = gp_bp_sc_hyw_open
 		fallback = yes
 	}

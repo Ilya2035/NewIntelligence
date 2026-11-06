@@ -134,100 +134,219 @@ gp_west_scenarios = {
 # ---- 1. The Hundred Years' War ------------------------------------------------------------------
 
 gp_sc_hundred_years_war = {
+	# v0.7 (author, 2026-11-06): a state machine with time windows. gp_sc_hyw:
+	#   1 French victory (England off the continent: ten years to think)       -> 2 if it came fast (before 1400) and France
+	#   2 the English anarchy (a French foothold in Britain held for ten years)    holds two locations in Britain 10 years
+	#   3 English triumph (a quarter of France before 1380: Crecy, a war for the crown) -> 1, 4 or 5
+	#   4 the French collapse (by 1400 France has not won its land back: princes go under the Empire, England makes puppets)
+	#   5 dual monarchy (the English crown holds Paris)                          6 deadlock (nothing decided by 1460)
+	gp_sc_share = { REGION = france_region WHO = gp_eng VAR = gp_sc_eng_in_france }
 	if = {
 		limit = { NOT = { has_global_variable = gp_sc_hyw } }
-		# 1B crushing French victory: England off the continent before 1420 and France ashore in Britain
+		if = {
+			limit = { scope:gp_fra = scope:gp_eng }
+			gp_sc_hyw_dual_monarchy = yes
+		}
+		else_if = {
+			limit = {
+				current_date < 1380.1.1
+				var:gp_sc_eng_in_france >= 0.25
+			}
+			gp_sc_hyw_english_triumph = yes
+		}
+		else_if = {
+			limit = {
+				current_date >= 1360.1.1
+				gp_sc_eng_off_continent = yes
+			}
+			gp_sc_hyw_french_victory = yes
+		}
+		else_if = {
+			limit = { current_date >= 1460.1.1 }
+			set_global_variable = { name = gp_sc_hyw value = 6 }
+		}
+	}
+	else_if = {
+		limit = { global_var:gp_sc_hyw = 3 }
+		if = {
+			limit = { scope:gp_fra = scope:gp_eng }
+			gp_sc_hyw_dual_monarchy = yes
+		}
+		else_if = {
+			limit = { gp_sc_eng_off_continent = yes }
+			gp_sc_hyw_french_victory = yes
+		}
+		else_if = {
+			limit = {
+				current_date >= 1400.1.1
+				var:gp_sc_eng_in_france >= 0.15
+			}
+			gp_sc_hyw_french_collapse = yes
+		}
+	}
+	else_if = {
+		limit = {
+			global_var:gp_sc_hyw = 4
+			scope:gp_fra = scope:gp_eng
+		}
+		gp_sc_hyw_dual_monarchy = yes
+	}
+	else_if = {
+		limit = { global_var:gp_sc_hyw = 1 }
+		# the French foothold in Britain, counted in years
 		if = {
 			limit = {
-				current_date < 1420.1.1
 				NOT = { scope:gp_fra = scope:gp_eng }
-				scope:gp_eng = {
-					NOT = {
-						any_owned_location = {
-							count >= 3
-							region = region:france_region
-						}
-					}
-				}
 				scope:gp_fra = {
 					any_owned_location = {
-						count >= 3
+						count >= 2
 						region = region:great_britain_region
 					}
 				}
 			}
-			set_global_variable = { name = gp_sc_hyw value = 2 }
-			scope:gp_fra = { gp_sc_prepare = { TARGET = gp_eng } }
-			c:SCO ?= {
-				if = {
-					limit = { is_subject = no }
-					gp_sc_prepare = { TARGET = gp_eng }
+			if = {
+				limit = { NOT = { has_global_variable = gp_sc_hyw_landing_years } }
+				set_global_variable = { name = gp_sc_hyw_landing_years value = 0 }
+			}
+			set_global_variable = {
+				name = gp_sc_hyw_landing_years
+				value = {
+					value = global_var:gp_sc_hyw_landing_years
+					add = 1
 				}
 			}
-			scope:gp_eng = {
-				gp_sc_break = { YEARS = 15 }
-				gp_sc_course = { POSTURE = defense YEARS = 6 }
-			}
-			c:WLS ?= {
-				set_variable = gp_historic_contender
-				set_variable = { name = gp_patron value = scope:gp_fra }
-			}
 		}
-		# 1C dual monarchy: the English crown holds Paris
-		else_if = {
-			limit = { scope:gp_fra = scope:gp_eng }
-			set_global_variable = { name = gp_sc_hyw value = 3 }
-			gp_sc_pick_france_leader = yes
-			global_var:gp_sc_france_leader ?= {
-				save_scope_as = gp_fl
-				gp_sc_prepare = { TARGET = gp_eng }
-			}
-			gp_sc_france_patrons = yes
-			clear_saved_scope = gp_fl
+		else = {
+			set_global_variable = { name = gp_sc_hyw_landing_years value = 0 }
 		}
-		# 1D France broken: the French crown keeps less than a quarter of its region (or is gone)
-		else_if = {
+		if = {
 			limit = {
-				current_date >= 1345.1.1
-				NOT = {
-					c:FRA ?= {
-						has_variable = gp_region_share
-						var:gp_region_share >= 0.25
-					}
-				}
+				has_global_variable = gp_sc_hyw_fast
+				global_var:gp_sc_hyw_landing_years >= 10
 			}
-			set_global_variable = { name = gp_sc_hyw value = 4 }
-			gp_sc_pick_france_leader = yes
-			global_var:gp_sc_france_leader ?= {
-				save_scope_as = gp_fl
-				set_variable = gp_region_claim
-				set_variable = { name = gp_region_claim_years value = 20 }
-			}
-			gp_sc_france_patrons = yes
-			clear_saved_scope = gp_fl
-		}
-		# 1A French victory: England holds fewer than three locations on the continent
-		else_if = {
-			limit = {
-				current_date >= 1360.1.1
-				scope:gp_eng = {
-					NOT = {
-						any_owned_location = {
-							count >= 3
-							region = region:france_region
-						}
-					}
-				}
-			}
-			set_global_variable = { name = gp_sc_hyw value = 1 }
-			scope:gp_eng = { gp_sc_course = { POSTURE = recovery YEARS = 8 } }
-		}
-		# 1E deadlock
-		else_if = {
-			limit = { current_date >= 1460.1.1 }
-			set_global_variable = { name = gp_sc_hyw value = 5 }
+			gp_sc_hyw_english_anarchy = yes
 		}
 	}
+	remove_variable = gp_sc_eng_in_france
+}
+
+# 3 English triumph: the spirit of Crecy (land morale +10 % for 20 years), a war for the French crown, a shaken France.
+gp_sc_hyw_english_triumph = {
+	set_global_variable = { name = gp_sc_hyw value = 3 }
+	scope:gp_eng = {
+		if = {
+			limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+			add_country_modifier = { modifier = gp_sc_crecy years = 20 }
+		}
+		gp_sc_prepare = { TARGET = gp_fra }
+	}
+	scope:gp_fra = { gp_crisis_shock = { AMOUNT = 20 } }
+}
+
+# 1 French victory: England has ten years to think (recovery), the war aims are dropped.
+gp_sc_hyw_french_victory = {
+	set_global_variable = { name = gp_sc_hyw value = 1 }
+	if = {
+		limit = { current_date < 1400.1.1 }
+		set_global_variable = { name = gp_sc_hyw_fast value = 1 }
+	}
+	scope:gp_eng = {
+		gp_sc_course = { POSTURE = recovery YEARS = 10 }
+		gp_crisis_shock = { AMOUNT = 20 }
+		if = { limit = { has_variable = gp_sc_cb_target } remove_variable = gp_sc_cb_target }
+		if = { limit = { has_country_modifier = gp_sc_crecy } remove_country_modifier = gp_sc_crecy }
+	}
+}
+
+# 2 the English anarchy: the barons do not answer (levy -33 %, manpower -25 % for 20 years), a crisis of +60 (the
+# break-up mechanics take over: separatism, fiefs), the Irish fiefs go free at once. France does not conquer Britain - it
+# makes puppets (gp_sc_puppeteer: the vassal casus belli beyond its region comes first); Scotland reaches for Northumbria
+# with French support; Castile stands by England so that France cannot turn to the Low Countries.
+gp_sc_hyw_english_anarchy = {
+	set_global_variable = { name = gp_sc_hyw value = 2 }
+	scope:gp_eng = {
+		gp_crisis_shock = { AMOUNT = 60 }
+		gp_sc_break = { YEARS = 15 }
+		if = {
+			limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+			add_country_modifier = { modifier = gp_sc_english_anarchy years = 20 }
+		}
+	}
+	if = {
+		limit = { scope:gp_eng = scope:gp_c }
+		gp_crisis_release_fief = { WHERE = ireland }
+		gp_crisis_release_fief = { WHERE = ireland }
+		gp_crisis_release_fief = { WHERE = ireland }
+		gp_crisis_release_fief = { WHERE = ireland }
+	}
+	scope:gp_fra = { set_variable = gp_sc_puppeteer }
+	c:SCO ?= {
+		if = {
+			limit = { NOT = { has_area_preference = gp_sc_scot_northumbria } }
+			add_area_preference = gp_sc_scot_northumbria
+		}
+	}
+	c:CAS ?= { set_variable = { name = gp_sc_ally value = scope:gp_eng } }
+	c:SPA ?= { set_variable = { name = gp_sc_ally value = scope:gp_eng } }
+	c:WLS ?= {
+		set_variable = gp_historic_contender
+		set_variable = { name = gp_patron value = scope:gp_fra }
+	}
+}
+
+# 4 the French collapse: the crown cannot gather its vassals (levy -33 %, manpower -25 % for 20 years, crisis +60); the
+# French princes go under the wing of the Empire (Austria and Brandenburg court them), the strongest of them gathers the
+# rest against England; England makes puppets in France instead of annexing (gp_sc_puppeteer).
+gp_sc_hyw_french_collapse = {
+	set_global_variable = { name = gp_sc_hyw value = 4 }
+	scope:gp_fra = {
+		gp_crisis_shock = { AMOUNT = 60 }
+		if = {
+			limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+			add_country_modifier = { modifier = gp_sc_french_collapse years = 20 }
+		}
+	}
+	region:france_region = {
+		every_present_country = {
+			limit = {
+				gp_is_real_country = yes
+				is_subject = no
+				exists = capital
+				capital.region = region:france_region
+				NOT = { this = scope:gp_eng }
+				NOT = { this = scope:gp_fra }
+				NOT = { is_member_of_international_organization = international_organization:hre }
+			}
+			international_organization:hre ?= { add_country_to_international_organization = prev }
+		}
+	}
+	gp_sc_pick_france_leader = yes
+	global_var:gp_sc_france_leader ?= {
+		save_scope_as = gp_fl
+		gp_sc_prepare = { TARGET = gp_eng }
+	}
+	c:BRA ?= {
+		if = {
+			limit = { exists = scope:gp_fl }
+			set_variable = { name = gp_sc_ally value = scope:gp_fl }
+		}
+	}
+	gp_sc_france_patrons = yes
+	clear_saved_scope = gp_fl
+	scope:gp_eng = { set_variable = gp_sc_puppeteer }
+}
+
+# 5 dual monarchy: the English crown holds Paris; the French lands gather around the strongest principality.
+gp_sc_hyw_dual_monarchy = {
+	set_global_variable = { name = gp_sc_hyw value = 5 }
+	gp_sc_pick_france_leader = yes
+	global_var:gp_sc_france_leader ?= {
+		save_scope_as = gp_fl
+		gp_sc_prepare = { TARGET = gp_eng }
+	}
+	gp_sc_france_patrons = yes
+	clear_saved_scope = gp_fl
+	scope:gp_eng = { set_variable = gp_sc_puppeteer }
 }
 
 # The gatherer of France (branches 3 and 4): the strongest free country with its capital in France that is not the
@@ -287,8 +406,8 @@ gp_sc_france_upkeep = {
 		limit = {
 			has_global_variable = gp_sc_hyw
 			OR = {
-				global_var:gp_sc_hyw = 3
 				global_var:gp_sc_hyw = 4
+				global_var:gp_sc_hyw = 5
 			}
 			NOT = { global_var:gp_sc_france_leader ?= { gp_is_real_country = yes is_subject = no } }
 		}
@@ -296,7 +415,7 @@ gp_sc_france_upkeep = {
 		global_var:gp_sc_france_leader ?= {
 			save_scope_as = gp_fl
 			if = {
-				limit = { global_var:gp_sc_hyw = 3 }
+				limit = { always = yes }
 				location:london.owner ?= { save_scope_as = gp_eng2 }
 				if = {
 					limit = { exists = scope:gp_eng2 }
@@ -529,7 +648,10 @@ gp_sc_directions = {
 	if = {
 		limit = {
 			has_global_variable = gp_sc_hyw
-			global_var:gp_sc_hyw = 1
+			OR = {
+				global_var:gp_sc_hyw = 1
+				global_var:gp_sc_hyw = 2
+			}
 		}
 		if = {
 			limit = { location:london.owner ?= scope:gp_c }
@@ -547,8 +669,8 @@ gp_sc_directions = {
 			tag = BUR
 			has_global_variable = gp_sc_hyw
 			OR = {
-				global_var:gp_sc_hyw = 3
 				global_var:gp_sc_hyw = 4
+				global_var:gp_sc_hyw = 5
 			}
 		}
 		gp_sc_dir_add = { DIR = french }

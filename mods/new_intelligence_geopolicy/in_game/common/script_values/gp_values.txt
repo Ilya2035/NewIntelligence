@@ -298,6 +298,7 @@ gp_ps_recovery = {
 	value = -20
 	if = { limit = { has_variable = gp_recent_defeat } add = 70 }
 	if = { limit = { war_exhaustion >= 8 } add = 40 }
+	if = { limit = { has_variable = gp_crisis } add = { value = var:gp_crisis multiply = 0.5 } }	# v0.7 a state in crisis looks inward
 	if = { limit = { gp_ruler_builder = yes } add = 10 }
 	add = { value = gp_peasants_power multiply = 20 }
 	if = { limit = { has_variable = gp_posture_recovery } add = 15 }

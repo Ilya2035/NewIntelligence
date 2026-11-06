@@ -70,3 +70,18 @@ gp_rule_scenario_mods = {
 		flag = general_rule
 	}
 }
+
+# Break-up of states: occupations and lost wars build up a crisis; at 80 separatism (levy and manpower penalties, fiefs
+# break away), at 120 collapse into independent fiefs (in_game/common/scripted_effects/gp_crisis_effects.txt).
+gp_rule_collapse = {
+	default = gp_collapse_on
+
+	gp_collapse_on = {
+		flag = gp_collapse_on
+		flag = general_rule
+	}
+	gp_collapse_off = {
+		flag = gp_collapse_off
+		flag = general_rule
+	}
+}

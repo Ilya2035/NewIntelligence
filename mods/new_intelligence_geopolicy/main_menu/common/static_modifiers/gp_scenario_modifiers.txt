@@ -1,0 +1,35 @@
+﻿###################################
+# New Intelligence: Geopolicy - country modifiers of crises and scenarios (prefix gp_), v0.7
+#
+# Requested by the author (2026-11-06): "a victorious England gets small bonuses against France; a collapsing state gets
+# penalties on raising armies". Not standing buffs: each belongs to a state the scenario or the crisis puts the country
+# in, and goes away with it. Game rules: "Break-up of states" (gp_rule_collapse) for gp_crisis_separatism, "Scenario
+# marks" (gp_rule_scenario_mods) for the scenario ones.
+###################################
+
+# Crisis 80+ (gp_crisis_effects.txt): the realm cannot raise its levies.
+gp_crisis_separatism = {
+	game_data = { category = country }
+	global_levy_size_modifier = -0.25
+	global_manpower_modifier = -0.2
+}
+
+# Hundred Years' War, English triumph (20 years): Crecy and Poitiers.
+gp_sc_crecy = {
+	game_data = { category = country }
+	land_morale_modifier = 0.1
+}
+
+# Hundred Years' War, the English anarchy (20 years): the barons will not answer the summons.
+gp_sc_english_anarchy = {
+	game_data = { category = country }
+	global_levy_size_modifier = -0.33
+	global_manpower_modifier = -0.25
+}
+
+# Hundred Years' War, the French collapse (20 years): the crown cannot gather its vassals.
+gp_sc_french_collapse = {
+	game_data = { category = country }
+	global_levy_size_modifier = -0.33
+	global_manpower_modifier = -0.25
+}

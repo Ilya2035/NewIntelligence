@@ -202,12 +202,22 @@ gp_target_outer_dominion = {
 		# v0.4 (author: "Britain and France like to create subject states abroad and next to their borders, Moscow and
 		# Poland would rather centralise"): Eastern Europe annexes, it does not make vassals beyond its region.
 		NOT = { capital.sub_continent = sub_continent:eastern_europe }
-		gp_is_expansion_role = yes
 		at_war = no
-		months_since_war >= 36
 		OR = {
-			has_variable = gp_posture_expansion
-			has_variable = gp_posture_opportunism
+			# v0.7 Hundred Years' War branches 2, 4, 5: the victor makes puppets instead of annexing
+			AND = {
+				has_variable = gp_sc_puppeteer
+				months_since_war >= 12
+				NOT = { gp_is_calm_posture = yes }
+			}
+			AND = {
+				gp_is_expansion_role = yes
+				months_since_war >= 36
+				OR = {
+					has_variable = gp_posture_expansion
+					has_variable = gp_posture_opportunism
+				}
+			}
 		}
 	}
 	candidate_list = {
@@ -236,6 +246,10 @@ gp_target_outer_dominion = {
 		if = {
 			limit = { scope:attacker = { capital.sub_continent = sub_continent:western_europe } }
 			add = 6	# the West builds a ring of client states
+		}
+		if = {
+			limit = { scope:attacker = { has_variable = gp_sc_puppeteer } }
+			add = 15	# v0.7 the puppeteer of a scenario
 		}
 		add = {
 			value = scope:target.country_tax_base

@@ -310,7 +310,15 @@ gp_control_location = {
 	# ---- the grip after a defeat (outer lands only) ----
 	if = {
 		limit = {
-			scope:gp_c = { has_variable = gp_recent_defeat }
+			scope:gp_c = {
+				OR = {
+					has_variable = gp_recent_defeat
+					AND = {	# v0.7 a state in crisis loses its outer lands first
+						has_variable = gp_crisis
+						var:gp_crisis >= 40
+					}
+				}
+			}
 			NOT = { region = scope:gp_c.capital.region }
 		}
 		if = {

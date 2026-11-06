@@ -440,3 +440,31 @@ gp_is_debug_country = {
 		tag = GLH
 	}
 }
+
+# ---- v0.7 break-up of states (gp_crisis_effects.txt); location scope, the owner is scope:gp_c ----
+gp_crisis_fief_location_outer = {
+	exists = scope:gp_c.capital
+	NOT = { region = scope:gp_c.capital.region }
+}
+
+gp_crisis_fief_location_any = {
+	exists = scope:gp_c.capital
+	NOT = { area = scope:gp_c.capital.area }
+}
+
+gp_crisis_fief_location_ireland = {
+	region = region:ireland_region
+}
+
+# v0.7 Hundred Years' War (gp_scenarios_west.txt): the English crown (scope:gp_eng) keeps fewer than three locations in
+# the French region.
+gp_sc_eng_off_continent = {
+	scope:gp_eng = {
+		NOT = {
+			any_owned_location = {
+				count >= 3
+				region = region:france_region
+			}
+		}
+	}
+}
