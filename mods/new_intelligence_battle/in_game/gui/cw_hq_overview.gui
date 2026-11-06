@@ -507,6 +507,152 @@ types CW_HQOverviewTypes
 		}
 	}
 
+	# v0.7 (user review 2026-11-06): a request button (icon only; the instance fills onclick / down / tooltip and the icon).
+	type cw_req_button = button_regular {
+		size = { 32 32 }
+		block "req_props" {}
+
+		icon = {
+			size = { 26 26 }
+			parentanchor = center
+			alwaystransparent = yes
+			block "req_icon" {}
+		}
+	}
+
+	# v0.7: one row per ALLY of the player (datamodel GetPlayer.MakeScope.GetList('cw_war_allies'), list item Scope ->
+	# Scope.GetCountry, pattern middle_kingdom.gui:350-353). Flag, name, its opinion of us, army; its ANSWER to our request
+	# (follows / refuses: guards its land / refuses: not devoted enough / acts on its own); five request buttons, the
+	# current request pressed. Requests: scripted GUIs cw_sgui_ally_req_0..4 with scope:ally (cw_ally_effects.txt).
+	type cw_ally_row = widget {
+		datacontext = "[Scope.GetCountry]"
+		layoutpolicy_horizontal = expanding
+		size = { -1 48 }
+		using = bg_market_card
+		using = bg_cabinet_card_frame
+
+		hbox = {
+			size = { 100% 100% }
+			margin = { 6 0 }
+			spacing = 6
+
+			country_flag_small = {}
+
+			vbox = {
+				size = { 160 42 }
+				text_single = {
+					size = { 160 20 }
+					autoresize = no
+					elide = right
+					align = left|nobaseline
+					using = Font_Type_Headers
+					using = Font_Size_Small
+					default_format = "#yellow_titles"
+					text = "[Country.GetNameWithNoTooltip]"
+				}
+				text_single = {
+					size = { 160 18 }
+					autoresize = no
+					elide = right
+					align = left|nobaseline
+					default_format = "#subtle_name"
+					raw_text = "[Localize('CW_ALLY_OPINION')] [Country.GetDiplomacy.GetOpinionOf(GetPlayer)|+=0]"
+					tooltip = "CW_ALLY_OPINION_TT"
+				}
+			}
+
+			# its answer
+			widget = {
+				layoutpolicy_horizontal = expanding
+				size = { -1 42 }
+
+				text_multi = {
+					visible = "[Not(Country.MakeScope.GetVariable('cw_req_n').IsSet)]"
+					size = { 100% 42 }
+					autoresize = no
+					align = left|nobaseline
+					default_format = "#subtle_name"
+					text = "CW_ALLY_OWN"
+				}
+				text_multi = {
+					visible = "[And(Country.MakeScope.GetVariable('cw_req_n').IsSet, Not(Country.MakeScope.GetVariable('cw_req_status').IsSet))]"
+					size = { 100% 42 }
+					autoresize = no
+					align = left|nobaseline
+					default_format = "#subtle_name"
+					text = "CW_ALLY_WAITING"
+				}
+				text_multi = {
+					visible = "[And(Country.MakeScope.GetVariable('cw_req_status').IsSet, Not(GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_req_status').GetValue), '(float)1.5')))]"
+					size = { 100% 42 }
+					autoresize = no
+					align = left|nobaseline
+					text = "CW_ALLY_FOLLOWS"
+				}
+				text_multi = {
+					visible = "[And3(Country.MakeScope.GetVariable('cw_req_status').IsSet, GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_req_status').GetValue), '(float)1.5'), Not(GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_req_status').GetValue), '(float)2.5')))]"
+					size = { 100% 42 }
+					autoresize = no
+					align = left|nobaseline
+					text = "CW_ALLY_REFUSES_THREAT"
+				}
+				text_multi = {
+					visible = "[And(Country.MakeScope.GetVariable('cw_req_status').IsSet, GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_req_status').GetValue), '(float)2.5'))]"
+					size = { 100% 42 }
+					autoresize = no
+					align = left|nobaseline
+					text = "CW_ALLY_REFUSES_TRUST"
+				}
+			}
+
+			# the five requests for this ally
+			hbox = {
+				spacing = 2
+
+				cw_req_button = {
+					blockoverride "req_props" {
+						tooltip = "CW_REQ_1_TT"
+						down = "[And(Country.MakeScope.GetVariable('cw_req_n').IsSet, Not(GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_req_n').GetValue), '(float)1.5')))]"
+						onclick = "[GetScriptedGui('cw_sgui_ally_req_1').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('ally', Country.MakeScope).End)]"
+					}
+					blockoverride "req_icon" { texture = "gfx/interface/icons/military_stances/cw_escort_military_stance.dds" }
+				}
+				cw_req_button = {
+					blockoverride "req_props" {
+						tooltip = "CW_REQ_2_TT"
+						down = "[And3(Country.MakeScope.GetVariable('cw_req_n').IsSet, GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_req_n').GetValue), '(float)1.5'), Not(GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_req_n').GetValue), '(float)2.5')))]"
+						onclick = "[GetScriptedGui('cw_sgui_ally_req_2').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('ally', Country.MakeScope).End)]"
+					}
+					blockoverride "req_icon" { texture = "gfx/interface/icons/military_stances/aggressive_military_stance.dds" }
+				}
+				cw_req_button = {
+					blockoverride "req_props" {
+						tooltip = "CW_REQ_3_TT"
+						down = "[And3(Country.MakeScope.GetVariable('cw_req_n').IsSet, GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_req_n').GetValue), '(float)2.5'), Not(GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_req_n').GetValue), '(float)3.5')))]"
+						onclick = "[GetScriptedGui('cw_sgui_ally_req_3').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('ally', Country.MakeScope).End)]"
+					}
+					blockoverride "req_icon" { texture = "gfx/interface/icons/military_stances/cw_harass_military_stance.dds" }
+				}
+				cw_req_button = {
+					blockoverride "req_props" {
+						tooltip = "CW_REQ_4_TT"
+						down = "[And(Country.MakeScope.GetVariable('cw_req_n').IsSet, GreaterThan_float(FixedPointToFloat(Country.MakeScope.GetVariable('cw_req_n').GetValue), '(float)3.5'))]"
+						onclick = "[GetScriptedGui('cw_sgui_ally_req_4').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('ally', Country.MakeScope).End)]"
+					}
+					blockoverride "req_icon" { texture = "gfx/interface/icons/military_stances/defensive_military_stance.dds" }
+				}
+				cw_req_button = {
+					blockoverride "req_props" {
+						tooltip = "CW_REQ_0_TT"
+						down = "[Not(Country.MakeScope.GetVariable('cw_req_n').IsSet)]"
+						onclick = "[GetScriptedGui('cw_sgui_ally_req_0').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).AddScope('ally', Country.MakeScope).End)]"
+					}
+					blockoverride "req_icon" { texture = "gfx/interface/icons/military_stances/normal_military_stance.dds" }
+				}
+			}
+		}
+	}
+
 	# v0.6 (user review 2026-11-06): one row per subject of the player (datamodel Player.GetDiplomacy.GetSubjects,
 	# colonial_revolution.gui:108; item context Country). Flag and name, army size, what the subject is DOING (obeys /
 	# refuses and guards its own land / at peace) and, on the right, the ORDER button: click = the vanilla order picker

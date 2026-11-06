@@ -1,0 +1,203 @@
+﻿# =====================================================================================================
+# New Intelligence: Battle (v0.7, user review 2026-11-06) - what we ask our ALLIES (independent countries, not subjects).
+#
+# Allies act as they want. The player only tells them what we are doing / what we ask of them, for all allies at once or
+# for one ally, in the Military panel ("Штаб" tab). Each ally then decides by itself, every month, from three things:
+#   1. is an enemy HQ army on its land or in its region (var:cw_enemy_hq_near, cw_read_theatre)? Then it guards its own
+#      land, whatever we ask (a request to defend is followed anyway);
+#   2. how devoted it is to us - its opinion of us (trigger opinion = { target value }, the same scale vanilla shows in the
+#      diplomacy panel): dangerous requests need more devotion than safe ones;
+#   3. if it refuses, it does not sit idle: it helps a war ally whose HQ army stands in its region (supportive stance) or
+#      stands on its own land (defensive stance).
+# Subjects (vassals, fiefs, dominions) are NOT handled here: they get orders and obey by loyalty
+# (cw_subject_obedience_update, cw_stance_effects.txt).
+# Everything acts through the ally's military stance (set by cw_apply_military_stance); no country modifiers.
+#
+# Request ids (var:cw_req_n on the ally, var:cw_req_from = the requesting player; var:cw_req_all_n on the player):
+#   1 support my army   -> cw_escort_military_stance       needs opinion of us >= 50
+#   2 attack            -> aggressive_military_stance      needs opinion of us >= 50
+#   3 harass / raid     -> cw_harass_military_stance       needs opinion of us >= 25
+#   4 defend            -> defensive_military_stance       always followed
+#   (none) own judgement -> the ally's own war stance (cw_update_war_stance)
+# Result for the panel (var:cw_req_status on the ally, rewritten monthly while at war with us):
+#   1 follows the request, 2 refuses: guards its own land (enemy near), 3 refuses: not devoted enough to us.
+# =====================================================================================================
+
+# country scope = the PLAYER. Rebuilds the list of allies shown in the panel: AI countries that are not subjects and are
+# either fighting a war on our side or allied with us. variable list form: mfa_join_against_byz.txt:61-64
+# (add_to_variable_list), objectives clear_variable_list (on_action ro_conquest). Called monthly, on war start / join
+# and by every request click. One every_country pass for the human player only (cheap tests first).
+cw_refresh_ally_list = {
+	save_scope_as = cw_player
+	clear_variable_list = cw_war_allies
+	every_country = {
+		limit = {
+			is_ai = yes
+			is_subject = no
+			OR = {
+				is_fighting_war_together_with = scope:cw_player
+				is_allied_with = { target = scope:cw_player }
+			}
+		}
+		scope:cw_player = {
+			add_to_variable_list = {
+				name = cw_war_allies
+				target = prev
+			}
+		}
+	}
+}
+
+# country scope = the ALLY, argument n = 1..4 (a request). root = the requesting player.
+cw_set_ally_request = {
+	set_variable = {
+		name = cw_req_n
+		value = $n$
+	}
+	set_variable = {
+		name = cw_req_from
+		value = root
+	}
+	# answer at once (the ally re-checks every month anyway)
+	cw_ally_decide_request = yes
+	cw_apply_military_stance = yes
+}
+
+# country scope = the ALLY: no request any more, it acts on its own judgement (its own war stance).
+cw_clear_ally_request = {
+	if = {
+		limit = { has_variable = cw_req_n }
+		remove_variable = cw_req_n
+	}
+	if = {
+		limit = { has_variable = cw_req_from }
+		remove_variable = cw_req_from
+	}
+	if = {
+		limit = { has_variable = cw_req_status }
+		remove_variable = cw_req_status
+	}
+	cw_apply_military_stance = yes
+}
+
+# country scope = the PLAYER (scripted GUIs cw_sgui_ally_req_1..4, scope:ally optional), argument n = 1..4. With
+# scope:ally only that ally gets the request; without it every ally in the list gets it and the player remembers it as
+# the request to all (var:cw_req_all_n, shown in the "to all" row).
+cw_request_allies = {
+	cw_refresh_ally_list = yes
+	if = {
+		limit = { exists = scope:ally }
+		scope:ally = { cw_set_ally_request = { n = $n$ } }
+	}
+	else = {
+		set_variable = {
+			name = cw_req_all_n
+			value = $n$
+		}
+		every_in_list = {
+			variable = cw_war_allies
+			cw_set_ally_request = { n = $n$ }
+		}
+	}
+}
+
+# Same for "own judgement" (scripted GUI cw_sgui_ally_req_0).
+cw_request_allies_own = {
+	cw_refresh_ally_list = yes
+	if = {
+		limit = { exists = scope:ally }
+		scope:ally = { cw_clear_ally_request = yes }
+	}
+	else = {
+		if = {
+			limit = { has_variable = cw_req_all_n }
+			remove_variable = cw_req_all_n
+		}
+		every_in_list = {
+			variable = cw_war_allies
+			cw_clear_ally_request = yes
+		}
+	}
+}
+
+# country scope = the ALLY. Decides whether it follows the request it got (var:cw_req_n from var:cw_req_from) and writes
+# var:cw_req_status. Without a request, or when not fighting on the requester's side, the status is removed.
+cw_ally_decide_request = {
+	if = {
+		limit = {
+			has_variable = cw_req_n
+			has_variable = cw_req_from
+			at_war = yes
+			is_fighting_war_together_with = var:cw_req_from
+		}
+		if = {
+			# a request to defend is in its own interest: always followed
+			limit = { var:cw_req_n = 4 }
+			set_variable = { name = cw_req_status value = 1 }
+		}
+		else_if = {
+			# the enemy is at its gates: it guards its own land first
+			limit = { has_variable = cw_enemy_hq_near }
+			set_variable = { name = cw_req_status value = 2 }
+		}
+		else_if = {
+			limit = {
+				OR = {
+					AND = {
+						var:cw_req_n = 3
+						opinion = { target = var:cw_req_from value >= 25 }
+					}
+					opinion = { target = var:cw_req_from value >= 50 }
+				}
+			}
+			set_variable = { name = cw_req_status value = 1 }
+		}
+		else = {
+			set_variable = { name = cw_req_status value = 3 }
+		}
+	}
+	else_if = {
+		limit = { has_variable = cw_req_status }
+		remove_variable = cw_req_status
+	}
+}
+
+# country scope = the ALLY (called by cw_apply_military_stance instead of the war-stance mapping while
+# cw_ally_request_active = yes). Sets the military stance for the answered request.
+cw_apply_ally_request = {
+	if = {
+		limit = {
+			has_variable = cw_req_status
+			has_variable = cw_req_n
+		}
+		if = {
+			limit = { var:cw_req_status = 1 }
+			if = {
+				limit = { var:cw_req_n = 1 }
+				set_country_military_stance = subject_military_stance:cw_escort_military_stance
+			}
+			else_if = {
+				limit = { var:cw_req_n = 2 }
+				set_country_military_stance = subject_military_stance:aggressive_military_stance
+			}
+			else_if = {
+				limit = { var:cw_req_n = 3 }
+				set_country_military_stance = subject_military_stance:cw_harass_military_stance
+			}
+			else = {
+				set_country_military_stance = subject_military_stance:defensive_military_stance
+			}
+		}
+		else_if = {
+			# refused: help an ally whose HQ army stands in our region, otherwise stand on our own land
+			limit = {
+				var:cw_req_status = 3
+				has_variable = cw_ally_hq_near
+			}
+			set_country_military_stance = subject_military_stance:supportive_military_stance
+		}
+		else = {
+			set_country_military_stance = subject_military_stance:defensive_military_stance
+		}
+	}
+}

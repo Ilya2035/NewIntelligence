@@ -402,3 +402,39 @@ cw_sgui_form_hq_at_capital = {
 		}
 	}
 }
+
+# v0.7 (user review 2026-11-06) - requests to ALLIES (cw_ally_effects.txt), Military panel "Штаб" tab.
+# Called with scope:ally = one ally (its row) or without it (the "to all allies" row). The ally decides itself whether it
+# follows the request (opinion of us, enemy near its land); see cw_ally_decide_request.
+#   1 support my army, 2 attack, 3 harass, 4 defend, 0 own judgement (no request).
+cw_sgui_ally_req_1 = {
+	scope = country
+	saved_scopes = { ally }
+	effect = { root = { cw_request_allies = { n = 1 } } }
+}
+cw_sgui_ally_req_2 = {
+	scope = country
+	saved_scopes = { ally }
+	effect = { root = { cw_request_allies = { n = 2 } } }
+}
+cw_sgui_ally_req_3 = {
+	scope = country
+	saved_scopes = { ally }
+	effect = { root = { cw_request_allies = { n = 3 } } }
+}
+cw_sgui_ally_req_4 = {
+	scope = country
+	saved_scopes = { ally }
+	effect = { root = { cw_request_allies = { n = 4 } } }
+}
+cw_sgui_ally_req_0 = {
+	scope = country
+	saved_scopes = { ally }
+	effect = { root = { cw_request_allies_own = yes } }
+}
+
+# v0.7: refresh the ally list by hand (the list is also refreshed monthly and on war start / join).
+cw_sgui_refresh_allies = {
+	scope = country
+	effect = { root = { cw_refresh_ally_list = yes } }
+}

@@ -415,3 +415,10 @@ cw_subject_order_is_risky = {
 	NOT = { var:cw_order_n = 9 }
 	NOT = { var:cw_order_n = 10 }
 }
+
+# v0.7. Ally scope. The ally answered a player's request (cw_ally_decide_request, cw_ally_effects.txt): its military stance
+# follows the answer instead of its own war stance (cw_apply_military_stance).
+cw_ally_request_active = {
+	has_variable = cw_req_status
+	has_variable = cw_req_n
+}

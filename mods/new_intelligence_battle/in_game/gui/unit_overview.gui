@@ -442,6 +442,111 @@ lateralview = {
 
 							divider_solid_gold = {}
 
+							# ---- v0.7 (user review 2026-11-06): ALLIES - we only tell them what we ask; each ally decides itself ----
+							hbox = {
+								layoutpolicy_horizontal = expanding
+								spacing = 6
+
+								text_single = {
+									autoresize = yes
+									align = left|nobaseline
+									using = Font_Type_Headers
+									default_format = "#yellow_titles"
+									text = "CW_ALLIES_HEADER"
+								}
+								expand = {}
+								button_regular = {
+									size = { 120 26 }
+									text = "CW_ALLIES_REFRESH"
+									tooltip = "CW_ALLIES_REFRESH_TT"
+									onclick = "[GetScriptedGui('cw_sgui_refresh_allies').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+								}
+							}
+							text_multi = {
+								layoutpolicy_horizontal = expanding
+								max_width = 520
+								autoresize = yes
+								align = left|nobaseline
+								default_format = "#overview_text"
+								text = "CW_ALLIES_TEXT"
+							}
+
+							# the request to ALL allies (pressed = the last request sent to all)
+							hbox = {
+								layoutpolicy_horizontal = expanding
+								spacing = 4
+								margin = { 8 2 }
+								using = bg_text_mask_container_brown
+
+								text_single = {
+									autoresize = yes
+									align = left|nobaseline
+									default_format = "#subtle_name"
+									text = "CW_ALLIES_TO_ALL"
+								}
+								expand = {}
+								cw_req_button = {
+									blockoverride "req_props" {
+										tooltip = "CW_REQ_1_TT"
+										down = "[And(GetPlayer.MakeScope.GetVariable('cw_req_all_n').IsSet, Not(GreaterThan_float(FixedPointToFloat(GetPlayer.MakeScope.GetVariable('cw_req_all_n').GetValue), '(float)1.5')))]"
+										onclick = "[GetScriptedGui('cw_sgui_ally_req_1').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+									}
+									blockoverride "req_icon" { texture = "gfx/interface/icons/military_stances/cw_escort_military_stance.dds" }
+								}
+								cw_req_button = {
+									blockoverride "req_props" {
+										tooltip = "CW_REQ_2_TT"
+										down = "[And3(GetPlayer.MakeScope.GetVariable('cw_req_all_n').IsSet, GreaterThan_float(FixedPointToFloat(GetPlayer.MakeScope.GetVariable('cw_req_all_n').GetValue), '(float)1.5'), Not(GreaterThan_float(FixedPointToFloat(GetPlayer.MakeScope.GetVariable('cw_req_all_n').GetValue), '(float)2.5')))]"
+										onclick = "[GetScriptedGui('cw_sgui_ally_req_2').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+									}
+									blockoverride "req_icon" { texture = "gfx/interface/icons/military_stances/aggressive_military_stance.dds" }
+								}
+								cw_req_button = {
+									blockoverride "req_props" {
+										tooltip = "CW_REQ_3_TT"
+										down = "[And3(GetPlayer.MakeScope.GetVariable('cw_req_all_n').IsSet, GreaterThan_float(FixedPointToFloat(GetPlayer.MakeScope.GetVariable('cw_req_all_n').GetValue), '(float)2.5'), Not(GreaterThan_float(FixedPointToFloat(GetPlayer.MakeScope.GetVariable('cw_req_all_n').GetValue), '(float)3.5')))]"
+										onclick = "[GetScriptedGui('cw_sgui_ally_req_3').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+									}
+									blockoverride "req_icon" { texture = "gfx/interface/icons/military_stances/cw_harass_military_stance.dds" }
+								}
+								cw_req_button = {
+									blockoverride "req_props" {
+										tooltip = "CW_REQ_4_TT"
+										down = "[And(GetPlayer.MakeScope.GetVariable('cw_req_all_n').IsSet, GreaterThan_float(FixedPointToFloat(GetPlayer.MakeScope.GetVariable('cw_req_all_n').GetValue), '(float)3.5'))]"
+										onclick = "[GetScriptedGui('cw_sgui_ally_req_4').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+									}
+									blockoverride "req_icon" { texture = "gfx/interface/icons/military_stances/defensive_military_stance.dds" }
+								}
+								cw_req_button = {
+									blockoverride "req_props" {
+										tooltip = "CW_REQ_0_TT"
+										down = "[Not(GetPlayer.MakeScope.GetVariable('cw_req_all_n').IsSet)]"
+										onclick = "[GetScriptedGui('cw_sgui_ally_req_0').Execute(GuiScope.SetRoot(GetPlayer.MakeScope).End)]"
+									}
+									blockoverride "req_icon" { texture = "gfx/interface/icons/military_stances/normal_military_stance.dds" }
+								}
+							}
+
+							vbox = {
+								layoutpolicy_horizontal = expanding
+								spacing = 3
+
+								datamodel = "[GetPlayer.MakeScope.GetList('cw_war_allies')]"
+								item = {
+									cw_ally_row = {}
+								}
+							}
+
+							text_single = {
+								visible = "[IsDataModelEmpty(GetPlayer.MakeScope.GetList('cw_war_allies'))]"
+								autoresize = yes
+								align = left|nobaseline
+								default_format = "#subtle_name"
+								text = "CW_ALLIES_NONE"
+							}
+
+							divider_solid_gold = {}
+
 							# ---- v0.6 (user review 2026-11-06): orders to VASSALS - one row per subject with its order and what it does ----
 							text_single = {
 								autoresize = yes

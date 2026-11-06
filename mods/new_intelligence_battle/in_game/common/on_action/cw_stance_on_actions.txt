@@ -9,7 +9,7 @@
 # =====================================================================================================
 
 monthly_country_pulse = {
-	on_actions = { cw_stance_monthly cw_subject_obedience_monthly }
+	on_actions = { cw_stance_monthly cw_subject_obedience_monthly cw_player_allies_monthly }
 }
 
 on_war_declared = {
@@ -35,6 +35,19 @@ cw_stance_monthly = {
 # the effect is idempotent so a possible second firing per participant is harmless.
 cw_stance_on_war_declared = {
 	effect = {
+		# v0.7: refresh the ally list of a human on either side
+		scope:actor ?= {
+			if = {
+				limit = { is_ai = no }
+				cw_refresh_ally_list = yes
+			}
+		}
+		scope:recipient ?= {
+			if = {
+				limit = { is_ai = no }
+				cw_refresh_ally_list = yes
+			}
+		}
 		scope:actor ?= {
 			if = {
 				limit = { cw_stance_country_is_eligible = yes }
@@ -53,7 +66,22 @@ cw_stance_on_war_declared = {
 # root = the joining country, scope:war = war (_hardcoded.txt:1875).
 cw_stance_on_join_war = {
 	trigger = { cw_stance_country_is_eligible = yes }
-	effect = { cw_stance_update = yes }
+	effect = {
+		cw_stance_update = yes
+		# v0.7: a country joined a war - refresh the ally list of every human fighting on its side (rare event, so the
+		# every_country pass is affordable)
+		every_country = {
+			limit = {
+				is_ai = no
+				is_fighting_war_together_with = root
+			}
+			cw_refresh_ally_list = yes
+		}
+		if = {
+			limit = { is_ai = no }
+			cw_refresh_ally_list = yes
+		}
+	}
 }
 
 # root = country, fired once per side (_hardcoded.txt:2039-2052 "Fires for both winner and loser as root scope").
@@ -78,4 +106,14 @@ cw_subject_obedience_monthly = {
 		is_ai = yes
 	}
 	effect = { cw_subject_obedience_update = yes }
+}
+
+# v0.7 - the list of allies shown in the Military panel ("Штаб" tab) of a human player (cw_refresh_ally_list,
+# cw_ally_effects.txt): monthly, plus on war start for the two named parties and on every war join (above).
+cw_player_allies_monthly = {
+	trigger = {
+		is_ai = no
+		cw_is_real_country = yes
+	}
+	effect = { cw_refresh_ally_list = yes }
 }

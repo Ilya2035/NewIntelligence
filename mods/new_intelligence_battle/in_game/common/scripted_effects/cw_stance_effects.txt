@@ -112,6 +112,8 @@ cw_update_war_stance = {
 		# is an enemy HQ army (the "brain" of an enemy force) on our land or in our capital's region, and does a war
 		# ally's HQ army stand there with us? Two plain country variables, rewritten every month.
 		cw_read_theatre = yes
+		# v0.7: answer the request a player ally made (follows it, or refuses and guards its land) - cw_ally_effects.txt
+		cw_ally_decide_request = yes
 		if = {
 			limit = { cw_should_be_harassing = yes }
 			cw_try_switch_stance = { stance = harassing }
@@ -231,7 +233,12 @@ cw_apply_military_stance = {
 			is_ai = yes
 			is_subject = no
 		}
+		# v0.7: a player's request that this ally answered (cw_ally_effects.txt) comes before its own war stance
 		if = {
+			limit = { cw_ally_request_active = yes }
+			cw_apply_ally_request = yes
+		}
+		else_if = {
 			limit = {
 				OR = {
 					cw_stance_is_offensive = yes
@@ -375,6 +382,10 @@ cw_clear_ai_stance = {
 	if = {
 		limit = { has_variable = cw_ally_hq_near }
 		remove_variable = cw_ally_hq_near
+	}
+	if = {
+		limit = { has_variable = cw_req_status }
+		remove_variable = cw_req_status
 	}
 	if = {
 		limit = { has_variable = cw_stance_lock }
