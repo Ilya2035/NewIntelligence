@@ -50,6 +50,14 @@ gp_yearly_update = {
 	gp_update_region_claim = yes
 	gp_update_control = yes
 	gp_update_alliance_fatigue = yes
+	gp_sc_country_upkeep = yes	# v0.5 scenarios of the West (gp_scenarios_west.txt)
+	if = {
+		limit = {
+			gp_is_active = yes
+			location:london.owner ?= scope:gp_c
+		}
+		gp_west_scenarios = yes
+	}
 	if = {
 		limit = { is_ai = no }
 		gp_update_balance = yes	# v0.3 data of the "Balance of power" tab (gp_region_effects.txt)

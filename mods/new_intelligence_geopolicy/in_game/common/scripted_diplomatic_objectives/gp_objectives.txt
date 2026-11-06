@@ -441,3 +441,40 @@ gp_obj_balance_of_power = {
 	}
 	max_allowed = 1
 }
+
+# 9. v0.5 Scenario allies (gp_scenarios_west.txt): Austria befriends the gatherer of France (var:gp_sc_ally), the French
+#    crown stands by Scotland and Morocco by Granada (var:gp_sc_protect).
+gp_obj_scenario_ally = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+		OR = {
+			has_variable = gp_sc_ally
+			has_variable = gp_sc_protect
+		}
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			gp_is_real_country = yes
+			OR = {
+				this ?= scope:actor.var:gp_sc_ally
+				this ?= scope:actor.var:gp_sc_protect
+			}
+			NOT = { is_at_war_with = scope:actor }
+		}
+	}
+
+	recipient_priority = {
+		add = 70
+	}
+
+	improve_relation = yes
+	defensive_support = yes
+	country_relations = {
+		alliance = yes
+	}
+	max_allowed = 2
+}

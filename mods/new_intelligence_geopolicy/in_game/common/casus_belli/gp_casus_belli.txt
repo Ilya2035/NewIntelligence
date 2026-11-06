@@ -112,3 +112,30 @@ gp_cb_regional_unification = {
 		}
 	}
 }
+
+# v0.5 Scenario war (gp_scenarios_west.txt): the war a scenario branch sets up - France against England after a crushing
+# victory, the gatherer of France against the English crown, the Gaelic lords against the English in Ireland, Castile
+# against a Granada that holds. Against the country in var:gp_sc_cb_target only; players get it too.
+gp_cb_scenario_war = {
+	years = 10
+	speed = 50
+
+	create_visible = {
+		has_variable = gp_sc_cb_target
+		scope:target ?= root.var:gp_sc_cb_target
+	}
+	create_enabled = {
+		NOT = { has_truce_with = scope:target }
+	}
+
+	war_goal_type = superiority
+
+	additional_war_enthusiasm_attacker = 0.15
+
+	ai_will_do = {
+		add = {
+			desc = "BASE"
+			value = 25
+		}
+	}
+}

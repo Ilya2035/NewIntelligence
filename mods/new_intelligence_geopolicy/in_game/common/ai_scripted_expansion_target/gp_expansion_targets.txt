@@ -292,3 +292,37 @@ gp_target_regional_unification = {
 		add = scope:target.country_tax_base
 	}
 }
+
+# 8. v0.5 Scenario war (gp_cb_scenario_war): the target a branch of the Western scenarios set (var:gp_sc_cb_target).
+gp_target_scenario_war = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_sc_cb_target
+		at_war = no
+		months_since_war >= 12
+		NOT = { gp_is_calm_posture = yes }
+	}
+	candidate_list = {
+		var:gp_sc_cb_target ?= {
+			if = {
+				limit = {
+					gp_is_real_country = yes
+					NOT = { has_truce_with = root }
+				}
+				add_to_list = source
+			}
+		}
+	}
+	casus_belli = casus_belli:gp_cb_scenario_war
+	score = {
+		add = 26
+		add = {
+			value = scope:target.country_tax_base
+			divide = 100
+		}
+	}
+	sort_value = {
+		add = 800
+	}
+}

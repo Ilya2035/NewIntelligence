@@ -195,6 +195,29 @@ template geopolitics_tabs {
 			}
 		}
 
+		# ---- v0.5 scenarios of the West (gp_scenarios_west.txt; customizable_localization gp_bp_sc_*) ----
+		text_single = {
+			layoutpolicy_horizontal = expanding
+			default_format = "#yellow_titles"
+			text = "GP_BP_SC_TITLE"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_SC_HYW"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_SC_IRELAND"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_SC_SCOTLAND"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_SC_IBERIA"
+		}
+
 		# ---- refresh ----
 		hbox = {
 			layoutpolicy_horizontal = expanding

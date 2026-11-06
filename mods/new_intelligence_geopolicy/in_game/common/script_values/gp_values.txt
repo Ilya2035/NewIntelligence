@@ -227,6 +227,7 @@ gp_ps_opportunism = {
 	add = { value = gp_burghers_power multiply = 15 }
 	add = { value = gp_calm_pressure multiply = 0.5 }
 	if = { limit = { has_variable = gp_region_turmoil } add = 25 }
+	if = { limit = { has_variable = gp_sc_never_yield } add = -20 }
 	if = { limit = { has_variable = gp_posture_opportunism } add = 15 }
 	if = { limit = { var:gp_noise = 3 } add = gp_noise_amount }
 }
@@ -270,6 +271,7 @@ gp_ps_defense = {
 	add = { value = gp_rp_defense multiply = gp_ruler_weight }
 	add = { value = gp_peasants_power multiply = 10 }
 	if = { limit = { has_variable = gp_hopeless } add = 25 }	# v0.3 the small one defends and looks for friends
+	if = { limit = { has_variable = gp_sc_never_yield } add = 20 }	# v0.5 scenario 3A: Scotland holds out
 	if = { limit = { has_variable = gp_posture_defense } add = 15 }
 	if = { limit = { var:gp_noise = 5 } add = gp_noise_amount }
 }
@@ -324,6 +326,7 @@ gp_ps_peace = {
 	if = { limit = { has_variable = gp_region_turmoil } add = -15 }
 	if = { limit = { has_variable = gp_hopeless } add = 15 }
 	if = { limit = { NOT = { has_variable = gp_contender } } add = 5 }
+	if = { limit = { has_variable = gp_sc_never_yield } add = -40 }
 	if = { limit = { has_variable = gp_posture_peace } add = 15 }
 	if = { limit = { var:gp_noise = 8 } add = gp_noise_amount }
 }

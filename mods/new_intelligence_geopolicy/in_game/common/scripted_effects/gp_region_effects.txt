@@ -100,6 +100,7 @@ gp_update_contender = {
 		}
 		if = {
 			limit = {
+				NOT = { has_variable = gp_sc_broken }	# v0.5 a broken power (scenario) is no contender
 				OR = {
 					has_variable = gp_historic_contender
 					var:gp_region_share >= 0.25
@@ -130,6 +131,10 @@ gp_update_contender = {
 				}
 			}
 			set_variable = gp_contender
+		}
+		else_if = {
+			limit = { has_variable = gp_sc_broken }
+			set_variable = gp_hopeless
 		}
 		else_if = {
 			limit = {
@@ -264,6 +269,13 @@ gp_control_location = {
 		limit = {
 			OR = {
 				region = scope:gp_c.capital.region
+				# v0.5 branch 2B: the Anglo-Irish - Ireland is home to the English crown
+				AND = {
+					region = region:ireland_region
+					has_global_variable = gp_sc_ireland
+					global_var:gp_sc_ireland = 2
+					location:london.owner ?= scope:gp_c
+				}
 				AND = {
 					dominant_culture ?= { has_shared_culture_group = scope:gp_c.culture }
 					dominant_religion ?= scope:gp_c.religion
@@ -310,6 +322,8 @@ gp_control_location = {
 		limit = { has_location_modifier = gp_control_shaken }
 		remove_location_modifier = gp_control_shaken
 	}
+	# ---- v0.5 scenario marks (Irish national consciousness) ----
+	gp_sc_control_location = yes
 	# ---- the shape of the border ----
 	if = {
 		limit = {
@@ -503,6 +517,7 @@ gp_update_directions = {
 		gp_dir_pick = { REGION = western_india_region DIR = indian }
 		gp_dir_pick = { REGION = deccan_region DIR = indian }
 	}
+	gp_sc_directions = yes	# v0.5 scenario directions (gp_scenarios_west.txt)
 }
 
 gp_dir_pick = {
@@ -547,6 +562,7 @@ gp_dir_clear = {
 	gp_dir_drop = { DIR = mongol }
 	gp_dir_drop = { DIR = chinese }
 	gp_dir_drop = { DIR = indian }
+	gp_dir_drop = { DIR = british_isles }
 }
 
 # Overseas: a contender holding 40 % of its home region (or anyone holding 60 %) of the colonising regions (author:

@@ -55,3 +55,18 @@ gp_rule_control = {
 		flag = general_rule
 	}
 }
+
+# Scenario marks on the land: the location modifiers of the Western scenarios (united Ireland +25 % fort defense for 50
+# years, Irish national consciousness -15 % control under a foreign owner). The scenarios themselves run regardless.
+gp_rule_scenario_mods = {
+	default = gp_scenario_mods_on
+
+	gp_scenario_mods_on = {
+		flag = gp_scenario_mods_on
+		flag = general_rule
+	}
+	gp_scenario_mods_off = {
+		flag = gp_scenario_mods_off
+		flag = general_rule
+	}
+}

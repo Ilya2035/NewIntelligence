@@ -223,3 +223,150 @@ gp_bp_right = {
 		fallback = yes
 	}
 }
+
+# ---- v0.5 scenarios of the West on the Balance of power tab (global variables, gp_scenarios_west.txt) ----
+
+gp_bp_sc_hyw = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_sc_hyw_1
+		trigger = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 1
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_hyw_2
+		trigger = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 2
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_hyw_3
+		trigger = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 3
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_hyw_4
+		trigger = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 4
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_hyw_5
+		trigger = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 5
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_hyw_open
+		fallback = yes
+	}
+}
+
+gp_bp_sc_ireland = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_sc_ireland_1
+		trigger = {
+			has_global_variable = gp_sc_ireland
+			global_var:gp_sc_ireland = 1
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_ireland_2
+		trigger = {
+			has_global_variable = gp_sc_ireland
+			global_var:gp_sc_ireland = 2
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_ireland_3
+		trigger = {
+			has_global_variable = gp_sc_ireland
+			global_var:gp_sc_ireland = 3
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_ireland_quarrel
+		trigger = { has_global_variable = gp_sc_ireland_quarrel }
+	}
+
+	text = {
+		localization_key = gp_bp_sc_ireland_open
+		fallback = yes
+	}
+}
+
+gp_bp_sc_scotland = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_sc_scotland_1
+		trigger = {
+			has_global_variable = gp_sc_scotland
+			global_var:gp_sc_scotland = 1
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_scotland_2
+		trigger = {
+			has_global_variable = gp_sc_scotland
+			global_var:gp_sc_scotland = 2
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_scotland_open
+		fallback = yes
+	}
+}
+
+gp_bp_sc_iberia = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_sc_iberia_portugal
+		trigger = { has_global_variable = gp_sc_portugal }
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_reconquista
+		trigger = { has_global_variable = gp_sc_reconquista }
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_granada_holds
+		trigger = { has_global_variable = gp_sc_granada_holds }
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_aragon_sea
+		trigger = { has_global_variable = gp_sc_aragon_sea }
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_open
+		fallback = yes
+	}
+}

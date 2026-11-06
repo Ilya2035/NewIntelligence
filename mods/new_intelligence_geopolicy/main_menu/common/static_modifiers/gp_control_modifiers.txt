@@ -36,3 +36,17 @@ gp_control_salient = {
 	game_data = { category = location }
 	local_max_control = -0.2
 }
+
+# ---- v0.5 scenarios of the West (gp_scenarios_west.txt), game rule "Scenario marks on the land" ----
+
+# 2A Ireland united: the Gaelic kingdom's Irish land, for 50 years.
+gp_sc_irish_resolve = {
+	game_data = { category = location }
+	local_defensive = 0.25
+}
+
+# 2C Irish national consciousness: Irish land under a non-Gaelic owner, for good.
+gp_sc_irish_nation = {
+	game_data = { category = location }
+	local_max_control = -0.15
+}

@@ -11,6 +11,7 @@
 | `in_game/common/scripted_effects/gp_zone_effects.txt` | профили зон по тегу (`switch = { trigger = tag }`), три стадии, групповые сферы |
 | `in_game/common/scripted_effects/gp_relations_effects.txt` | v0.2: история до 1337 (давняя вражда и дружба, стартовые намерения), память войн, симпатии и неприязни правителя с 10 лет, чужеземный сюзерен, колониальная зона, страсти региона (годы мира, смутное время) |
 | `in_game/common/scripted_effects/gp_region_effects.txt` | v0.3: ведущие державы регионов и покровители (старт), ведущая / безнадёжная страна (год), менталитет ИИ по состоянию, право на остаток региона (90 %), удержание земель (модификаторы локаций) |
+| `in_game/common/scripted_effects/gp_scenarios_west.txt` | v0.5: сценарии Запада — Столетняя война, Ирландия, Шотландия, Иберия; повод `gp_cb_scenario_war`, цель `gp_target_scenario_war`, цель дипломатии `gp_obj_scenario_ally` |
 | `in_game/gui/gp_balance_tab.gui`, `in_game/common/scripted_guis/gp_scripted_guis.txt` | v0.3.1: вкладка «Расклад сил» окна «Геополитика» (переопределение шаблона `geopolitics_tabs`) и кнопка «Обновить» |
 | `in_game/common/area_preferences/gp_zones.txt` | сами зоны: ~70 профилей × ядро / сфера / дальняя, общий `gp_generic_home_region`, `gp_anatolia_sphere`, `gp_persia_sphere` |
 | `in_game/common/scripted_triggers/gp_triggers.txt` | `gp_is_real_country`, правила игры, темпераменты, кандидат в угрозы, пришелец (`gp_is_intruder_of = { COUNTRY = … }`), общая угроза |
@@ -95,6 +96,9 @@
 | 48 | `has_area_preference` / `remove_area_preference` для ванильных `avoid_*_colonization` (выданы `setup_area_preferences` при старте) и `preference_type = exploration` с `continent = america` | `gp_update_overseas`, `gp_colonial_ambition` | доминирующая Франция / Англия / Кастилия создают колониальные хартии раньше; в `GP_REPORT` нет ошибок |
 | 49 | Однострочные блоки area_preferences `gp_dir_x = { preference_type = conquest modifier = 2 region = … }`; макрос `gp_dir_pick = { REGION = … DIR = … }` с `region:$REGION$` и `gp_dir_$DIR$` | `gp_zones.txt`, `gp_update_directions` | у страны с 60 % региона в зонах интересов «Направление …» |
 | 50 | `every_ally` в стране, `add_opinion` со `scale` (накопление до `min = -40`) | `gp_update_alliance_fatigue` | у давних союзников без общей угрозы в отношениях «Союз без общей цели тяготит», растёт на 6 в год |
+| 51 | `set_global_variable = { name value }`, `has_global_variable`, `global_var:x = N` в триггерах и в customizable_localization | `gp_scenarios_west.txt`, `gp_bp_sc_*` | на вкладке «Расклад сил» строки «Сценарии Запада» меняются по ходу партии |
+| 52 | `location:london.owner ?= scope:gp_c`, сравнение сохранённых стран `scope:gp_fra = scope:gp_eng` | `gp_west_scenarios` | ветки открываются (в `GP_REPORT` можно добавить строку, если не видно) |
+| 53 | `region:… = { every_ownable_location_in_region }` с подсчётом в переменную и `set_variable` с вложенным script value | `gp_sc_share` | ветки Ирландии 2Б/2В открываются при 75 % острова у Англии |
 
 ## 4. Производительность
 

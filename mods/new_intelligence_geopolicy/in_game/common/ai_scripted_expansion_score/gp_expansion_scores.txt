@@ -238,6 +238,14 @@ gp_score_region_first = {
 		NOT = { any_owned_location = { region = scope:attacker.capital.region } }
 		NOT = { gp_is_tiny_target_of_attacker = yes }
 		NOT = { this ?= scope:attacker.var:gp_war_target }	# the historical openings (gp_history_postures) are not held back
+		NOT = { this ?= scope:attacker.var:gp_sc_cb_target }	# v0.5 scenario wars are not held back
+		NOT = {
+			AND = {
+				scope:attacker = { has_variable = gp_sc_ireland_right }	# v0.5 branch 2D: the quarrelling Gaels
+				exists = capital
+				capital.region = region:ireland_region
+			}
+		}
 	}
 	multiplier = {
 		add = -0.65

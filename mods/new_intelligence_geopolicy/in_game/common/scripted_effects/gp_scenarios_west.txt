@@ -1,0 +1,630 @@
+﻿###################################
+# New Intelligence: Geopolicy - scenarios of the West (prefix gp_), v0.5
+#
+# docs/GEOPOLICY_SCENARIOS_WEST.md, all branches chosen by the author (2026-11-06). A branch opens once, from the outcome
+# of wars (who holds what), never from a date alone, and stays open. Global variables:
+#   gp_sc_hyw       1 French victory, 2 crushing French victory, 3 dual monarchy, 4 France broken, 5 deadlock
+#   gp_sc_ireland   1 Ireland united, 2 the Anglo-Irish (quick English conquest), 3 Irish national consciousness
+#   gp_sc_ireland_quarrel   the Gaelic lords quarrelled (by 1400 nobody holds 30 % of Ireland)
+#   gp_sc_scotland  1 the Auld Alliance holds (default), 2 Scotland wins Britain
+#   gp_sc_reconquista, gp_sc_portugal, gp_sc_aragon_sea, gp_sc_granada_holds   Iberia (independent flags)
+#   gp_sc_france_leader   the gatherer of France in branches 3 and 4 (a country)
+# Checked once a year by the owner of London (gp_yearly_update), so exactly one country runs it. Effects act through
+# postures, war targets, the scenario casus belli (gp_cb_scenario_war), patrons, objectives and direction preferences;
+# the two Irish location modifiers obey the game rule "Scenario marks on the land" (gp_rule_scenario_mods).
+###################################
+
+# ---- helpers -----------------------------------------------------------------------------------------
+
+# Share of region $REGION$ owned by scope:$WHO$, into variable $VAR$ of scope:gp_c (the anchor).
+gp_sc_share = {
+	set_variable = { name = gp_sc_tmp_total value = 0 }
+	set_variable = { name = gp_sc_tmp_owned value = 0 }
+	region:$REGION$ = {
+		every_ownable_location_in_region = {
+			scope:gp_c = { change_variable = { name = gp_sc_tmp_total add = 1 } }
+			if = {
+				limit = { owner ?= scope:$WHO$ }
+				scope:gp_c = { change_variable = { name = gp_sc_tmp_owned add = 1 } }
+			}
+		}
+	}
+	set_variable = {
+		name = $VAR$
+		value = {
+			value = var:gp_sc_tmp_owned
+			divide = {
+				value = var:gp_sc_tmp_total
+				min = 1
+			}
+		}
+	}
+	remove_variable = gp_sc_tmp_total
+	remove_variable = gp_sc_tmp_owned
+}
+
+# Country scope: an AI country prepares a war against scope:$TARGET$ for six years and may use the scenario casus belli.
+gp_sc_prepare = {
+	set_variable = { name = gp_sc_cb_target value = scope:$TARGET$ }
+	if = {
+		limit = {
+			is_ai = yes
+			gp_is_active = yes
+			NOT = { this = scope:$TARGET$ }
+		}
+		gp_set_posture = { POSTURE = preparation }
+		set_variable = { name = gp_war_target value = scope:$TARGET$ }
+		set_variable = { name = gp_posture_left value = 6 }
+	}
+}
+
+# Country scope: an AI country is set on a course for $YEARS$ years.
+gp_sc_course = {
+	if = {
+		limit = {
+			is_ai = yes
+			gp_is_active = yes
+		}
+		gp_set_posture = { POSTURE = $POSTURE$ }
+		set_variable = { name = gp_posture_left value = $YEARS$ }
+		if = { limit = { has_variable = gp_war_target } remove_variable = gp_war_target }
+	}
+}
+
+# Country scope: broken for $YEARS$ years - counted as a hopeless minor (gp_update_contender), whatever its size.
+gp_sc_break = {
+	set_variable = gp_sc_broken
+	set_variable = { name = gp_sc_broken_years value = $YEARS$ }
+}
+
+# Every country, yearly (gp_yearly_update): counters of the scenario states.
+gp_sc_country_upkeep = {
+	if = {
+		limit = { has_variable = gp_sc_broken_years }
+		change_variable = { name = gp_sc_broken_years add = -1 }
+		if = {
+			limit = { var:gp_sc_broken_years <= 0 }
+			remove_variable = gp_sc_broken_years
+			if = { limit = { has_variable = gp_sc_broken } remove_variable = gp_sc_broken }
+		}
+	}
+	# 3A: Scotland never yields to England while the Auld Alliance branch holds and Scotland is free.
+	if = { limit = { has_variable = gp_sc_never_yield } remove_variable = gp_sc_never_yield }
+	if = {
+		limit = {
+			tag = SCO
+			is_subject = no
+			has_global_variable = gp_sc_scotland
+			global_var:gp_sc_scotland = 1
+		}
+		set_variable = gp_sc_never_yield
+	}
+	if = {
+		limit = {
+			has_variable = gp_sc_cb_target
+			NOT = { var:gp_sc_cb_target ?= { gp_is_real_country = yes } }
+		}
+		remove_variable = gp_sc_cb_target
+	}
+}
+
+# ================================================================================================
+# Yearly check (country scope = the owner of London, scope:gp_c)
+# ================================================================================================
+
+gp_west_scenarios = {
+	location:london.owner ?= { save_scope_as = gp_eng }
+	location:paris.owner ?= { save_scope_as = gp_fra }
+	if = {
+		limit = {
+			exists = scope:gp_eng
+			exists = scope:gp_fra
+		}
+		gp_sc_hundred_years_war = yes
+		gp_sc_ireland = yes
+		gp_sc_scotland = yes
+	}
+	gp_sc_iberia = yes
+	gp_sc_france_upkeep = yes
+	clear_saved_scope = gp_eng
+	clear_saved_scope = gp_fra
+}
+
+# ---- 1. The Hundred Years' War ------------------------------------------------------------------
+
+gp_sc_hundred_years_war = {
+	if = {
+		limit = { NOT = { has_global_variable = gp_sc_hyw } }
+		# 1B crushing French victory: England off the continent before 1420 and France ashore in Britain
+		if = {
+			limit = {
+				current_date < 1420.1.1
+				NOT = { scope:gp_fra = scope:gp_eng }
+				scope:gp_eng = {
+					NOT = {
+						any_owned_location = {
+							count >= 3
+							region = region:france_region
+						}
+					}
+				}
+				scope:gp_fra = {
+					any_owned_location = {
+						count >= 3
+						region = region:great_britain_region
+					}
+				}
+			}
+			set_global_variable = { name = gp_sc_hyw value = 2 }
+			scope:gp_fra = { gp_sc_prepare = { TARGET = gp_eng } }
+			c:SCO ?= {
+				if = {
+					limit = { is_subject = no }
+					gp_sc_prepare = { TARGET = gp_eng }
+				}
+			}
+			scope:gp_eng = {
+				gp_sc_break = { YEARS = 15 }
+				gp_sc_course = { POSTURE = defense YEARS = 6 }
+			}
+			c:WLS ?= {
+				set_variable = gp_historic_contender
+				set_variable = { name = gp_patron value = scope:gp_fra }
+			}
+		}
+		# 1C dual monarchy: the English crown holds Paris
+		else_if = {
+			limit = { scope:gp_fra = scope:gp_eng }
+			set_global_variable = { name = gp_sc_hyw value = 3 }
+			gp_sc_pick_france_leader = yes
+			global_var:gp_sc_france_leader ?= {
+				save_scope_as = gp_fl
+				gp_sc_prepare = { TARGET = gp_eng }
+			}
+			gp_sc_france_patrons = yes
+			clear_saved_scope = gp_fl
+		}
+		# 1D France broken: the French crown keeps less than a quarter of its region (or is gone)
+		else_if = {
+			limit = {
+				current_date >= 1345.1.1
+				NOT = {
+					c:FRA ?= {
+						has_variable = gp_region_share
+						var:gp_region_share >= 0.25
+					}
+				}
+			}
+			set_global_variable = { name = gp_sc_hyw value = 4 }
+			gp_sc_pick_france_leader = yes
+			global_var:gp_sc_france_leader ?= {
+				save_scope_as = gp_fl
+				set_variable = gp_region_claim
+				set_variable = { name = gp_region_claim_years value = 20 }
+			}
+			gp_sc_france_patrons = yes
+			clear_saved_scope = gp_fl
+		}
+		# 1A French victory: England holds fewer than three locations on the continent
+		else_if = {
+			limit = {
+				current_date >= 1360.1.1
+				scope:gp_eng = {
+					NOT = {
+						any_owned_location = {
+							count >= 3
+							region = region:france_region
+						}
+					}
+				}
+			}
+			set_global_variable = { name = gp_sc_hyw value = 1 }
+			scope:gp_eng = { gp_sc_course = { POSTURE = recovery YEARS = 8 } }
+		}
+		# 1E deadlock
+		else_if = {
+			limit = { current_date >= 1460.1.1 }
+			set_global_variable = { name = gp_sc_hyw value = 5 }
+		}
+	}
+}
+
+# The gatherer of France (branches 3 and 4): the strongest free country with its capital in France that is not the
+# English crown. Re-chosen when it is gone.
+gp_sc_pick_france_leader = {
+	region:france_region = {
+		ordered_present_country = {
+			limit = {
+				gp_is_real_country = yes
+				is_subject = no
+				exists = capital
+				capital.region = region:france_region
+				NOT = { location:london.owner ?= this }
+			}
+			order_by = country_strength
+			max = 1
+			save_scope_as = gp_fl_new
+		}
+	}
+	if = {
+		limit = { exists = scope:gp_fl_new }
+		set_global_variable = { name = gp_sc_france_leader value = scope:gp_fl_new }
+		scope:gp_fl_new = { set_variable = gp_historic_contender }
+		c:HAB ?= {
+			if = {
+				limit = { NOT = { this = scope:gp_fl_new } }
+				set_variable = { name = gp_sc_ally value = scope:gp_fl_new }
+			}
+		}
+	}
+	clear_saved_scope = gp_fl_new
+}
+
+# The other free countries of France lean on the gatherer (scope:gp_fl).
+gp_sc_france_patrons = {
+	if = {
+		limit = { exists = scope:gp_fl }
+		region:france_region = {
+			every_present_country = {
+				limit = {
+					gp_is_real_country = yes
+					is_subject = no
+					exists = capital
+					capital.region = region:france_region
+					NOT = { this = scope:gp_fl }
+					NOT = { location:london.owner ?= this }
+				}
+				set_variable = { name = gp_patron value = scope:gp_fl }
+			}
+		}
+	}
+}
+
+# Branches 3 and 4: a new gatherer when the old one is gone.
+gp_sc_france_upkeep = {
+	if = {
+		limit = {
+			has_global_variable = gp_sc_hyw
+			OR = {
+				global_var:gp_sc_hyw = 3
+				global_var:gp_sc_hyw = 4
+			}
+			NOT = { global_var:gp_sc_france_leader ?= { gp_is_real_country = yes is_subject = no } }
+		}
+		gp_sc_pick_france_leader = yes
+		global_var:gp_sc_france_leader ?= {
+			save_scope_as = gp_fl
+			if = {
+				limit = { global_var:gp_sc_hyw = 3 }
+				location:london.owner ?= { save_scope_as = gp_eng2 }
+				if = {
+					limit = { exists = scope:gp_eng2 }
+					gp_sc_prepare = { TARGET = gp_eng2 }
+				}
+				clear_saved_scope = gp_eng2
+			}
+		}
+		gp_sc_france_patrons = yes
+		clear_saved_scope = gp_fl
+	}
+}
+
+# ---- 2. Ireland -------------------------------------------------------------------------------------
+
+gp_sc_ireland = {
+	if = {
+		limit = { NOT = { has_global_variable = gp_sc_ireland } }
+		# the strongest Gaelic country of Ireland
+		region:ireland_region = {
+			ordered_present_country = {
+				limit = {
+					gp_is_real_country = yes
+					exists = capital
+					capital.region = region:ireland_region
+					culture ?= { has_culture_group = culture_group:hibernian_group }
+				}
+				order_by = country_strength
+				max = 1
+				save_scope_as = gp_gael
+			}
+		}
+		gp_sc_share = { REGION = ireland_region WHO = gp_eng VAR = gp_sc_eng_in_ireland }
+		# 2A Ireland united by a Gaelic king (half of the island before England)
+		if = {
+			limit = {
+				scope:gp_gael ?= {
+					has_variable = gp_region_share
+					var:gp_region_share >= 0.5
+				}
+			}
+			set_global_variable = { name = gp_sc_ireland value = 1 }
+			scope:gp_gael = {
+				c:SCO ?= {
+					add_opinion = { target = scope:gp_gael modifier = gp_opinion_ancient_friendship }
+					reverse_add_opinion = { target = scope:gp_gael modifier = gp_opinion_ancient_friendship }
+				}
+				scope:gp_fra = {
+					add_opinion = { target = scope:gp_gael modifier = gp_opinion_ancient_friendship }
+					reverse_add_opinion = { target = scope:gp_gael modifier = gp_opinion_ancient_friendship }
+				}
+				if = {
+					limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+					every_owned_location = {
+						limit = { region = region:ireland_region }
+						add_location_modifier = { modifier = gp_sc_irish_resolve days = 18250 }
+					}
+				}
+			}
+		}
+		# 2B / 2C England holds three quarters of Ireland - early: the Anglo-Irish; late: national consciousness
+		else_if = {
+			limit = { var:gp_sc_eng_in_ireland >= 0.75 }
+			if = {
+				limit = { current_date < 1450.1.1 }
+				set_global_variable = { name = gp_sc_ireland value = 2 }
+			}
+			else = {
+				set_global_variable = { name = gp_sc_ireland value = 3 }
+				region:ireland_region = {
+					every_present_country = {
+						limit = {
+							gp_is_real_country = yes
+							culture ?= { has_culture_group = culture_group:hibernian_group }
+						}
+						set_variable = { name = gp_sc_cb_target value = scope:gp_eng }
+					}
+				}
+			}
+		}
+		remove_variable = gp_sc_eng_in_ireland
+		clear_saved_scope = gp_gael
+	}
+	# 2D the Gaelic lords quarrelled: by 1400 nobody holds 30 % of Ireland - England's road there opens early
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_ireland_quarrel }
+			NOT = { has_global_variable = gp_sc_ireland }
+			current_date >= 1400.1.1
+			NOT = {
+				region:ireland_region = {
+					any_present_country = {
+						exists = capital
+						capital.region = region:ireland_region
+						has_variable = gp_region_share
+						var:gp_region_share >= 0.3
+					}
+				}
+			}
+		}
+		set_global_variable = { name = gp_sc_ireland_quarrel value = 1 }
+		scope:gp_eng = { set_variable = gp_sc_ireland_right }
+	}
+}
+
+# ---- 3. Scotland --------------------------------------------------------------------------------
+
+gp_sc_scotland = {
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_scotland }
+			c:SCO ?= { is_subject = no }
+		}
+		set_global_variable = { name = gp_sc_scotland value = 1 }
+	}
+	# 3B Scotland wins Britain (40 % of the region)
+	if = {
+		limit = {
+			has_global_variable = gp_sc_scotland
+			global_var:gp_sc_scotland = 1
+			c:SCO ?= {
+				has_variable = gp_region_share
+				var:gp_region_share >= 0.4
+			}
+		}
+		set_global_variable = { name = gp_sc_scotland value = 2 }
+		scope:gp_eng = {
+			if = {
+				limit = { NOT = { tag = SCO } }
+				gp_sc_break = { YEARS = 15 }
+			}
+		}
+	}
+	# the French crown stands by Scotland while the Auld Alliance holds
+	if = {
+		limit = {
+			has_global_variable = gp_sc_scotland
+			global_var:gp_sc_scotland = 1
+			NOT = { scope:gp_fra = scope:gp_eng }
+		}
+		scope:gp_fra = {
+			c:SCO ?= { save_scope_as = gp_sco }
+			if = {
+				limit = { exists = scope:gp_sco }
+				set_variable = { name = gp_sc_protect value = scope:gp_sco }
+			}
+			clear_saved_scope = gp_sco
+		}
+	}
+}
+
+# ---- 4. Iberia ----------------------------------------------------------------------------------
+
+gp_sc_iberia = {
+	# 4A the Reconquista is complete: no Granada, Castile (or Spain) holds 55 % of Iberia
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_reconquista }
+			NOT = { country_exists = c:GRA }
+			OR = {
+				c:CAS ?= {
+					has_variable = gp_region_share
+					var:gp_region_share >= 0.55
+				}
+				c:SPA ?= {
+					has_variable = gp_region_share
+					var:gp_region_share >= 0.55
+				}
+			}
+		}
+		set_global_variable = { name = gp_sc_reconquista value = 1 }
+	}
+	# 4B a Portuguese Iberia: Portugal holds 40 % of the peninsula
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_portugal }
+			c:POR ?= {
+				has_variable = gp_region_share
+				var:gp_region_share >= 0.4
+			}
+		}
+		set_global_variable = { name = gp_sc_portugal value = 1 }
+		c:POR ?= {
+			set_variable = gp_region_claim
+			set_variable = { name = gp_region_claim_years value = 20 }
+		}
+		c:CAS ?= { gp_sc_course = { POSTURE = recovery YEARS = 6 } }
+	}
+	# 4C the Aragonese sea: Aragon holds Sicily or Sardinia and three locations in Italy
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_aragon_sea }
+			c:ARA ?= {
+				OR = {
+					owns = location:palermo
+					owns = location:cagliari
+					owns = location:sassari
+				}
+				any_owned_location = {
+					count >= 3
+					region = region:italy_region
+				}
+			}
+		}
+		set_global_variable = { name = gp_sc_aragon_sea value = 1 }
+	}
+	# 4D Granada holds: by 1450 Granada lives and is allied with Morocco
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_granada_holds }
+			current_date >= 1450.1.1
+			c:GRA ?= {
+				c:MOR ?= { is_allied_with = { target = prev } }
+			}
+		}
+		set_global_variable = { name = gp_sc_granada_holds value = 1 }
+		c:GRA ?= { save_scope_as = gp_gra }
+		c:MOR ?= { set_variable = { name = gp_sc_protect value = scope:gp_gra } }
+		c:CAS ?= { gp_sc_prepare = { TARGET = gp_gra } }
+		clear_saved_scope = gp_gra
+	}
+}
+
+# ================================================================================================
+# Directions set by the scenarios (called at the end of gp_update_directions, AI only, scope:gp_c)
+# ================================================================================================
+
+gp_sc_directions = {
+	# 1A England turns to its islands, France to Italy
+	if = {
+		limit = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 1
+		}
+		if = {
+			limit = { location:london.owner ?= scope:gp_c }
+			gp_dir_drop = { DIR = british }
+			gp_sc_dir_add = { DIR = british_isles }
+		}
+		if = {
+			limit = { location:paris.owner ?= scope:gp_c }
+			gp_sc_dir_add = { DIR = french }
+		}
+	}
+	# 1C / 1D Burgundy reaches for the Low Countries and Italy
+	if = {
+		limit = {
+			tag = BUR
+			has_global_variable = gp_sc_hyw
+			OR = {
+				global_var:gp_sc_hyw = 3
+				global_var:gp_sc_hyw = 4
+			}
+		}
+		gp_sc_dir_add = { DIR = french }
+	}
+	# 3B victorious Scotland looks to Ireland
+	if = {
+		limit = {
+			OR = {
+				tag = SCO
+				tag = GAE
+			}
+			has_global_variable = gp_sc_scotland
+			global_var:gp_sc_scotland = 2
+		}
+		gp_sc_dir_add = { DIR = british_isles }
+	}
+	# 4A Castile crosses to Africa
+	if = {
+		limit = {
+			has_global_variable = gp_sc_reconquista
+			OR = {
+				tag = CAS
+				tag = SPA
+			}
+		}
+		gp_sc_dir_add = { DIR = iberian }
+	}
+	# 4C Aragon in Italy and the Maghreb
+	if = {
+		limit = {
+			has_global_variable = gp_sc_aragon_sea
+			OR = {
+				tag = ARA
+				tag = MDC
+			}
+		}
+		gp_sc_dir_add = { DIR = italian }
+	}
+	# 4D Morocco looks to Iberia
+	if = {
+		limit = {
+			has_global_variable = gp_sc_granada_holds
+			tag = MOR
+		}
+		gp_sc_dir_add = { DIR = maghrebi }
+	}
+}
+
+gp_sc_dir_add = {
+	if = {
+		limit = { NOT = { has_area_preference = gp_dir_$DIR$ } }
+		add_area_preference = gp_dir_$DIR$
+	}
+}
+
+# ================================================================================================
+# Marks on the land (called from gp_control_location, location scope, owner = scope:gp_c)
+# ================================================================================================
+
+# 2C Irish national consciousness: Irish land under a non-Gaelic owner -15 % max control, for good.
+gp_sc_control_location = {
+	if = {
+		limit = {
+			NOT = { has_game_rule = gp_scenario_mods_off }
+			has_global_variable = gp_sc_ireland
+			global_var:gp_sc_ireland = 3
+			region = region:ireland_region
+			dominant_culture ?= { has_culture_group = culture_group:hibernian_group }
+			NOT = { scope:gp_c = { culture ?= { has_culture_group = culture_group:hibernian_group } } }
+		}
+		if = {
+			limit = { NOT = { has_location_modifier = gp_sc_irish_nation } }
+			add_location_modifier = { modifier = gp_sc_irish_nation days = -1 }
+		}
+	}
+	else_if = {
+		limit = { has_location_modifier = gp_sc_irish_nation }
+		remove_location_modifier = gp_sc_irish_nation
+	}
+}
