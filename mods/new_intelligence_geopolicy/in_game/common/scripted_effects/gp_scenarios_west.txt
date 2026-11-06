@@ -126,6 +126,7 @@ gp_west_scenarios = {
 	}
 	gp_sc_iberia = yes
 	gp_sc_france_upkeep = yes
+	gp_central_scenarios = yes	# v0.6 Italy and the Empire (gp_scenarios_central.txt)
 	clear_saved_scope = gp_eng
 	clear_saved_scope = gp_fra
 }
@@ -594,6 +595,7 @@ gp_sc_directions = {
 		}
 		gp_sc_dir_add = { DIR = maghrebi }
 	}
+	gp_sc_directions_central = yes	# v0.6 (gp_scenarios_central.txt)
 }
 
 gp_sc_dir_add = {

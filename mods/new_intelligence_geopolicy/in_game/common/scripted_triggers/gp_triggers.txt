@@ -292,8 +292,15 @@ gp_is_before_1600 = {
 # Regions that history never united by war (the German lands of the Empire) get no unification casus belli.
 gp_region_is_unifiable = {
 	exists = capital
-	NOT = { capital.region = region:north_german_region }
-	NOT = { capital.region = region:south_german_region }
+	OR = {
+		AND = {
+			NOT = { capital.region = region:north_german_region }
+			NOT = { capital.region = region:south_german_region }
+		}
+		# v0.6 scenarios E-3 and E-5: the gatherer of Germany, or the Empire is no more
+		has_variable = gp_sc_germany_gatherer
+		has_global_variable = gp_sc_empire_gone
+	}
 }
 
 # this and $COUNTRY$ are contenders of the same home region (Novgorod - Moscow - Smolensk).

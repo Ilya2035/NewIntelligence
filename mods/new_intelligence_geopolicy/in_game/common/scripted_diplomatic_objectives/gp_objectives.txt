@@ -478,3 +478,49 @@ gp_obj_scenario_ally = {
 	}
 	max_allowed = 2
 }
+
+# 10. v0.6 The Italian league (scenario I-1, gp_scenarios_central.txt): while no Italian state holds half of Italy, the
+#     others ally among themselves against the strongest one (global var gp_sc_italy_top) - the balance of Lodi.
+gp_obj_italian_league = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+		is_subject = no
+		exists = capital
+		capital.region = region:italy_region
+		has_global_variable = gp_sc_italy_league
+		NOT = { has_global_variable = gp_sc_italy_unifier }
+		NOT = { global_var:gp_sc_italy_top ?= root }
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			gp_is_real_country = yes
+			is_subject = no
+			exists = capital
+			capital.region = region:italy_region
+			NOT = { global_var:gp_sc_italy_top ?= this }
+			religion.group = scope:actor.religion.group
+			NOT = { is_rival_of = scope:actor }
+			NOT = { is_at_war_with = scope:actor }
+		}
+	}
+
+	recipient_priority = {
+		add = 40
+		add = "scope:recipient.opinion(scope:actor)"
+		divide = 4
+	}
+
+	pause_trigger = {
+		scope:actor = { at_war = yes }
+	}
+
+	improve_relation = yes
+	country_relations = {
+		alliance = yes
+	}
+	max_allowed = 1
+}

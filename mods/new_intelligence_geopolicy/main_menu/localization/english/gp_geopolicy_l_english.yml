@@ -477,7 +477,7 @@
  gp_dir_indian: "Indian direction: all of India, Khorasan and Indochina"
 
  ### v0.5 Scenarios of the West (gp_scenarios_west.txt)
- GP_BP_SC_TITLE: "Scenarios of the West"
+ GP_BP_SC_TITLE: "Regional scenarios"
  GP_BP_SC_HYW: "#bold Hundred Years' War:#! [Country.Custom('gp_bp_sc_hyw')]"
  GP_BP_SC_IRELAND: "#bold Ireland:#! [Country.Custom('gp_bp_sc_ireland')]"
  GP_BP_SC_SCOTLAND: "#bold Scotland:#! [Country.Custom('gp_bp_sc_scotland')]"
@@ -515,3 +515,24 @@
  setting_gp_scenario_mods_on_desc: "The Western scenarios leave marks on the land: united Ireland - forts +25 % for 50 years; Irish national consciousness - -15 % control on Irish land of a foreign owner."
  setting_gp_scenario_mods_off: "Off"
  setting_gp_scenario_mods_off_desc: "The scenarios run without land modifiers."
+
+ ### v0.6 Scenarios of Italy and the Empire (gp_scenarios_central.txt)
+ GP_BP_SC_ITALY: "#bold Italy:#! [Country.Custom('gp_bp_sc_italy')]"
+ GP_BP_SC_ITALY_SEA: "#bold Italian seas:#! [Country.Custom('gp_bp_sc_italy_sea')]"
+ GP_BP_SC_EMPIRE: "#bold The Empire:#! [Country.Custom('gp_bp_sc_empire')]"
+ gp_bp_sc_italy_open: "cities and princes divide the peninsula."
+ gp_bp_sc_italy_league: "the balance of the Italian states - all against the strongest."
+ gp_bp_sc_italy_wars: "the Italian wars - a great power has come to Italy, another prepares to drive it out, the Italians seek a patron."
+ gp_bp_sc_italy_unifier: "one state is gathering Italy - France and the emperor back the others."
+ gp_bp_sc_italy_sea_open: "Venice has not yet reached the Balkans, Sicily and Naples are under different crowns."
+ gp_bp_sc_italy_sea_venice: "Venice holds the Adriatic and the Balkan shore - the Ottomans will answer."
+ gp_bp_sc_italy_sea_sicilies: "Naples and Palermo under one crown - the Two Sicilies look to Africa and the Balkans."
+ gp_bp_sc_italy_sea_both: "Venice in the Balkans, both Sicilies under one crown."
+ gp_bp_sc_empire_open: "the Empire is divided - the princes hold together against the strongest."
+ gp_bp_sc_empire_habsburg: "the Habsburg Empire - the emperor holds Vienna and Prague or Buda; France befriends the northern princes."
+ gp_bp_sc_empire_bohemian: "the Bohemian emperors - Prague looks to Brandenburg and Silesia."
+ gp_bp_sc_empire_gatherer: "one prince is gathering Germany - he has a unification casus belli, the neighbours oppose him."
+ gp_bp_sc_empire_gone: "the Holy Roman Empire is no more - the German lands are united by war like any others."
+ gp_obj_italian_league: "Italian League"
+ gp_dir_into_italy: "Direction: Italy"
+ gp_dir_bohemian: "Bohemian direction: North Germany and Silesia"

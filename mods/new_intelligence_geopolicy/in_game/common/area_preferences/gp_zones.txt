@@ -1417,6 +1417,8 @@ gp_tun_far = {
 gp_dir_british = { preference_type = conquest modifier = 2 region = ireland_region region = france_region }
 gp_dir_irish = { preference_type = conquest modifier = 2 region = great_britain_region }
 gp_dir_british_isles = { preference_type = conquest modifier = 2 region = ireland_region }	# v0.5 scenarios 1A and 3B: England (or a victorious Scotland) turns to Ireland
+gp_dir_into_italy = { preference_type = conquest modifier = 2 region = italy_region }	# v0.6 scenario I-2: the invader of Italy
+gp_dir_bohemian = { preference_type = conquest modifier = 2 region = north_german_region region = baltic_region }	# v0.6 scenario E-2: the Bohemian emperor (Brandenburg, Silesia)
 gp_dir_french = { preference_type = conquest modifier = 2 region = italy_region region = north_german_region }
 gp_dir_iberian = { preference_type = conquest modifier = 2 region = maghreb_region }
 gp_dir_italian = { preference_type = conquest modifier = 2 region = balkan_region region = maghreb_region }

@@ -370,3 +370,78 @@ gp_bp_sc_iberia = {
 		fallback = yes
 	}
 }
+
+# ---- v0.6 scenarios of Italy and the Empire (gp_scenarios_central.txt) ----
+
+gp_bp_sc_italy = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_sc_italy_unifier
+		trigger = { has_global_variable = gp_sc_italy_unifier }
+	}
+	text = {
+		localization_key = gp_bp_sc_italy_wars
+		trigger = { has_global_variable = gp_sc_italian_wars }
+	}
+	text = {
+		localization_key = gp_bp_sc_italy_league
+		trigger = { has_global_variable = gp_sc_italy_league }
+	}
+	text = {
+		localization_key = gp_bp_sc_italy_open
+		fallback = yes
+	}
+}
+
+gp_bp_sc_italy_sea = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_sc_italy_sea_both
+		trigger = {
+			has_global_variable = gp_sc_venice_sea
+			has_global_variable = gp_sc_two_sicilies
+		}
+	}
+	text = {
+		localization_key = gp_bp_sc_italy_sea_venice
+		trigger = { has_global_variable = gp_sc_venice_sea }
+	}
+	text = {
+		localization_key = gp_bp_sc_italy_sea_sicilies
+		trigger = { has_global_variable = gp_sc_two_sicilies }
+	}
+	text = {
+		localization_key = gp_bp_sc_italy_sea_open
+		fallback = yes
+	}
+}
+
+gp_bp_sc_empire = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_sc_empire_gone
+		trigger = { has_global_variable = gp_sc_empire_gone }
+	}
+	text = {
+		localization_key = gp_bp_sc_empire_gatherer
+		trigger = { has_global_variable = gp_sc_german_gatherer }
+	}
+	text = {
+		localization_key = gp_bp_sc_empire_habsburg
+		trigger = { has_global_variable = gp_sc_habsburg_empire }
+	}
+	text = {
+		localization_key = gp_bp_sc_empire_bohemian
+		trigger = { has_global_variable = gp_sc_bohemian_empire }
+	}
+	text = {
+		localization_key = gp_bp_sc_empire_open
+		fallback = yes
+	}
+}

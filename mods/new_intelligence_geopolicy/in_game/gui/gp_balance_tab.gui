@@ -217,6 +217,18 @@ template geopolitics_tabs {
 			layoutpolicy_horizontal = expanding
 			text = "GP_BP_SC_IBERIA"
 		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_SC_ITALY"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_SC_ITALY_SEA"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_SC_EMPIRE"
+		}
 
 		# ---- refresh ----
 		hbox = {

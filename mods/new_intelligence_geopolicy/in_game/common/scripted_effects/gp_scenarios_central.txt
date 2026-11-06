@@ -1,0 +1,378 @@
+﻿###################################
+# New Intelligence: Geopolicy - scenarios of Italy and the Empire (prefix gp_), v0.6
+#
+# Same engine as the West (gp_scenarios_west.txt, docs/GEOPOLICY_SCENARIOS_CENTRAL.md): branches open once from the
+# outcome of events, are checked yearly by the owner of London (gp_west_scenarios), and act through postures, the scenario
+# casus belli, patrons, scenario allies, the unification casus belli and direction preferences. Global variables:
+#   Italy:  gp_sc_italy_league (no Italian state holds 30 % of Italy by 1400 - the balance of the Italian states),
+#           gp_sc_italian_wars + gp_sc_italy_invader (a great power from outside holds land in Italy),
+#           gp_sc_italy_unifier (an Italian state holds half of Italy), gp_sc_venice_sea, gp_sc_two_sicilies
+#   Empire: gp_sc_habsburg_empire, gp_sc_bohemian_empire (who wears the crown), gp_sc_german_gatherer (a prince holds
+#           40 % of his German region), gp_sc_empire_gone (the Holy Roman Empire is no more)
+###################################
+
+gp_central_scenarios = {
+	gp_sc_italy = yes
+	gp_sc_empire = yes
+}
+
+# ================================================================================================
+# Italy
+# ================================================================================================
+
+gp_sc_italy = {
+	# ---- the strongest Italian state (by share of Italy), for the league and the balance ----
+	region:italy_region = {
+		ordered_present_country = {
+			limit = {
+				gp_is_real_country = yes
+				is_subject = no
+				exists = capital
+				capital.region = region:italy_region
+			}
+			order_by = gp_region_share_or_zero
+			max = 1
+			save_scope_as = gp_it_top
+		}
+	}
+	# ---- I-3 the unifier: an Italian state holds half of Italy ----
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_italy_unifier }
+			scope:gp_it_top ?= {
+				has_variable = gp_region_share
+				var:gp_region_share >= 0.5
+			}
+		}
+		set_global_variable = { name = gp_sc_italy_unifier value = scope:gp_it_top }
+		scope:gp_it_top = {
+			set_variable = gp_region_claim
+			set_variable = { name = gp_region_claim_years value = 20 }
+			set_variable = gp_historic_contender
+		}
+		# France and the emperor stand by the strongest Italian state left (keep Italy divided)
+		region:italy_region = {
+			ordered_present_country = {
+				limit = {
+					gp_is_real_country = yes
+					is_subject = no
+					exists = capital
+					capital.region = region:italy_region
+					NOT = { this = scope:gp_it_top }
+				}
+				order_by = country_strength
+				max = 1
+				save_scope_as = gp_it_second
+			}
+		}
+		if = {
+			limit = { exists = scope:gp_it_second }
+			location:paris.owner ?= {
+				if = {
+					limit = { NOT = { this = scope:gp_it_top } }
+					set_variable = { name = gp_sc_protect value = scope:gp_it_second }
+				}
+			}
+			international_organization:hre.leader_country ?= {
+				if = {
+					limit = { NOT = { this = scope:gp_it_top } }
+					set_variable = { name = gp_sc_ally value = scope:gp_it_second }
+				}
+			}
+		}
+		clear_saved_scope = gp_it_second
+	}
+	# ---- I-1 the league: by 1400 no Italian state holds 30 % of Italy ----
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_italy_league }
+			NOT = { has_global_variable = gp_sc_italy_unifier }
+			current_date >= 1400.1.1
+			NOT = {
+				scope:gp_it_top ?= {
+					has_variable = gp_region_share
+					var:gp_region_share >= 0.3
+				}
+			}
+		}
+		set_global_variable = { name = gp_sc_italy_league value = 1 }
+	}
+	# the league holds while there is no unifier: the strongest Italian state is the one the others watch
+	if = {
+		limit = {
+			has_global_variable = gp_sc_italy_league
+			NOT = { has_global_variable = gp_sc_italy_unifier }
+			exists = scope:gp_it_top
+		}
+		set_global_variable = { name = gp_sc_italy_top value = scope:gp_it_top }
+	}
+	# ---- I-2 the Italian wars: a great power from outside holds three locations in Italy ----
+	if = {
+		limit = { NOT = { has_global_variable = gp_sc_italian_wars } }
+		region:italy_region = {
+			ordered_present_country = {
+				limit = {
+					gp_is_real_country = yes
+					is_subject = no
+					exists = capital
+					NOT = { capital.region = region:italy_region }
+					gp_is_power_of_standing = yes
+					any_owned_location = {
+						count >= 3
+						region = region:italy_region
+					}
+				}
+				order_by = country_strength
+				max = 1
+				save_scope_as = gp_it_invader
+			}
+		}
+		if = {
+			limit = { exists = scope:gp_it_invader }
+			set_global_variable = { name = gp_sc_italian_wars value = 1 }
+			set_global_variable = { name = gp_sc_italy_invader value = scope:gp_it_invader }
+			# the counterweight: the strongest other great power of the West
+			ordered_country = {
+				limit = {
+					gp_is_real_country = yes
+					is_subject = no
+					is_great_power = yes
+					exists = capital
+					capital.sub_continent = sub_continent:western_europe
+					NOT = { this = scope:gp_it_invader }
+					NOT = { is_allied_with = { target = scope:gp_it_invader } }
+				}
+				order_by = country_strength
+				max = 1
+				save_scope_as = gp_it_counter
+			}
+			if = {
+				limit = { exists = scope:gp_it_counter }
+				scope:gp_it_counter = { gp_sc_prepare = { TARGET = gp_it_invader } }
+				# the Italian states look to the counterweight for protection
+				region:italy_region = {
+					every_present_country = {
+						limit = {
+							gp_is_real_country = yes
+							is_subject = no
+							exists = capital
+							capital.region = region:italy_region
+						}
+						set_variable = { name = gp_patron value = scope:gp_it_counter }
+					}
+				}
+			}
+			clear_saved_scope = gp_it_counter
+		}
+		clear_saved_scope = gp_it_invader
+	}
+	# ---- I-4 the Venetian sea: Venice holds three locations in the Balkans ----
+	location:venice.owner ?= { save_scope_as = gp_ven }
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_venice_sea }
+			scope:gp_ven ?= {
+				any_owned_location = {
+					count >= 3
+					region = region:balkan_region
+				}
+			}
+		}
+		set_global_variable = { name = gp_sc_venice_sea value = 1 }
+	}
+	# the Ottomans answer once they stand in the Balkans (five locations)
+	if = {
+		limit = {
+			has_global_variable = gp_sc_venice_sea
+			exists = scope:gp_ven
+			c:TUR ?= {
+				NOT = { has_variable = gp_sc_turk_venice }
+				NOT = { this = scope:gp_ven }
+				any_owned_location = {
+					count >= 5
+					region = region:balkan_region
+				}
+			}
+		}
+		c:TUR = {
+			set_variable = gp_sc_turk_venice
+			gp_sc_prepare = { TARGET = gp_ven }
+		}
+	}
+	clear_saved_scope = gp_ven
+	# ---- I-5 the Two Sicilies: Naples and Palermo under one crown ----
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_two_sicilies }
+			location:naples.owner ?= { save_temporary_scope_as = gp_nap_owner }
+			location:palermo.owner ?= scope:gp_nap_owner
+		}
+		set_global_variable = { name = gp_sc_two_sicilies value = location:naples.owner }
+	}
+	clear_saved_scope = gp_it_top
+}
+
+# ================================================================================================
+# The Empire (north_german_region, south_german_region)
+# ================================================================================================
+
+gp_sc_empire = {
+	# ---- E-5 the Empire is no more: the German regions can be united by war like any other ----
+	# Three yearly checks in a row without an emperor (an interregnum between two emperors is not the end of the Empire).
+	if = {
+		limit = { NOT = { has_global_variable = gp_sc_empire_gone } }
+		if = {
+			limit = { exists = international_organization:hre.leader_country }
+			set_global_variable = { name = gp_sc_no_emperor_years value = 0 }
+		}
+		else = {
+			if = {
+				limit = { NOT = { has_global_variable = gp_sc_no_emperor_years } }
+				set_global_variable = { name = gp_sc_no_emperor_years value = 0 }
+			}
+			# (change_global_variable is not used by vanilla 1.4.7 - set with an inline value instead)
+			set_global_variable = {
+				name = gp_sc_no_emperor_years
+				value = {
+					value = global_var:gp_sc_no_emperor_years
+					add = 1
+				}
+			}
+			if = {
+				limit = { global_var:gp_sc_no_emperor_years >= 3 }
+				set_global_variable = { name = gp_sc_empire_gone value = 1 }
+			}
+		}
+	}
+	# ---- E-1 the Habsburg Empire: the emperor holds Vienna and Prague or Buda ----
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_habsburg_empire }
+			international_organization:hre.leader_country ?= {
+				owns = location:vienna
+				OR = {
+					owns = location:prague
+					owns = location:buda
+				}
+			}
+		}
+		set_global_variable = { name = gp_sc_habsburg_empire value = international_organization:hre.leader_country }
+		# France keeps Germany divided: it befriends the strongest prince of North Germany
+		region:north_german_region = {
+			ordered_present_country = {
+				limit = {
+					gp_is_real_country = yes
+					is_subject = no
+					exists = capital
+					capital.region = region:north_german_region
+					NOT = { international_organization:hre.leader_country ?= this }
+				}
+				order_by = country_strength
+				max = 1
+				save_scope_as = gp_de_prince
+			}
+		}
+		if = {
+			limit = { exists = scope:gp_de_prince }
+			location:paris.owner ?= { set_variable = { name = gp_sc_ally value = scope:gp_de_prince } }
+		}
+		clear_saved_scope = gp_de_prince
+	}
+	# ---- E-2 the Bohemian Empire: the emperor holds Prague but not Vienna ----
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_bohemian_empire }
+			NOT = { has_global_variable = gp_sc_habsburg_empire }
+			international_organization:hre.leader_country ?= {
+				owns = location:prague
+				NOT = { owns = location:vienna }
+			}
+		}
+		set_global_variable = { name = gp_sc_bohemian_empire value = international_organization:hre.leader_country }
+	}
+	# ---- E-3 the gatherer of Germany: a prince holds 40 % of his German region ----
+	if = {
+		limit = { NOT = { has_global_variable = gp_sc_german_gatherer } }
+		every_country = {
+			limit = {
+				gp_is_real_country = yes
+				is_subject = no
+				exists = capital
+				OR = {
+					capital.region = region:north_german_region
+					capital.region = region:south_german_region
+				}
+				has_variable = gp_region_share
+				var:gp_region_share >= 0.4
+			}
+			save_scope_as = gp_de_gatherer
+		}
+		if = {
+			limit = { exists = scope:gp_de_gatherer }
+			set_global_variable = { name = gp_sc_german_gatherer value = scope:gp_de_gatherer }
+			scope:gp_de_gatherer = {
+				set_variable = gp_sc_germany_gatherer
+				set_variable = gp_historic_contender
+			}
+			# the neighbours keep Germany divided: France (if strong at home) goes to war, the rest befriend the princes
+			location:paris.owner ?= {
+				if = {
+					limit = {
+						NOT = { this = scope:gp_de_gatherer }
+						has_variable = gp_region_share
+						var:gp_region_share >= 0.6
+					}
+					gp_sc_prepare = { TARGET = gp_de_gatherer }
+				}
+			}
+		}
+		clear_saved_scope = gp_de_gatherer
+	}
+}
+
+# ================================================================================================
+# Directions (called at the end of gp_sc_directions, AI only, scope:gp_c)
+# ================================================================================================
+
+gp_sc_directions_central = {
+	# I-2 the invader of Italy keeps its eyes on Italy
+	if = {
+		limit = {
+			has_global_variable = gp_sc_italian_wars
+			global_var:gp_sc_italy_invader ?= scope:gp_c
+		}
+		gp_sc_dir_add = { DIR = into_italy }
+	}
+	# I-4 Venice at sea
+	if = {
+		limit = {
+			has_global_variable = gp_sc_venice_sea
+			location:venice.owner ?= scope:gp_c
+		}
+		gp_sc_dir_add = { DIR = italian }
+	}
+	# I-5 the Two Sicilies look to Africa and the Balkans
+	if = {
+		limit = {
+			has_global_variable = gp_sc_two_sicilies
+			location:naples.owner ?= scope:gp_c
+		}
+		gp_sc_dir_add = { DIR = italian }
+	}
+	# E-1 the Habsburg emperor: the Carpathians and Italy
+	if = {
+		limit = {
+			has_global_variable = gp_sc_habsburg_empire
+			international_organization:hre.leader_country ?= scope:gp_c
+		}
+		gp_sc_dir_add = { DIR = south_german }
+	}
+	# E-2 the Bohemian emperor: Brandenburg, Silesia and the north
+	if = {
+		limit = {
+			has_global_variable = gp_sc_bohemian_empire
+			international_organization:hre.leader_country ?= scope:gp_c
+		}
+		gp_sc_dir_add = { DIR = bohemian }
+	}
+}
