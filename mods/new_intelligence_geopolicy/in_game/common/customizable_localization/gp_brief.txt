@@ -230,6 +230,17 @@ gp_bp_sc_hyw = {
 	type = country
 	log_loc_errors = yes
 
+	# v0.8 (gp_scenarios_hyw.txt): the first text whose trigger holds is shown
+	text = {
+		localization_key = gp_bp_sc_hyw_1_ambition
+		trigger = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 1
+			has_global_variable = gp_sc_old_ambitions
+			global_var:gp_sc_old_ambitions = 1
+		}
+	}
+
 	text = {
 		localization_key = gp_bp_sc_hyw_1
 		trigger = {
@@ -275,6 +286,22 @@ gp_bp_sc_hyw = {
 		trigger = {
 			has_global_variable = gp_sc_hyw
 			global_var:gp_sc_hyw = 6
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_hyw_7
+		trigger = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 7
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_hyw_8
+		trigger = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 8
 		}
 	}
 

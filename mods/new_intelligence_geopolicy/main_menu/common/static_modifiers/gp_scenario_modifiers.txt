@@ -1,10 +1,11 @@
 ﻿###################################
-# New Intelligence: Geopolicy - country modifiers of crises and scenarios (prefix gp_), v0.7
+# New Intelligence: Geopolicy - modifiers of crises and scenarios (prefix gp_), v0.8
 #
 # Requested by the author (2026-11-06): "a victorious England gets small bonuses against France; a collapsing state gets
-# penalties on raising armies". Not standing buffs: each belongs to a state the scenario or the crisis puts the country
-# in, and goes away with it. Game rules: "Break-up of states" (gp_rule_collapse) for gp_crisis_separatism, "Scenario
-# marks" (gp_rule_scenario_mods) for the scenario ones.
+# penalties on raising armies; lost guarantees make the land useless and the people rise; a defeated England may not
+# found colonies for fifty years". Not standing buffs: each belongs to a state the scenario or the crisis puts the
+# country (or the land) in, and goes away with it. Game rules: "Break-up of states" (gp_rule_collapse) for
+# gp_crisis_separatism, "Scenario marks" (gp_rule_scenario_mods) for the scenario ones.
 ###################################
 
 # Crisis 80+ (gp_crisis_effects.txt): the realm cannot raise its levies.
@@ -14,22 +15,42 @@ gp_crisis_separatism = {
 	global_manpower_modifier = -0.2
 }
 
-# Hundred Years' War, English triumph (20 years): Crecy and Poitiers.
+# Hundred Years' War, English advantage (20 years): Crecy and Poitiers.
 gp_sc_crecy = {
 	game_data = { category = country }
 	land_morale_modifier = 0.1
 }
 
-# Hundred Years' War, the English anarchy (20 years): the barons will not answer the summons.
-gp_sc_english_anarchy = {
+# Hundred Years' War, stalemate (20 years): France is worn out by a war nobody won.
+gp_sc_french_weariness = {
 	game_data = { category = country }
-	global_levy_size_modifier = -0.33
-	global_manpower_modifier = -0.25
+	global_levy_size_modifier = -0.15
+	global_manpower_modifier = -0.15
 }
 
-# Hundred Years' War, the French collapse (20 years): the crown cannot gather its vassals.
-gp_sc_french_collapse = {
+# Hundred Years' War, French victory (50 years) and the break-up of England (100 years): no colonies.
+gp_sc_island_retreat = {
 	game_data = { category = country }
-	global_levy_size_modifier = -0.33
-	global_manpower_modifier = -0.25
+	colonial_range_modifier = -1
+}
+
+# The break-up of England (20 years): Scotland's hour.
+gp_sc_scottish_hour = {
+	game_data = { category = country }
+	land_morale_modifier = 0.1
+	global_war_score_efficiency = 0.2
+}
+
+# Hundred Years' War, stalemate: the English crown's own land in France - nobody obeys, nothing comes of it.
+gp_sc_lost_guarantees = {
+	game_data = { category = location }
+	local_max_control = -1
+	local_unrest = 0.5
+}
+
+# Hundred Years' War, stalemate: the land of England's French vassals - the lord may be loyal, his people are not.
+gp_sc_restless_fief = {
+	game_data = { category = location }
+	local_unrest = 0.5
+	local_pop_join_rebel_threshold = 0.1
 }

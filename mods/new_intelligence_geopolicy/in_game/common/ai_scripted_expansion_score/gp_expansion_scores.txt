@@ -864,3 +864,83 @@ gp_score_empire_wall = {
 		add = -0.4
 	}
 }
+
+# ================================================================================================
+# v0.8 The Hundred Years' War and the isles (gp_scenarios_hyw.txt)
+# ================================================================================================
+
+# The island power (England after a lost Hundred Years' War): no ambitions on the continent. Germany and the Low
+# Countries are held back less - there England works through client states (gp_sc_puppeteer, the dominion casus belli).
+# A war prepared by a scenario (the old kings' ambitions) is not held back.
+gp_score_island_power = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_sc_island_power
+	}
+	target_trigger = {
+		exists = capital
+		NOT = { capital.region = region:great_britain_region }
+		NOT = { capital.region = region:ireland_region }
+		NOT = { this ?= scope:attacker.var:gp_sc_cb_target }
+		NOT = { this ?= scope:attacker.var:gp_war_target }
+	}
+	multiplier = {
+		add = -0.7
+		if = {
+			limit = { scope:target = { capital.region = region:north_german_region } }
+			add = 0.4
+		}
+	}
+}
+
+# Stalemate (state 7): the English and the French crown leave each other and each other's vassals alone; a war only in
+# the last resort.
+gp_score_hyw_truce = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_global_variable = gp_sc_hyw
+		global_var:gp_sc_hyw = 7
+		has_variable = gp_sc_truce_with
+	}
+	target_trigger = {
+		OR = {
+			this ?= scope:attacker.var:gp_sc_truce_with
+			overlord ?= scope:attacker.var:gp_sc_truce_with
+		}
+	}
+	multiplier = {
+		add = -0.85
+	}
+}
+
+# The Irish want their island and nothing beyond it: a country with no Irish land is hardly a target for them.
+gp_score_irish_island = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		gp_sc_is_irish = yes
+	}
+	target_trigger = {
+		NOT = { any_owned_location = { region = region:ireland_region } }
+	}
+	multiplier = {
+		add = -0.9
+	}
+}
+
+# Scotland's hour (20 years after the break-up of England): whoever holds land in Britain is fair game.
+gp_score_scottish_hour = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_sc_scot_hour_years
+	}
+	target_trigger = {
+		any_owned_location = { region = region:great_britain_region }
+	}
+	multiplier = {
+		add = 0.5
+	}
+}

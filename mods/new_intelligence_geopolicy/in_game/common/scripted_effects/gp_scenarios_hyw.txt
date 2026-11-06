@@ -1,0 +1,986 @@
+﻿###################################
+# New Intelligence: Geopolicy - the Hundred Years' War and the break-up of the crowns (prefix gp_), v0.8
+#
+# The author's rework of 2026-11-06 (docs/GEOPOLICY_SCENARIOS_WEST.md, section 8). One state machine, checked once a
+# year by the owner of London (gp_west_scenarios). Global variables:
+#   gp_sc_eng_crown / gp_sc_fra_crown  the English and the French crown: the owners of London and Paris at the first
+#                     check (ENG, FRA). While a crown lives it stays the crown, wherever its capital goes; a dead crown is
+#                     replaced by the owner of London / Paris (scope:gp_eng / scope:gp_fra, gp_sc_save_crowns).
+#   gp_sc_hyw         none  the war for the crown (1337-1400)
+#                     3     English advantage: England (with its vassals) holds half of Brittany, Normandy and Picardy
+#                           before 1400 - Crecy, and France must deal with it by 1400
+#                     5     dual monarchy: England holds Paris - France has 30 years to free it
+#                     4     the break-up of France: Paris not freed in 30 years - France falls into Brittany, Normandy,
+#                           Burgundy, Provence, Aquitaine and a crowd of counties; they seek the Empire first
+#                     6     the last war: 1400 came, Paris is French, England is still on the continent - 3 years of war
+#                           (25 years at most) decide it
+#                     7     stalemate: nobody won the last war - England loses its guarantees in France (control 0,
+#                           revolts), France is worn out for 20 years, the two crowns leave each other alone
+#                     1     French victory: England is off the continent - an island power, no colonies for 50 years;
+#                           France tries a landing (15 years)
+#                     2     French foothold: France holds two locations in Britain - 20 years for both sides, England
+#                           strikes in the last 15; a war running at the end is waited out
+#                     8     the break-up of England: the foothold held - England falls into its historical lands
+#                           (Northumberland, Lancaster, Cornwall, Wales), they seek to reunite, Scotland's hour,
+#                           English colonies only after 100 years
+#   gp_sc_hyw_years   years in the current state (the clocks)
+#   gp_sc_hyw_war_years   years of the last war fought (state 6)
+#   gp_sc_hyw_landing_done   France has made or given up its landing (state 1)
+#   gp_sc_old_ambitions   1 England took up the old kings' ambitions (25 %, once, 100 years after its defeat, if much
+#                     stronger than France), 2 it did not
+#   gp_sc_france_broken / gp_sc_england_broken   the crown has been divided (once a game; also by a crisis of 120)
+# Country variables: gp_sc_island_power (England after state 1), gp_sc_rival_crown, gp_sc_truce_with (state 7),
+# gp_sc_no_colonies_years (countdown), gp_sc_scot_hour_years (countdown).
+# Modifiers obey the game rule "Scenario marks" (gp_rule_scenario_mods); the break-ups happen whatever the rules.
+###################################
+
+# ---- the crowns ----------------------------------------------------------------------------------
+
+# Anchor scope (the owner of London): saves scope:gp_eng and scope:gp_fra.
+gp_sc_save_crowns = {
+	if = {
+		limit = { NOT = { has_global_variable = gp_sc_eng_crown } }
+		location:london.owner ?= { save_scope_as = gp_crown_tmp }
+		if = {
+			limit = { exists = scope:gp_crown_tmp }
+			set_global_variable = { name = gp_sc_eng_crown value = scope:gp_crown_tmp }
+		}
+		clear_saved_scope = gp_crown_tmp
+	}
+	if = {
+		limit = { NOT = { has_global_variable = gp_sc_fra_crown } }
+		location:paris.owner ?= { save_scope_as = gp_crown_tmp }
+		if = {
+			limit = { exists = scope:gp_crown_tmp }
+			set_global_variable = { name = gp_sc_fra_crown value = scope:gp_crown_tmp }
+		}
+		clear_saved_scope = gp_crown_tmp
+	}
+	if = {
+		limit = { global_var:gp_sc_eng_crown ?= { gp_is_real_country = yes } }
+		global_var:gp_sc_eng_crown ?= { save_scope_as = gp_eng }
+	}
+	else = {
+		location:london.owner ?= { save_scope_as = gp_eng }
+	}
+	if = {
+		limit = { global_var:gp_sc_fra_crown ?= { gp_is_real_country = yes } }
+		global_var:gp_sc_fra_crown ?= { save_scope_as = gp_fra }
+	}
+	else = {
+		location:paris.owner ?= { save_scope_as = gp_fra }
+	}
+}
+
+# ---- helpers ---------------------------------------------------------------------------------------
+
+# Share of area $AREA$ held by scope:gp_eng or its subjects, into variable $VAR$ of the anchor.
+gp_sc_area_share = {
+	set_variable = { name = gp_sc_tmp_total value = 0 }
+	set_variable = { name = gp_sc_tmp_owned value = 0 }
+	area:$AREA$ = {
+		every_location_in_area = {
+			limit = { is_ownable = yes }
+			scope:gp_c = { change_variable = { name = gp_sc_tmp_total add = 1 } }
+			if = {
+				limit = {
+					owner ?= {
+						OR = {
+							this = scope:gp_eng
+							is_subject_of = scope:gp_eng
+						}
+					}
+				}
+				scope:gp_c = { change_variable = { name = gp_sc_tmp_owned add = 1 } }
+			}
+		}
+	}
+	set_variable = {
+		name = $VAR$
+		value = {
+			value = var:gp_sc_tmp_owned
+			divide = {
+				value = var:gp_sc_tmp_total
+				min = 1
+			}
+		}
+	}
+	remove_variable = gp_sc_tmp_total
+	remove_variable = gp_sc_tmp_owned
+}
+
+gp_sc_hyw_enter = {
+	set_global_variable = { name = gp_sc_hyw value = $CODE$ }
+	set_global_variable = { name = gp_sc_hyw_years value = 0 }
+}
+
+# Country scope: forget a prepared war against scope:$TARGET$.
+gp_sc_drop_target = {
+	if = {
+		limit = { var:gp_sc_cb_target ?= scope:$TARGET$ }
+		remove_variable = gp_sc_cb_target
+	}
+	if = {
+		limit = { var:gp_war_target ?= scope:$TARGET$ }
+		remove_variable = gp_war_target
+	}
+}
+
+# scope:$WHO$ keeps preparing the war against scope:$TARGET$ while the state lasts.
+gp_sc_hyw_keep_at_it = {
+	scope:$WHO$ = {
+		if = {
+			limit = {
+				NOT = { this = scope:$TARGET$ }
+				NOT = { has_variable = gp_war_target }
+			}
+			gp_sc_prepare = { TARGET = $TARGET$ }
+		}
+	}
+}
+
+# Country scope: no colonies for $YEARS$ years (AI: the vanilla "avoid colonisation" preferences stay, gp_sc_overseas;
+# everyone: colonial range -100 % under the rule "Scenario marks").
+gp_sc_ban_colonies = {
+	set_variable = { name = gp_sc_no_colonies_years value = $YEARS$ }
+	if = {
+		limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+		if = {
+			limit = { has_country_modifier = gp_sc_island_retreat }
+			remove_country_modifier = gp_sc_island_retreat
+		}
+		add_country_modifier = { modifier = gp_sc_island_retreat years = $YEARS$ }
+	}
+}
+
+# ================================================================================================
+# The state machine (anchor scope, scope:gp_eng and scope:gp_fra saved)
+# ================================================================================================
+
+gp_sc_hundred_years_war = {
+	if = {
+		limit = { has_global_variable = gp_sc_hyw_years }
+		set_global_variable = {
+			name = gp_sc_hyw_years
+			value = {
+				value = global_var:gp_sc_hyw_years
+				add = 1
+			}
+		}
+	}
+	if = {
+		limit = { NOT = { has_global_variable = gp_sc_hyw } }
+		gp_sc_hyw_from_open = yes
+	}
+	else_if = {
+		limit = { global_var:gp_sc_hyw = 3 }
+		gp_sc_hyw_from_advantage = yes
+	}
+	else_if = {
+		limit = { global_var:gp_sc_hyw = 5 }
+		gp_sc_hyw_from_dual = yes
+	}
+	else_if = {
+		limit = { global_var:gp_sc_hyw = 6 }
+		gp_sc_hyw_from_last_war = yes
+	}
+	else_if = {
+		limit = { global_var:gp_sc_hyw = 1 }
+		gp_sc_hyw_from_victory = yes
+	}
+	else_if = {
+		limit = { global_var:gp_sc_hyw = 2 }
+		gp_sc_hyw_from_foothold = yes
+	}
+	# 4, 7 and 8 are final: their effects live on in the upkeep, the land marks and the AI scores
+}
+
+# The war for the crown.
+gp_sc_hyw_from_open = {
+	if = {
+		limit = { gp_sc_eng_holds_paris = yes }
+		gp_sc_hyw_dual_monarchy = yes
+	}
+	else_if = {
+		limit = {
+			current_date >= 1350.1.1
+			gp_sc_eng_off_continent = yes
+		}
+		gp_sc_hyw_french_victory = yes
+	}
+	else_if = {
+		limit = { current_date >= 1400.1.1 }
+		gp_sc_hyw_last_war = yes
+	}
+	else = {
+		gp_sc_area_share = { AREA = brittany_area VAR = gp_sc_adv_1 }
+		gp_sc_area_share = { AREA = normandy_area VAR = gp_sc_adv_2 }
+		gp_sc_area_share = { AREA = picardy_area VAR = gp_sc_adv_3 }
+		if = {
+			limit = {
+				var:gp_sc_adv_1 >= 0.5
+				var:gp_sc_adv_2 >= 0.5
+				var:gp_sc_adv_3 >= 0.5
+			}
+			gp_sc_hyw_english_advantage = yes
+		}
+		remove_variable = gp_sc_adv_1
+		remove_variable = gp_sc_adv_2
+		remove_variable = gp_sc_adv_3
+	}
+}
+
+# 3 English advantage: France has until 1400.
+gp_sc_hyw_from_advantage = {
+	if = {
+		limit = { gp_sc_eng_holds_paris = yes }
+		gp_sc_hyw_dual_monarchy = yes
+	}
+	else_if = {
+		limit = { gp_sc_eng_off_continent = yes }
+		gp_sc_hyw_french_victory = yes
+	}
+	else_if = {
+		limit = { current_date >= 1400.1.1 }
+		gp_sc_hyw_last_war = yes
+	}
+	else = {
+		gp_sc_hyw_keep_at_it = { WHO = gp_fra TARGET = gp_eng }
+	}
+}
+
+# 5 dual monarchy: 30 years to free Paris (a war still running at the end is waited out).
+gp_sc_hyw_from_dual = {
+	if = {
+		limit = { gp_sc_eng_holds_paris = no }
+		if = {
+			limit = { gp_sc_eng_off_continent = yes }
+			gp_sc_hyw_french_victory = yes
+		}
+		else_if = {
+			limit = { current_date < 1400.1.1 }
+			gp_sc_hyw_enter = { CODE = 3 }
+		}
+		else = {
+			gp_sc_hyw_last_war = yes
+		}
+	}
+	else_if = {
+		limit = {
+			OR = {
+				gp_sc_fra_crown_fallen = yes
+				AND = {
+					global_var:gp_sc_hyw_years >= 30
+					gp_sc_hyw_at_war = no
+				}
+			}
+		}
+		gp_sc_hyw_french_collapse = yes
+	}
+	else = {
+		gp_sc_hyw_keep_at_it = { WHO = gp_fra TARGET = gp_eng }
+	}
+}
+
+# 6 the last war: three years of war decide it; if nobody has won - stalemate.
+gp_sc_hyw_from_last_war = {
+	if = {
+		limit = { gp_sc_eng_holds_paris = yes }
+		gp_sc_hyw_dual_monarchy = yes
+	}
+	else_if = {
+		limit = { gp_sc_eng_off_continent = yes }
+		gp_sc_hyw_french_victory = yes
+	}
+	else = {
+		if = {
+			limit = { gp_sc_hyw_at_war = yes }
+			set_global_variable = {
+				name = gp_sc_hyw_war_years
+				value = {
+					value = global_var:gp_sc_hyw_war_years
+					add = 1
+				}
+			}
+		}
+		if = {
+			limit = {
+				gp_sc_hyw_at_war = no
+				OR = {
+					global_var:gp_sc_hyw_war_years >= 3
+					global_var:gp_sc_hyw_years >= 25
+				}
+			}
+			gp_sc_hyw_stalemate = yes
+		}
+		else = {
+			gp_sc_hyw_keep_at_it = { WHO = gp_eng TARGET = gp_fra }
+			gp_sc_hyw_keep_at_it = { WHO = gp_fra TARGET = gp_eng }
+		}
+	}
+}
+
+# 1 French victory: the landing (15 years to make it) and, a century later, the old kings' ambitions.
+gp_sc_hyw_from_victory = {
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_hyw_landing_done }
+			gp_sc_fra_in_britain = yes
+		}
+		gp_sc_hyw_foothold = yes
+	}
+	else_if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_hyw_landing_done }
+			global_var:gp_sc_hyw_years >= 15
+		}
+		set_global_variable = { name = gp_sc_hyw_landing_done value = 1 }
+		scope:gp_fra = { gp_sc_drop_target = { TARGET = gp_eng } }
+	}
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_old_ambitions }
+			global_var:gp_sc_hyw_years >= 100
+		}
+		set_variable = {
+			name = gp_sc_tmp_str
+			value = {
+				value = "scope:gp_fra.country_strength"
+				multiply = 1.5
+			}
+		}
+		if = {
+			limit = {
+				NOT = { scope:gp_fra = scope:gp_eng }
+				scope:gp_eng = { country_strength > scope:gp_c.var:gp_sc_tmp_str }
+			}
+			random_list = {
+				25 = {
+					set_global_variable = { name = gp_sc_old_ambitions value = 1 }
+					scope:gp_eng = { gp_sc_prepare = { TARGET = gp_fra } }
+				}
+				75 = {
+					set_global_variable = { name = gp_sc_old_ambitions value = 2 }
+				}
+			}
+		}
+		else_if = {
+			limit = { global_var:gp_sc_hyw_years >= 150 }
+			set_global_variable = { name = gp_sc_old_ambitions value = 2 }
+		}
+		remove_variable = gp_sc_tmp_str
+	}
+}
+
+# 2 French foothold: 20 years; England strikes in the last fifteen.
+gp_sc_hyw_from_foothold = {
+	if = {
+		limit = {
+			NOT = {
+				scope:gp_fra = {
+					any_owned_location = { region = region:great_britain_region }
+				}
+			}
+		}
+		# England has thrown the French into the sea: back to the island power
+		gp_sc_hyw_enter = { CODE = 1 }
+		set_global_variable = { name = gp_sc_hyw_landing_done value = 1 }
+		scope:gp_fra = { gp_sc_drop_target = { TARGET = gp_eng } }
+		scope:gp_eng = { gp_sc_drop_target = { TARGET = gp_fra } }
+	}
+	else_if = {
+		limit = {
+			global_var:gp_sc_hyw_years >= 20
+			gp_sc_hyw_at_war = no
+		}
+		gp_sc_hyw_english_collapse = yes
+	}
+	else_if = {
+		limit = { global_var:gp_sc_hyw_years >= 5 }
+		scope:gp_eng = {
+			if = {
+				limit = {
+					NOT = { this = scope:gp_fra }
+					NOT = { has_variable = gp_war_target }
+				}
+				gp_sc_prepare = { TARGET = gp_fra }
+				if = {
+					limit = {
+						is_ai = yes
+						gp_is_active = yes
+					}
+					set_variable = { name = gp_posture_left value = 15 }
+				}
+			}
+		}
+	}
+}
+
+# ---- entering the states ---------------------------------------------------------------------------
+
+# 3 English advantage: the spirit of Crecy (land morale +10 % for 20 years), both crowns arm.
+gp_sc_hyw_english_advantage = {
+	gp_sc_hyw_enter = { CODE = 3 }
+	scope:gp_eng = {
+		if = {
+			limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+			add_country_modifier = { modifier = gp_sc_crecy years = 20 }
+		}
+		gp_sc_prepare = { TARGET = gp_fra }
+	}
+	scope:gp_fra = {
+		gp_crisis_shock = { AMOUNT = 20 }
+		gp_sc_prepare = { TARGET = gp_eng }
+	}
+}
+
+# 5 dual monarchy: the French crown (or, without it, the strongest free French country) fights for Paris; the princes
+# lean on it; England makes client states instead of annexing (gp_sc_puppeteer).
+gp_sc_hyw_dual_monarchy = {
+	gp_sc_hyw_enter = { CODE = 5 }
+	gp_sc_pick_france_leader = yes
+	global_var:gp_sc_france_leader ?= {
+		save_scope_as = gp_fl
+		gp_sc_prepare = { TARGET = gp_eng }
+	}
+	gp_sc_france_patrons = yes
+	clear_saved_scope = gp_fl
+	scope:gp_eng = { set_variable = gp_sc_puppeteer }
+}
+
+# 6 the last war.
+gp_sc_hyw_last_war = {
+	gp_sc_hyw_enter = { CODE = 6 }
+	set_global_variable = { name = gp_sc_hyw_war_years value = 0 }
+	scope:gp_eng = { gp_sc_prepare = { TARGET = gp_fra } }
+	scope:gp_fra = { gp_sc_prepare = { TARGET = gp_eng } }
+}
+
+# 7 stalemate: England has lost its guarantees in France (the land marks below); an AI England turns its French lands
+# into vassal duchies (Normandy, Brittany, Aquitaine, Picardy, Anjou) whose people keep rising; France is worn out for
+# 20 years; the crowns leave each other alone (gp_score_hyw_truce) - but do not make friends.
+gp_sc_hyw_stalemate = {
+	gp_sc_hyw_enter = { CODE = 7 }
+	scope:gp_eng = {
+		gp_sc_drop_target = { TARGET = gp_fra }
+		set_variable = { name = gp_sc_truce_with value = scope:gp_fra }
+		if = {
+			limit = { has_country_modifier = gp_sc_crecy }
+			remove_country_modifier = gp_sc_crecy
+		}
+		gp_sc_course = { POSTURE = consolidation YEARS = 10 }
+		if = {
+			limit = {
+				is_ai = yes
+				gp_is_active = yes
+			}
+			gp_sc_eng_french_vassals = yes
+		}
+	}
+	scope:gp_fra = {
+		gp_sc_drop_target = { TARGET = gp_eng }
+		set_variable = { name = gp_sc_truce_with value = scope:gp_eng }
+		gp_sc_course = { POSTURE = recovery YEARS = 20 }
+		if = {
+			limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+			add_country_modifier = { modifier = gp_sc_french_weariness years = 20 }
+		}
+	}
+}
+
+# 4 the break-up of France: the crown keeps only the area of its capital; the princes join the Empire, the emperor is
+# their patron, the great duchies contend to unite France again; England makes client states.
+gp_sc_hyw_french_collapse = {
+	gp_sc_hyw_enter = { CODE = 4 }
+	if = {
+		limit = { gp_sc_fra_crown_fallen = no }
+		scope:gp_fra = { gp_sc_france_breakup = yes }
+	}
+	gp_sc_france_princes_to_empire = yes
+	gp_sc_pick_france_leader = yes
+	scope:gp_eng = { set_variable = gp_sc_puppeteer }
+}
+
+# 1 French victory: England becomes an island power (no ambitions on the continent beyond client states in the Low
+# Countries and Germany, no colonies for 50 years); France prepares a landing.
+gp_sc_hyw_french_victory = {
+	gp_sc_hyw_enter = { CODE = 1 }
+	scope:gp_eng = {
+		gp_sc_course = { POSTURE = recovery YEARS = 10 }
+		gp_crisis_shock = { AMOUNT = 20 }
+		gp_sc_drop_target = { TARGET = gp_fra }
+		if = {
+			limit = { has_country_modifier = gp_sc_crecy }
+			remove_country_modifier = gp_sc_crecy
+		}
+		set_variable = gp_sc_island_power
+		set_variable = { name = gp_sc_rival_crown value = scope:gp_fra }
+		set_variable = gp_sc_puppeteer
+		gp_sc_ban_colonies = { YEARS = 50 }
+	}
+	scope:gp_fra = { gp_sc_prepare = { TARGET = gp_eng } }
+}
+
+# 2 French foothold: England gets five years to recover, then strikes.
+gp_sc_hyw_foothold = {
+	gp_sc_hyw_enter = { CODE = 2 }
+	scope:gp_eng = { gp_sc_course = { POSTURE = recovery YEARS = 5 } }
+}
+
+# 8 the break-up of England.
+gp_sc_hyw_english_collapse = {
+	gp_sc_hyw_enter = { CODE = 8 }
+	scope:gp_eng = {
+		gp_sc_drop_target = { TARGET = gp_fra }
+		gp_sc_england_breakup = yes
+	}
+	# the Irish fiefs go free (the release effect works on the anchor's own land)
+	if = {
+		limit = { scope:gp_eng = scope:gp_c }
+		gp_crisis_release_fief = { WHERE = ireland }
+		gp_crisis_release_fief = { WHERE = ireland }
+		gp_crisis_release_fief = { WHERE = ireland }
+		gp_crisis_release_fief = { WHERE = ireland }
+	}
+	scope:gp_eng = {
+		set_variable = gp_historic_contender
+		gp_sc_ban_colonies = { YEARS = 100 }
+	}
+	gp_sc_english_heir = { TAG = NOL }
+	gp_sc_english_heir = { TAG = LAN }
+	gp_sc_english_heir = { TAG = CRN }
+	c:WLS ?= {
+		if = {
+			limit = { gp_is_real_country = yes }
+			set_variable = gp_historic_contender
+			set_variable = { name = gp_patron value = scope:gp_fra }
+		}
+	}
+	scope:gp_fra = {
+		gp_sc_drop_target = { TARGET = gp_eng }
+		set_variable = gp_sc_puppeteer
+	}
+	c:CAS ?= { set_variable = { name = gp_sc_ally value = scope:gp_eng } }
+	c:SPA ?= { set_variable = { name = gp_sc_ally value = scope:gp_eng } }
+	gp_sc_scottish_hour = yes
+}
+
+# An English successor state wants England back and sails late.
+gp_sc_english_heir = {
+	c:$TAG$ ?= {
+		if = {
+			limit = { gp_is_real_country = yes }
+			set_variable = gp_historic_contender
+			gp_sc_ban_colonies = { YEARS = 100 }
+		}
+	}
+}
+
+# Scotland's hour: a claim on all Britain for 20 years (the unification casus belli), a war prepared against the
+# English crown, Northumbria wanted, and 20 years of the modifier "Scotland's hour" (morale +10 %, war score +20 %).
+gp_sc_scottish_hour = {
+	c:SCO ?= {
+		if = {
+			limit = {
+				gp_is_real_country = yes
+				is_subject = no
+			}
+			set_variable = gp_historic_contender
+			set_variable = gp_region_claim
+			set_variable = { name = gp_region_claim_years value = 20 }
+			set_variable = { name = gp_sc_scot_hour_years value = 20 }
+			if = {
+				limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+				add_country_modifier = { modifier = gp_sc_scottish_hour years = 20 }
+			}
+			gp_sc_prepare = { TARGET = gp_eng }
+			if = {
+				limit = { NOT = { has_area_preference = gp_sc_scot_northumbria } }
+				add_area_preference = gp_sc_scot_northumbria
+			}
+		}
+	}
+}
+
+# ================================================================================================
+# The break-up of the crowns (country scope = the crown)
+# ================================================================================================
+
+# $TAG$ gets our part of area $AREA$: a dead state is raised from cores we give it; a living one gets the land and, if
+# it was our vassal, its freedom (a vassal of somebody else gets nothing). The area of our capital stays ours.
+gp_sc_release_state = {
+	if = {
+		limit = {
+			NOT = { tag = $TAG$ }
+			exists = capital
+			NOT = { capital.area = area:$AREA$ }
+			any_owned_location = { area = area:$AREA$ }
+		}
+		if = {
+			limit = { NOT = { c:$TAG$ ?= { gp_is_real_country = yes } } }
+			every_owned_location = {
+				limit = { area = area:$AREA$ }
+				add_core = c:$TAG$
+			}
+			create_country_from_cores_in_our_locations = c:$TAG$
+		}
+		else_if = {
+			limit = {
+				c:$TAG$ = {
+					OR = {
+						is_subject = no
+						is_subject_of = scope:gp_brk
+					}
+				}
+			}
+			every_owned_location = {
+				limit = { area = area:$AREA$ }
+				change_location_owner = c:$TAG$
+			}
+			if = {
+				limit = { c:$TAG$ = { is_subject_of = scope:gp_brk } }
+				cancel_subject = c:$TAG$
+			}
+		}
+	}
+}
+
+# The same, but the state stays our vassal (England's French duchies in the stalemate).
+gp_sc_release_vassal = {
+	if = {
+		limit = {
+			NOT = { tag = $TAG$ }
+			exists = capital
+			NOT = { capital.area = area:$AREA$ }
+			any_owned_location = { area = area:$AREA$ }
+		}
+		if = {
+			limit = { NOT = { c:$TAG$ ?= { gp_is_real_country = yes } } }
+			every_owned_location = {
+				limit = { area = area:$AREA$ }
+				add_core = c:$TAG$
+			}
+			create_country_from_cores_in_our_locations = c:$TAG$
+			c:$TAG$ ?= {
+				make_subject_of = {
+					target = scope:gp_brk
+					type = subject_type:vassal
+				}
+			}
+		}
+		else_if = {
+			limit = { c:$TAG$ = { is_subject_of = scope:gp_brk } }
+			every_owned_location = {
+				limit = { area = area:$AREA$ }
+				change_location_owner = c:$TAG$
+			}
+		}
+	}
+}
+
+# France falls apart: the great duchies (Brittany, Normandy, Burgundy, Provence, Aquitaine) and the counties (Toulouse,
+# Anjou, Champagne, Picardy, Auvergne, Orleans, Viennois, Forez, Lorraine, Franche-Comte). The crown keeps the area of
+# its capital - the Ile-de-France if Paris is still its own.
+gp_sc_france_breakup = {
+	if = {
+		limit = { NOT = { has_global_variable = gp_sc_france_broken } }
+		set_global_variable = { name = gp_sc_france_broken value = 1 }
+		save_scope_as = gp_brk
+		gp_sc_release_state = { TAG = BRI AREA = brittany_area }
+		gp_sc_release_state = { TAG = NRM AREA = normandy_area }
+		gp_sc_release_state = { TAG = BUR AREA = burgundy_area }
+		gp_sc_release_state = { TAG = PRO AREA = provence_area }
+		gp_sc_release_state = { TAG = AQN AREA = guyenne_area }
+		gp_sc_release_state = { TAG = AQN AREA = gascony_area }
+		gp_sc_release_state = { TAG = AQN AREA = poitou_area }
+		gp_sc_release_state = { TAG = TOU AREA = languedoc_area }
+		gp_sc_release_state = { TAG = ANJ AREA = anjou_area }
+		gp_sc_release_state = { TAG = CHP AREA = champagne_area }
+		gp_sc_release_state = { TAG = PIC AREA = picardy_area }
+		gp_sc_release_state = { TAG = AUV AREA = auvergne_area }
+		gp_sc_release_state = { TAG = ORL AREA = orleanais_area }
+		gp_sc_release_state = { TAG = DAU AREA = savoy_area }
+		gp_sc_release_state = { TAG = FRZ AREA = lyonnais_area }
+		gp_sc_release_state = { TAG = LOR AREA = lorraine_area }
+		gp_sc_release_state = { TAG = FCB AREA = franche_comte_area }
+		clear_saved_scope = gp_brk
+	}
+}
+
+# England falls apart into its historical lands: Northumberland (the North), Lancaster (the Midlands), Cornwall (the
+# West Country), Wales; Scottish land goes back to Scotland. The crown keeps the Home Counties and East Anglia.
+gp_sc_england_breakup = {
+	if = {
+		limit = { NOT = { has_global_variable = gp_sc_england_broken } }
+		set_global_variable = { name = gp_sc_england_broken value = 1 }
+		save_scope_as = gp_brk
+		gp_sc_release_state = { TAG = NOL AREA = northumbria_area }
+		gp_sc_release_state = { TAG = LAN AREA = midlands_area }
+		gp_sc_release_state = { TAG = CRN AREA = west_country_area }
+		gp_sc_release_state = { TAG = WLS AREA = wales_area }
+		gp_sc_release_state = { TAG = SCO AREA = scottish_lowlands_area }
+		gp_sc_release_state = { TAG = SCO AREA = scottish_highlands_area }
+		gp_sc_release_state = { TAG = SCO AREA = hebrides_area }
+		clear_saved_scope = gp_brk
+	}
+}
+
+# Stalemate, AI England: its French lands become vassal duchies.
+gp_sc_eng_french_vassals = {
+	save_scope_as = gp_brk
+	gp_sc_release_vassal = { TAG = NRM AREA = normandy_area }
+	gp_sc_release_vassal = { TAG = BRI AREA = brittany_area }
+	gp_sc_release_vassal = { TAG = AQN AREA = guyenne_area }
+	gp_sc_release_vassal = { TAG = AQN AREA = gascony_area }
+	gp_sc_release_vassal = { TAG = AQN AREA = poitou_area }
+	gp_sc_release_vassal = { TAG = PIC AREA = picardy_area }
+	gp_sc_release_vassal = { TAG = ANJ AREA = anjou_area }
+	clear_saved_scope = gp_brk
+}
+
+# After the break-up of France: every free French country but the crown and the English joins the Empire and takes the
+# emperor as its patron (he stands up for them, gp_obj_patron_client); the great duchies and the crown contend to unite
+# France again.
+gp_sc_france_princes_to_empire = {
+	international_organization:hre.leader_country ?= { save_scope_as = gp_emp }
+	region:france_region = {
+		every_present_country = {
+			limit = {
+				gp_is_real_country = yes
+				is_subject = no
+				exists = capital
+				capital.region = region:france_region
+				NOT = { this = scope:gp_eng }
+				NOT = { location:london.owner ?= this }
+			}
+			if = {
+				limit = {
+					NOT = { this = scope:gp_fra }
+					NOT = { is_member_of_international_organization = international_organization:hre }
+				}
+				international_organization:hre ?= { add_country_to_international_organization = prev }
+			}
+			if = {
+				limit = {
+					exists = scope:gp_emp
+					NOT = { this = scope:gp_emp }
+					NOT = { this = scope:gp_fra }
+				}
+				set_variable = { name = gp_patron value = scope:gp_emp }
+			}
+			if = {
+				limit = {
+					OR = {
+						this = scope:gp_fra
+						tag = BRI
+						tag = NRM
+						tag = BUR
+						tag = PRO
+						tag = AQN
+					}
+				}
+				set_variable = gp_historic_contender
+			}
+		}
+	}
+	clear_saved_scope = gp_emp
+}
+
+# The gatherer of France. In the dual monarchy it is the French crown while it lives free in France; otherwise (and after
+# the break-up) the strongest free French country that is not English. Austria befriends it.
+gp_sc_pick_france_leader = {
+	if = {
+		limit = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 5
+			gp_sc_fra_crown_fallen = no
+			scope:gp_fra = {
+				is_subject = no
+				exists = capital
+				capital.region = region:france_region
+			}
+		}
+		scope:gp_fra = { save_scope_as = gp_fl_new }
+	}
+	else = {
+		region:france_region = {
+			ordered_present_country = {
+				limit = {
+					gp_is_real_country = yes
+					is_subject = no
+					exists = capital
+					capital.region = region:france_region
+					NOT = { this = scope:gp_eng }
+					NOT = { location:london.owner ?= this }
+				}
+				order_by = country_strength
+				max = 1
+				save_scope_as = gp_fl_new
+			}
+		}
+	}
+	if = {
+		limit = { exists = scope:gp_fl_new }
+		set_global_variable = { name = gp_sc_france_leader value = scope:gp_fl_new }
+		scope:gp_fl_new = { set_variable = gp_historic_contender }
+		c:HAB ?= {
+			if = {
+				limit = { NOT = { this = scope:gp_fl_new } }
+				set_variable = { name = gp_sc_ally value = scope:gp_fl_new }
+			}
+		}
+	}
+	clear_saved_scope = gp_fl_new
+}
+
+# Dual monarchy: the other free French countries lean on the gatherer (scope:gp_fl).
+gp_sc_france_patrons = {
+	if = {
+		limit = { exists = scope:gp_fl }
+		region:france_region = {
+			every_present_country = {
+				limit = {
+					gp_is_real_country = yes
+					is_subject = no
+					exists = capital
+					capital.region = region:france_region
+					NOT = { this = scope:gp_fl }
+					NOT = { this = scope:gp_eng }
+					NOT = { location:london.owner ?= this }
+				}
+				set_variable = { name = gp_patron value = scope:gp_fl }
+			}
+		}
+	}
+}
+
+# States 4 and 5: a new gatherer when the old one is gone (in 5 the others lean on it; in 4 they keep the emperor).
+gp_sc_france_upkeep = {
+	if = {
+		limit = {
+			exists = scope:gp_eng
+			has_global_variable = gp_sc_hyw
+			OR = {
+				global_var:gp_sc_hyw = 4
+				global_var:gp_sc_hyw = 5
+			}
+			NOT = { global_var:gp_sc_france_leader ?= { gp_is_real_country = yes is_subject = no } }
+		}
+		gp_sc_pick_france_leader = yes
+		global_var:gp_sc_france_leader ?= {
+			save_scope_as = gp_fl
+			gp_sc_prepare = { TARGET = gp_eng }
+		}
+		if = {
+			limit = { global_var:gp_sc_hyw = 5 }
+			gp_sc_france_patrons = yes
+		}
+		clear_saved_scope = gp_fl
+	}
+}
+
+# ================================================================================================
+# Every country, yearly (gp_sc_country_upkeep): countdowns and the marks of lost guarantees
+# ================================================================================================
+
+gp_sc_hyw_country_upkeep = {
+	if = {
+		limit = { has_variable = gp_sc_no_colonies_years }
+		change_variable = { name = gp_sc_no_colonies_years add = -1 }
+		if = {
+			limit = { var:gp_sc_no_colonies_years <= 0 }
+			remove_variable = gp_sc_no_colonies_years
+		}
+	}
+	if = {
+		limit = { has_variable = gp_sc_scot_hour_years }
+		change_variable = { name = gp_sc_scot_hour_years add = -1 }
+		if = {
+			limit = { var:gp_sc_scot_hour_years <= 0 }
+			remove_variable = gp_sc_scot_hour_years
+		}
+	}
+	# 7 stalemate: the English crown's French land is out of control (max control -100 %, unrest), its vassals' French
+	# land keeps rising (unrest, people join the rebels sooner). Kept up to date yearly by whoever owns the land.
+	if = {
+		limit = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 7
+			any_owned_location = { region = region:france_region }
+		}
+		global_var:gp_sc_eng_crown ?= { save_scope_as = gp_ec }
+		every_owned_location = {
+			limit = { region = region:france_region }
+			gp_sc_hyw_mark_location = yes
+		}
+		clear_saved_scope = gp_ec
+	}
+}
+
+# Location scope, owner = scope:gp_c, scope:gp_ec = the English crown.
+gp_sc_hyw_mark_location = {
+	if = {
+		limit = {
+			NOT = { has_game_rule = gp_scenario_mods_off }
+			exists = scope:gp_ec
+			scope:gp_c = scope:gp_ec
+		}
+		if = {
+			limit = { NOT = { has_location_modifier = gp_sc_lost_guarantees } }
+			add_location_modifier = { modifier = gp_sc_lost_guarantees days = -1 }
+		}
+	}
+	else_if = {
+		limit = { has_location_modifier = gp_sc_lost_guarantees }
+		remove_location_modifier = gp_sc_lost_guarantees
+	}
+	if = {
+		limit = {
+			NOT = { has_game_rule = gp_scenario_mods_off }
+			exists = scope:gp_ec
+			scope:gp_c = { is_subject_of = scope:gp_ec }
+		}
+		if = {
+			limit = { NOT = { has_location_modifier = gp_sc_restless_fief } }
+			add_location_modifier = { modifier = gp_sc_restless_fief days = -1 }
+		}
+	}
+	else_if = {
+		limit = { has_location_modifier = gp_sc_restless_fief }
+		remove_location_modifier = gp_sc_restless_fief
+	}
+}
+
+# ================================================================================================
+# The isles and the sea (AI, called at the end of gp_update_overseas)
+# ================================================================================================
+
+# Closed: a colony ban (England after a lost war, the English lands after the break-up), the Irish until they hold their
+# island, the Scots until England has fallen. Open: the Irish with 90 % of Ireland after 1437, the Scots once England
+# has fallen, the island power once its ban is over.
+gp_sc_overseas = {
+	if = {
+		limit = {
+			OR = {
+				has_variable = gp_sc_no_colonies_years
+				gp_sc_isles_wait = yes
+			}
+		}
+		if = {
+			limit = { has_variable = gp_overseas_open }
+			remove_variable = gp_overseas_open
+		}
+		gp_pref_drop = { PREF = gp_colonial_ambition }
+		gp_pref_keep = { PREF = avoid_american_colonization }
+		gp_pref_keep = { PREF = avoid_african_colonization }
+		gp_pref_keep = { PREF = avoid_south_east_asica_colonization }
+	}
+	else_if = {
+		limit = { gp_sc_isles_sail = yes }
+		gp_pref_drop = { PREF = avoid_american_colonization }
+		gp_pref_drop = { PREF = avoid_african_colonization }
+		gp_pref_drop = { PREF = avoid_south_east_asica_colonization }
+		gp_pref_keep = { PREF = gp_colonial_ambition }
+		set_variable = gp_overseas_open
+	}
+}

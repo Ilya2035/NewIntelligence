@@ -524,3 +524,52 @@ gp_obj_italian_league = {
 	}
 	max_allowed = 1
 }
+
+# 11. v0.8 The island power (gp_scenarios_hyw.txt): England, off the continent, works against France through others -
+#     it befriends and stands up for the free countries of France and of Germany and the Low Countries that France
+#     threatens.
+gp_obj_island_balance = {
+	days_between_checks = 365
+
+	actor_trigger = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_sc_island_power
+		has_variable = gp_sc_rival_crown
+	}
+
+	recipient_trigger = {
+		scope:recipient = {
+			gp_is_real_country = yes
+			is_subject = no
+			exists = capital
+			NOT = { this ?= scope:actor.var:gp_sc_rival_crown }
+			OR = {
+				capital.region = region:france_region
+				AND = {
+					capital.region = region:north_german_region
+					var:gp_threat ?= scope:actor.var:gp_sc_rival_crown
+				}
+			}
+			NOT = { is_rival_of = scope:actor }
+			NOT = { is_at_war_with = scope:actor }
+		}
+	}
+
+	recipient_priority = {
+		add = 40
+		add = "scope:recipient.opinion(scope:actor)"
+		divide = 4
+	}
+
+	pause_trigger = {
+		scope:actor = { at_war = yes }
+	}
+
+	improve_relation = yes
+	defensive_support = yes
+	country_relations = {
+		alliance = yes
+	}
+	max_allowed = 2
+}

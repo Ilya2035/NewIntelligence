@@ -14,6 +14,7 @@
 | `in_game/common/scripted_effects/gp_scenarios_west.txt` | v0.5: сценарии Запада — Столетняя война, Ирландия, Шотландия, Иберия; повод `gp_cb_scenario_war`, цель `gp_target_scenario_war`, цель дипломатии `gp_obj_scenario_ally` |
 | `in_game/common/scripted_effects/gp_scenarios_central.txt` | v0.6: сценарии Италии (лига, итальянские войны, объединитель, венецианское море, обе Сицилии) и Империи (Габсбурги, чешские императоры, собиратель Германии, конец Империи); цель дипломатии `gp_obj_italian_league` |
 | `in_game/common/scripted_effects/gp_crisis_effects.txt`, `main_menu/common/static_modifiers/gp_scenario_modifiers.txt` | v0.7: кризис державы (оккупации, поражения), сепаратизм и распад на лены; модификаторы кризиса и сценариев |
+| `in_game/common/scripted_effects/gp_scenarios_hyw.txt` | v0.8: Столетняя война v3 (состояния 1–8 со сроками), короны, распад Франции и Англии на исторические земли, утраченные гарантии, островная Англия, запреты колоний, острова; оценки `gp_score_island_power`, `gp_score_hyw_truce`, `gp_score_irish_island`, `gp_score_scottish_hour`, цель `gp_obj_island_balance` |
 | `in_game/gui/gp_balance_tab.gui`, `in_game/common/scripted_guis/gp_scripted_guis.txt` | v0.3.1: вкладка «Расклад сил» окна «Геополитика» (переопределение шаблона `geopolitics_tabs`) и кнопка «Обновить» |
 | `in_game/common/area_preferences/gp_zones.txt` | сами зоны: ~70 профилей × ядро / сфера / дальняя, общий `gp_generic_home_region`, `gp_anatolia_sphere`, `gp_persia_sphere` |
 | `in_game/common/scripted_triggers/gp_triggers.txt` | `gp_is_real_country`, правила игры, темпераменты, кандидат в угрозы, пришелец (`gp_is_intruder_of = { COUNTRY = … }`), общая угроза |
@@ -28,7 +29,7 @@
 | `main_menu/common/coat_of_arms/coat_of_arms/gp_formable_coa.txt`, `named_colors/gp_colors.txt` | гербы и цвета новых тегов |
 | `main_menu/common/game_rules/gp_game_rules.txt` | правило «Геополитика ИИ» (standard / strong / off); правила с блоком `defines = {}` нет — парсер 1.4.7 его отвергает (первый запуск Battle) |
 | `loading_screen/common/defines/gp_defines.txt` | 16 ключей `NAI` + 6 ключей `NDiplomacy`, действуют всегда |
-| `in_game/common/decisions/gp_decisions.txt`, `main_menu/common/game_concepts/gp_concepts.txt` | решение «Геополитический обзор», понятия «Геополитика» и «Угроза региону» |
+| `main_menu/common/game_concepts/gp_concepts.txt` | понятия «Геополитика» и «Угроза региону» |
 | `in_game/gui/gp_disposition_tooltip.gui`, `in_game/common/customizable_localization/gp_brief.txt` | блок «Геополитика» в подсказке «Настрой державы»: состояние, роль, обстановка, угроза, цель подготовки |
 | `main_menu/common/static_modifiers/gp_terrain_modifiers.txt` | природные рубежи: модификаторы локаций для гор, холмов, открытой степи (правило игры) |
 | `main_menu/localization/{english,russian}/gp_geopolicy_l_*.yml` | все ключи RU/EN |
@@ -105,6 +106,9 @@
 | 55 | `random_core_in_location` (несуществующая страна с ядром) и `create_country_from_cores_in_our_locations = scope:…` (ваниль: освобождение стран) | `gp_crisis_release_fief` | при кризисе 120+ от страны отделяются независимые лены; в 1337 ничего не отделяется |
 | 56 | `NOT = { controller ?= scope:gp_c }` в локации, `capital.controller`; `add_country_modifier = { modifier years }`, `has_country_modifier`, `remove_country_modifier` | `gp_update_crisis`, `gp_crisis_apply` | у страны с оккупированной землёй растёт кризис; при 80+ модификатор «Сепаратизм» |
 | 57 | `international_organization:hre = { add_country_to_international_organization = prev }` | `gp_sc_hyw_french_collapse` | в ветке «Распад Франции» французские княжества становятся членами Империи |
+| 58 | `add_core = c:TAG` в локации, `create_country_from_cores_in_our_locations = c:TAG`, `change_location_owner = c:TAG`, `cancel_subject = c:TAG`, `make_subject_of = { target type = subject_type:vassal }` (ваниль: события Столетней войны и освобождения) | `gp_sc_release_state`, `gp_sc_release_vassal` | при распаде Франции / Англии на карте появляются BRI, NRM, BUR, PRO, AQN / NOL, LAN, CRN, WLS |
+| 59 | `global_var:x ?= this` (ваниль: `?= root`), `area:x = { every_location_in_area }`, `capital.area = area:x`, `any_subject` | `gp_sc_save_crowns`, `gp_sc_area_share`, `gp_sc_eng_off_continent` | ветка «Перевес Англии» открывается по трём областям; короны не путаются после потери Парижа |
+| 60 | `"scope:x.country_strength"` в значении (ваниль: `"root.country_strength"`), `colonial_range_modifier`, `local_unrest`, `local_pop_join_rebel_threshold`, `global_war_score_efficiency` | `gp_sc_hyw_from_victory`, `gp_scenario_modifiers.txt` | модификаторы видны с понятными значениями; «старые амбиции» срабатывают не раньше 100 лет после победы |
 
 ## 4. Производительность
 
@@ -122,7 +126,7 @@
 
 ## 6. Что сознательно не сделано в v0.1
 
-- Нет интерфейса, кроме решения-отчёта и понятий; переменные (доля, угроза) в подсказках не выводятся (синтаксис показа переменных в loc не подтверждён).
+- Нет интерфейса, кроме понятий (решение-отчёт убрано в v0.8 по просьбе автора); переменные (доля, угроза) в подсказках не выводятся (синтаксис показа переменных в loc не подтверждён).
 - Нет ванильных `rival_criteria` для мажоров (только теги; угроза уже влияет на мнение и цели).
 - Личности ИИ (`ai_personalities`) не переопределяются — роли складываются с ними.
 - Колониальные зоны оставлены ванильным предпочтениям (`castile_conquer_new_world`, exploration_preferences).

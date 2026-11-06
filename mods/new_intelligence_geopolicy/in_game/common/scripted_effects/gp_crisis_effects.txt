@@ -12,7 +12,8 @@
 #   80+  separatism: country modifier gp_crisis_separatism (levy -25 %, manpower -20 %), and each year a 30 % chance that
 #        one fief of the outer lands breaks away as an independent country
 #   120+ collapse: up to six fiefs break away at once (outer lands first, then the home region away from the capital),
-#        and the crisis falls by 50
+#        and the crisis falls by 50; v0.8: the French and the English crown fall instead into their historical lands
+#        (gp_sc_france_breakup / gp_sc_england_breakup, gp_scenarios_hyw.txt), once a game
 # A fief = a country that has a core in our location but does not exist (vanilla create_country_from_cores_in_our_locations,
 # as the vanilla release effects use it).
 ###################################
@@ -94,12 +95,29 @@ gp_crisis_apply = {
 		# collapse
 		if = {
 			limit = { var:gp_crisis >= 120 }
-			gp_crisis_release_fief = { WHERE = outer }
-			gp_crisis_release_fief = { WHERE = outer }
-			gp_crisis_release_fief = { WHERE = outer }
-			gp_crisis_release_fief = { WHERE = any }
-			gp_crisis_release_fief = { WHERE = any }
-			gp_crisis_release_fief = { WHERE = any }
+			# v0.8 the French and the English crown fall into their historical lands (gp_scenarios_hyw.txt), once a game
+			if = {
+				limit = {
+					global_var:gp_sc_fra_crown ?= this
+					NOT = { has_global_variable = gp_sc_france_broken }
+				}
+				gp_sc_france_breakup = yes
+			}
+			else_if = {
+				limit = {
+					global_var:gp_sc_eng_crown ?= this
+					NOT = { has_global_variable = gp_sc_england_broken }
+				}
+				gp_sc_england_breakup = yes
+			}
+			else = {
+				gp_crisis_release_fief = { WHERE = outer }
+				gp_crisis_release_fief = { WHERE = outer }
+				gp_crisis_release_fief = { WHERE = outer }
+				gp_crisis_release_fief = { WHERE = any }
+				gp_crisis_release_fief = { WHERE = any }
+				gp_crisis_release_fief = { WHERE = any }
+			}
 			change_variable = { name = gp_crisis add = -50 }
 		}
 		# separatism: one fief a year with 30 %

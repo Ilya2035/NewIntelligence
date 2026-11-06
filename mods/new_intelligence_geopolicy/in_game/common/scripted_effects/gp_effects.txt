@@ -32,7 +32,7 @@ gp_setup_country = {
 	gp_yearly_update = yes
 }
 
-# country scope (yearly_country_pulse, game start loop, decision "Geopolitical overview")
+# country scope (yearly_country_pulse, game start loop)
 gp_yearly_update = {
 	save_scope_as = gp_c
 	gp_compute_region_share = yes

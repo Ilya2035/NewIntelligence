@@ -648,6 +648,7 @@ gp_update_overseas = {
 			gp_pref_keep = { PREF = avoid_siberia_colonization }
 		}
 	}
+	gp_sc_overseas = yes	# v0.8 the isles: colony bans, the Irish and the Scots wait for their hour (gp_scenarios_hyw.txt)
 }
 
 gp_pref_drop = {

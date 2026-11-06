@@ -456,8 +456,8 @@ gp_crisis_fief_location_ireland = {
 	region = region:ireland_region
 }
 
-# v0.7 Hundred Years' War (gp_scenarios_west.txt): the English crown (scope:gp_eng) keeps fewer than three locations in
-# the French region.
+# v0.7/v0.8 Hundred Years' War (gp_scenarios_hyw.txt): the English crown (scope:gp_eng) keeps fewer than three locations
+# in the French region, and no vassal of it holds French land.
 gp_sc_eng_off_continent = {
 	scope:gp_eng = {
 		NOT = {
@@ -465,6 +465,120 @@ gp_sc_eng_off_continent = {
 				count >= 3
 				region = region:france_region
 			}
+		}
+		NOT = {
+			any_subject = {
+				any_owned_location = { region = region:france_region }
+			}
+		}
+	}
+}
+
+# v0.8 Paris is held by the English crown or its vassal.
+gp_sc_eng_holds_paris = {
+	location:paris.owner ?= {
+		OR = {
+			this = scope:gp_eng
+			is_subject_of = scope:gp_eng
+		}
+	}
+}
+
+# v0.8 There is no French crown left apart from the English one (scope:gp_fra fell back on the owner of Paris).
+gp_sc_fra_crown_fallen = {
+	OR = {
+		NOT = { exists = scope:gp_fra }
+		scope:gp_fra = scope:gp_eng
+	}
+}
+
+# v0.8 The two crowns are at war with each other.
+gp_sc_hyw_at_war = {
+	exists = scope:gp_fra
+	NOT = { scope:gp_fra = scope:gp_eng }
+	scope:gp_eng = { is_at_war_with = scope:gp_fra }
+}
+
+# v0.8 The French crown holds two locations in Britain (the landing).
+gp_sc_fra_in_britain = {
+	exists = scope:gp_fra
+	NOT = { scope:gp_fra = scope:gp_eng }
+	scope:gp_fra = {
+		any_owned_location = {
+			count >= 2
+			region = region:great_britain_region
+		}
+	}
+}
+
+# ---- v0.8 the isles and the sea (gp_sc_overseas, country scope) ----
+# An Irish country: Gaelic, its capital in Ireland. It wants its island and nothing beyond it.
+gp_sc_is_irish = {
+	exists = capital
+	capital.region = region:ireland_region
+	culture ?= { has_culture_group = culture_group:hibernian_group }
+}
+
+# A Scottish country: its capital in the Lowlands, the Highlands or the Hebrides.
+gp_sc_is_scottish = {
+	exists = capital
+	OR = {
+		capital.area = area:scottish_lowlands_area
+		capital.area = area:scottish_highlands_area
+		capital.area = area:hebrides_area
+	}
+}
+
+# The Irish sail when they hold 90 % of their island, a hundred years into the game.
+gp_sc_irish_sail = {
+	current_date >= 1437.1.1
+	has_variable = gp_region_share
+	var:gp_region_share >= 0.9
+}
+
+# The Scots sail once England has fallen: Scotland won Britain, or thirty years after the break-up of England.
+gp_sc_scots_sail = {
+	OR = {
+		AND = {
+			has_global_variable = gp_sc_scotland
+			global_var:gp_sc_scotland = 2
+		}
+		AND = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 8
+			has_global_variable = gp_sc_hyw_years
+			global_var:gp_sc_hyw_years >= 30
+		}
+	}
+}
+
+gp_sc_isles_wait = {
+	OR = {
+		AND = {
+			gp_sc_is_irish = yes
+			NOT = { gp_sc_irish_sail = yes }
+		}
+		AND = {
+			gp_sc_is_scottish = yes
+			NOT = { gp_sc_scots_sail = yes }
+		}
+	}
+}
+
+gp_sc_isles_sail = {
+	OR = {
+		AND = {
+			gp_sc_is_irish = yes
+			gp_sc_irish_sail = yes
+		}
+		AND = {
+			gp_sc_is_scottish = yes
+			gp_sc_scots_sail = yes
+		}
+		# the island power once its fifty years are over
+		AND = {
+			has_variable = gp_sc_island_power
+			NOT = { has_variable = gp_sc_no_colonies_years }
 		}
 	}
 }
