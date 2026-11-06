@@ -89,6 +89,7 @@ gp_yearly_update = {
 gp_on_war_end_effect = {
 	gp_war_memory = yes
 	gp_crisis_war_end = yes	# v0.7
+	gp_ib_war_end = yes	# v0.9 the Spanish sultanate beaten by France (gp_scenarios_iberia.txt)
 	if = {
 		limit = { scope:loser ?= root }
 		set_variable = gp_recent_defeat

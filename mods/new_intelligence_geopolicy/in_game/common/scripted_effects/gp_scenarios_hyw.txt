@@ -517,6 +517,11 @@ gp_sc_hyw_french_victory = {
 		set_variable = { name = gp_sc_rival_crown value = scope:gp_fra }
 		set_variable = gp_sc_puppeteer
 		gp_sc_ban_colonies = { YEARS = 50 }
+		# v0.9 the wooden walls: cheap ships for 100 years - a French landing becomes rare
+		if = {
+			limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+			add_country_modifier = { modifier = gp_sc_wooden_walls years = 100 }
+		}
 	}
 	scope:gp_fra = { gp_sc_prepare = { TARGET = gp_eng } }
 }

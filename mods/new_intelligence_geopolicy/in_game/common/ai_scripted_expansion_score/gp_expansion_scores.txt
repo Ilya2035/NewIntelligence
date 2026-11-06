@@ -944,3 +944,76 @@ gp_score_scottish_hour = {
 		add = 0.5
 	}
 }
+
+# ================================================================================================
+# v0.9 The Iberian chess game (gp_scenarios_iberia.txt)
+# ================================================================================================
+
+# Eternal peace (Castile and Portugal after the Restoration, Aragon and Portugal after Castile falls): the partners and
+# their vassals are left alone.
+gp_score_eternal_peace = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable_list = gp_sc_peace_list
+	}
+	target_trigger = {
+		OR = {
+			scope:attacker = { is_target_in_variable_list = { name = gp_sc_peace_list target = root } }
+			AND = {
+				is_subject = yes
+				scope:attacker = { is_target_in_variable_list = { name = gp_sc_peace_list target = root.overlord } }
+			}
+		}
+	}
+	multiplier = {
+		add = -0.85
+	}
+}
+
+# Navarre falls to the stronger of Castile and Aragon (decided in 1357).
+gp_score_ib_navarre = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_ib_navarre_heir
+	}
+	target_trigger = {
+		tag = NAV
+	}
+	multiplier = {
+		add = 1
+	}
+}
+
+# France does not meddle in Iberia (only the Spanish sultanate is its business); the Iberian crowns meddle in France
+# with money and influence, not with land.
+gp_score_ib_pyrenees = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		OR = {
+			capital.region = region:iberia_region
+			capital.region = region:france_region
+		}
+	}
+	target_trigger = {
+		exists = capital
+		OR = {
+			AND = {
+				scope:attacker = { capital.region = region:france_region }
+				capital.region = region:iberia_region
+			}
+			AND = {
+				scope:attacker = { capital.region = region:iberia_region }
+				capital.region = region:france_region
+			}
+		}
+		NOT = { this ?= scope:attacker.var:gp_sc_cb_target }
+		NOT = { this ?= scope:attacker.var:gp_war_target }
+	}
+	multiplier = {
+		add = -0.6
+	}
+}

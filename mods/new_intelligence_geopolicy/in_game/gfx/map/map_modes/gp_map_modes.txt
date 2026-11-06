@@ -1,0 +1,79 @@
+﻿# New Intelligence: Geopolicy v0.9 - map mode "Balance of power" (category geopolitics).
+# Author, 2026-11-06: "in geopolitics a special map opens: the other countries go grey, the participants of the region
+# keep their political colours; hover a country and you see what it does, what it strives for."
+# Coloured: the owners the Balance of power tab lists for the player (contenders and outsiders of the player's home
+# region, the great powers of its macro-region - variable lists of scope:player, gp_update_balance) and the player; the
+# rest grey. The tooltip shows the owner, its current goal (gp_goal) and course (gp_brief_posture).
+# Format: in_game/gfx/map/map_modes/readme.txt (map_color / tooltip_key: root = location, scope:player).
+
+gp_balance = {
+	map_color = {
+		if = {
+			limit = {
+				has_owner = yes
+				scope:player ?= {
+					OR = {
+						this = root.owner
+						is_target_in_variable_list = { name = gp_bp_contenders target = root.owner }
+						is_target_in_variable_list = { name = gp_bp_outsiders target = root.owner }
+						is_target_in_variable_list = { name = gp_bp_macro target = root.owner }
+					}
+				}
+			}
+			owner = {
+				value = country_color
+			}
+		}
+		else = {
+			value = define:NMapColors|DEFAULT_COLOR
+		}
+	}
+
+	tooltip_key = {
+		if = {
+			limit = {
+				has_owner = yes
+				scope:player ?= {
+					OR = {
+						this = root.owner
+						is_target_in_variable_list = { name = gp_bp_contenders target = root.owner }
+						is_target_in_variable_list = { name = gp_bp_outsiders target = root.owner }
+						is_target_in_variable_list = { name = gp_bp_macro target = root.owner }
+					}
+				}
+			}
+			value = GP_MAP_TT
+		}
+		else = {
+			value = GP_MAP_TT_OTHER
+		}
+	}
+
+	legend_key = {
+		desc = "GP_MAP_LEGEND_OTHER"
+		color = define:NMapColors|DEFAULT_COLOR
+	}
+
+	small_map_names = location
+	medium_map_names = country
+	large_map_names = country
+
+	small_tooltip_context = location
+	medium_tooltip_context = location
+	large_tooltip_context = location
+
+	flatmap_behaviour = Always
+	use_fow = no
+
+	category = geopolitics
+	index = 40
+
+	map_markers = {
+		market_marker = no
+		fort_marker = no
+		toll_marker = no
+	}
+
+	refresh_colors_on_selection_change = yes
+	color_and_names_refresh_counters = { LocationOwnerChanged CountryStatus Month }
+}

@@ -340,3 +340,38 @@ gp_target_scenario_war = {
 		add = 800
 	}
 }
+
+# v0.9 The scenario vassal war (gp_cb_scenario_vassal, gp_scenarios_iberia.txt).
+gp_target_scenario_vassal = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_sc_vassal_target
+		at_war = no
+		months_since_war >= 12
+		NOT = { gp_is_calm_posture = yes }
+	}
+	candidate_list = {
+		var:gp_sc_vassal_target ?= {
+			if = {
+				limit = {
+					gp_is_real_country = yes
+					is_subject = no
+					NOT = { has_truce_with = root }
+				}
+				add_to_list = source
+			}
+		}
+	}
+	casus_belli = casus_belli:gp_cb_scenario_vassal
+	score = {
+		add = 26
+		add = {
+			value = scope:target.country_tax_base
+			divide = 100
+		}
+	}
+	sort_value = {
+		add = 800
+	}
+}

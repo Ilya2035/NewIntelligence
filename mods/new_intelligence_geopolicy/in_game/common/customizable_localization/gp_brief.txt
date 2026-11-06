@@ -376,35 +376,6 @@ gp_bp_sc_scotland = {
 	}
 }
 
-gp_bp_sc_iberia = {
-	type = country
-	log_loc_errors = yes
-
-	text = {
-		localization_key = gp_bp_sc_iberia_portugal
-		trigger = { has_global_variable = gp_sc_portugal }
-	}
-
-	text = {
-		localization_key = gp_bp_sc_iberia_reconquista
-		trigger = { has_global_variable = gp_sc_reconquista }
-	}
-
-	text = {
-		localization_key = gp_bp_sc_iberia_granada_holds
-		trigger = { has_global_variable = gp_sc_granada_holds }
-	}
-
-	text = {
-		localization_key = gp_bp_sc_iberia_aragon_sea
-		trigger = { has_global_variable = gp_sc_aragon_sea }
-	}
-
-	text = {
-		localization_key = gp_bp_sc_iberia_open
-		fallback = yes
-	}
-}
 
 # ---- v0.6 scenarios of Italy and the Empire (gp_scenarios_central.txt) ----
 
@@ -477,6 +448,509 @@ gp_bp_sc_empire = {
 	}
 	text = {
 		localization_key = gp_bp_sc_empire_open
+		fallback = yes
+	}
+}
+
+# ---- v0.9 the goal of a country: the Balance of power tab ("Our goal") and the map mode tooltip ----
+# Iberia: var:gp_ib_goal (gp_scenarios_iberia.txt); the English and French crowns: the state of the Hundred Years' War.
+gp_goal = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_goal_ib_1
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 1
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_2
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 2
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_3
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 3
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_4
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 4
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_5
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 5
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_6
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 6
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_7
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 7
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_11
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 11
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_12
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 12
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_13
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 13
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_14
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 14
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_21
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 21
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_22
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 22
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_23
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 23
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_24
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 24
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_25
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 25
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_26
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 26
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_27
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 27
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_31
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 31
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_32
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 32
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_33
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 33
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_34
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 34
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_eng_ambition
+		trigger = {
+			global_var:gp_sc_eng_crown ?= this
+			has_global_variable = gp_sc_old_ambitions
+			global_var:gp_sc_old_ambitions = 1
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 1
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_eng_1
+		trigger = {
+			global_var:gp_sc_eng_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 1
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_eng_2
+		trigger = {
+			global_var:gp_sc_eng_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 2
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_eng_3
+		trigger = {
+			global_var:gp_sc_eng_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 3
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_eng_4
+		trigger = {
+			global_var:gp_sc_eng_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 4
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_eng_5
+		trigger = {
+			global_var:gp_sc_eng_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 5
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_eng_6
+		trigger = {
+			global_var:gp_sc_eng_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 6
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_eng_7
+		trigger = {
+			global_var:gp_sc_eng_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 7
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_eng_8
+		trigger = {
+			global_var:gp_sc_eng_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 8
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_eng_0
+		trigger = {
+			global_var:gp_sc_eng_crown ?= this
+			NOT = { has_global_variable = gp_sc_hyw }
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_fra_1
+		trigger = {
+			global_var:gp_sc_fra_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 1
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_fra_2
+		trigger = {
+			global_var:gp_sc_fra_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 2
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_fra_3
+		trigger = {
+			global_var:gp_sc_fra_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 3
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_fra_4
+		trigger = {
+			global_var:gp_sc_fra_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 4
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_fra_5
+		trigger = {
+			global_var:gp_sc_fra_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 5
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_fra_6
+		trigger = {
+			global_var:gp_sc_fra_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 6
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_fra_7
+		trigger = {
+			global_var:gp_sc_fra_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 7
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_fra_8
+		trigger = {
+			global_var:gp_sc_fra_crown ?= this
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 8
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_fra_0
+		trigger = {
+			global_var:gp_sc_fra_crown ?= this
+			NOT = { has_global_variable = gp_sc_hyw }
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_scenario_war
+		trigger = { has_variable = gp_sc_cb_target }
+	}
+
+	text = {
+		localization_key = gp_goal_contender
+		trigger = { has_variable = gp_contender }
+	}
+
+	text = {
+		localization_key = gp_goal_none
+		fallback = yes
+	}
+}
+
+# v0.9 Iberia on the tab: the first text whose trigger holds is shown (gp_scenarios_iberia.txt).
+gp_bp_sc_iberia = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_sc_iberia_race
+		trigger = {
+			has_global_variable = gp_sc_ib_race
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_path_6
+		trigger = {
+			has_global_variable = gp_sc_ib_path
+			global_var:gp_sc_ib_path = 6
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_path_5
+		trigger = {
+			has_global_variable = gp_sc_ib_path
+			global_var:gp_sc_ib_path = 5
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_path_4
+		trigger = {
+			has_global_variable = gp_sc_ib_path
+			global_var:gp_sc_ib_path = 4
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_path_3
+		trigger = {
+			has_global_variable = gp_sc_ib_path
+			global_var:gp_sc_ib_path = 3
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_union_3
+		trigger = {
+			has_global_variable = gp_sc_ib_union
+			global_var:gp_sc_ib_union = 3
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_union_1
+		trigger = {
+			has_global_variable = gp_sc_ib_union
+			global_var:gp_sc_ib_union = 1
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_union_2
+		trigger = {
+			has_global_variable = gp_sc_ib_union
+			global_var:gp_sc_ib_union = 2
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_verdict_1
+		trigger = {
+			has_global_variable = gp_sc_ib_verdict
+			global_var:gp_sc_ib_verdict = 1
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_verdict_2
+		trigger = {
+			has_global_variable = gp_sc_ib_verdict
+			global_var:gp_sc_ib_verdict = 2
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_first_1
+		trigger = {
+			has_global_variable = gp_sc_ib
+			global_var:gp_ib_cas ?= {
+				has_variable = gp_ib_goal
+				var:gp_ib_goal = 1
+			}
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_first_2
+		trigger = {
+			has_global_variable = gp_sc_ib
+			global_var:gp_ib_cas ?= {
+				has_variable = gp_ib_goal
+				var:gp_ib_goal = 2
+			}
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_first_3
+		trigger = {
+			has_global_variable = gp_sc_ib
+			global_var:gp_ib_cas ?= {
+				has_variable = gp_ib_goal
+				var:gp_ib_goal = 3
+			}
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_first_4
+		trigger = {
+			has_global_variable = gp_sc_ib
+			global_var:gp_ib_cas ?= {
+				has_variable = gp_ib_goal
+				var:gp_ib_goal = 4
+			}
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_open
 		fallback = yes
 	}
 }

@@ -139,3 +139,31 @@ gp_cb_scenario_war = {
 		}
 	}
 }
+
+# v0.9 A scenario vassal war (gp_scenarios_iberia.txt): Castile making Portugal its vassal, Aragon taking Naples under
+# its wing. Against var:gp_sc_vassal_target only; the war goal is the target's capital and its subjugation, the AI does
+# not take land with it. Available to players too (a player whose crown has the goal gets the casus belli).
+gp_cb_scenario_vassal = {
+	years = 10
+	speed = 50
+
+	create_visible = {
+		has_variable = gp_sc_vassal_target
+		scope:target ?= root.var:gp_sc_vassal_target
+	}
+	create_enabled = {
+		NOT = { has_truce_with = scope:target }
+	}
+
+	war_goal_type = take_capital_subjugation
+
+	ai_subjugation_desire = 1000
+	ai_cede_location_desire = -1000
+
+	ai_will_do = {
+		add = {
+			desc = "BASE"
+			value = 25
+		}
+	}
+}

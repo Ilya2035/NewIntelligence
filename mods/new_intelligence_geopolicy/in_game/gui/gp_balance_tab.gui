@@ -109,6 +109,11 @@ template geopolitics_tabs {
 			layoutpolicy_horizontal = expanding
 			text = "GP_BP_RIGHT"
 		}
+		# v0.9 our goal (gp_goal): what our crown strives for in its scenario
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_BP_GOAL"
+		}
 		text_multi = {
 			layoutpolicy_horizontal = expanding
 			visible = "[Player.MakeScope.GetVariable('gp_threat').IsSet]"

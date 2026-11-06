@@ -418,6 +418,15 @@ gp_update_balance = {
 	if = { limit = { has_variable_list = gp_bp_outsiders } clear_variable_list = gp_bp_outsiders }
 	if = { limit = { has_variable_list = gp_bp_macro } clear_variable_list = gp_bp_macro }
 	if = { limit = { has_variable = gp_bp_holder } remove_variable = gp_bp_holder }
+	# v0.9 the Iberian race for the tab (gp_scenarios_iberia.txt)
+	if = {
+		limit = { has_global_variable = gp_sc_ib_race }
+		set_variable = { name = gp_bp_ib_race value = global_var:gp_sc_ib_race }
+	}
+	else_if = {
+		limit = { has_variable = gp_bp_ib_race }
+		remove_variable = gp_bp_ib_race
+	}
 	if = {
 		limit = { exists = capital }
 		capital.region = {

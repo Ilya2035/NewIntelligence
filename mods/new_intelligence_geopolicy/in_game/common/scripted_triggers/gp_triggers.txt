@@ -580,5 +580,74 @@ gp_sc_isles_sail = {
 			has_variable = gp_sc_island_power
 			NOT = { has_variable = gp_sc_no_colonies_years }
 		}
+		# v0.9 the winner of the Iberian game (gp_scenarios_iberia.txt)
+		has_variable = gp_ib_overseas
 	}
+}
+
+# ---- v0.9 the Iberian chess game (gp_scenarios_iberia.txt; anchor scope with scope:gp_cas ... saved) ----
+# The crown $WHO$ (cas, ara, por, gra, nav, nap) stands and is nobody's vassal.
+gp_ib_free = {
+	exists = scope:gp_$WHO$
+	scope:gp_$WHO$ = { is_subject = no }
+}
+
+# Country scope (Granada): a Maghreb country stands by it - an ally, or a friend (opinion 100).
+gp_ib_backed_here = {
+	OR = {
+		any_ally = {
+			exists = capital
+			capital.region = region:maghreb_region
+		}
+		region:maghreb_region = {
+			any_present_country = {
+				gp_is_real_country = yes
+				exists = capital
+				capital.region = region:maghreb_region
+				opinion = { target = scope:gp_gra value >= 100 }
+			}
+		}
+	}
+}
+
+gp_ib_granada_backed = {
+	exists = scope:gp_gra
+	scope:gp_gra = { gp_ib_backed_here = yes }
+}
+
+# Portugal has a protector: an alliance with the English or the French crown, or with Aragon.
+gp_ib_portugal_protected = {
+	exists = scope:gp_por
+	scope:gp_por = {
+		OR = {
+			AND = {
+				exists = scope:gp_eng
+				NOT = { this = scope:gp_eng }
+				is_allied_with = { target = scope:gp_eng }
+			}
+			AND = {
+				exists = scope:gp_fra
+				NOT = { this = scope:gp_fra }
+				is_allied_with = { target = scope:gp_fra }
+			}
+			AND = {
+				exists = scope:gp_ara
+				NOT = { this = scope:gp_ara }
+				is_allied_with = { target = scope:gp_ara }
+			}
+		}
+	}
+}
+
+# Aragon enjoys the favour of the French crown (France's opinion of it 150+).
+gp_ib_french_favour = {
+	exists = scope:gp_fra
+	exists = scope:gp_ara
+	NOT = { scope:gp_fra = scope:gp_ara }
+	scope:gp_fra = { opinion = { target = scope:gp_ara value >= 150 } }
+}
+
+# Country scope (Aragon): the same, for the modifier.
+gp_ib_french_favour_here = {
+	gp_ib_french_favour = yes
 }

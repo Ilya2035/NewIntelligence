@@ -85,3 +85,18 @@ gp_rule_collapse = {
 		flag = general_rule
 	}
 }
+
+# v0.9 Alliances only between friends (author, 2026-11-06): an alliance can be offered only with opinion 100 both ways
+# (in_game/common/scripted_relations/gp_alliance.txt replaces the vanilla alliance). Existing alliances are kept.
+gp_rule_alliance = {
+	default = gp_alliance_friends
+
+	gp_alliance_friends = {
+		flag = gp_alliance_friends
+		flag = general_rule
+	}
+	gp_alliance_any = {
+		flag = gp_alliance_any
+		flag = general_rule
+	}
+}

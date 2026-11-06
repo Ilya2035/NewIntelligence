@@ -1,0 +1,1149 @@
+﻿###################################
+# New Intelligence: Geopolicy - the Iberian chess game (prefix gp_), v0.9
+#
+# The author's design of 2026-11-06 (docs/GEOPOLICY_SCENARIOS_WEST.md, section 11). Four crowns play for Iberia -
+# Castile, Aragon, Portugal, Granada (Navarre falls to the stronger of the first two); each has its own goal, re-chosen
+# every year from who is still standing, who is allied with whom and who backs whom. Checked once a year by the owner of
+# London (gp_west_scenarios), after the crowns of England and France are saved (scope:gp_eng / scope:gp_fra).
+#
+# Crowns (global variables, saved at the first check, followed through formable tags): gp_ib_cas, gp_ib_ara, gp_ib_por,
+# gp_ib_gra, gp_ib_nav, gp_ib_nap (Naples, Aragon's Italian prize). Saved scopes: scope:gp_cas ... scope:gp_nap.
+# Global variables:
+#   gp_sc_ib          1 the first move is made (1357, twenty years in), 2 the verdict is passed (1400)
+#   gp_sc_ib_verdict  1 the hour of the minors (Castile took nobody), 2 the hour of Portugal (Castile and Aragon both stand)
+#   gp_sc_ib_path     after 1400: 3 Castile's game (Aragon fell), 4 Aragon's game (Castile fell), 5 Portugal's game (both
+#                     fell), 6 the Spanish sultanate (Castile fell, Granada holds 35 % of Iberia); none = still open
+#   gp_sc_ib_union    Castile and Aragon: 1 Castile senior, 2 Aragon senior, 3 one crown; gp_sc_ib_marriage_years (ten
+#                     years of alliance), gp_sc_ib_union_years (thirty years to one crown)
+#   gp_sc_ib_portugal Portugal under Castile: 1 annexed after 50 years, 2 the Restoration (loyalty under 40), 3 eternal
+#                     peace twenty years after the Restoration; gp_sc_ib_pu_years, gp_sc_ib_peace_years
+#   gp_sc_ib_race     Castile's share of the Castile-Portugal strength, in percent (only the two of them left)
+#   gp_sc_ib_aragon_crown   Aragon holds Naples (or as a vassal) and Sicily or Sardinia
+#   gp_sc_ib_1600 / gp_sc_ib_1700   Castile's old wish to subdue Portugal was checked (25 %)
+#   gp_sc_reconquista, gp_sc_aragon_sea, gp_sc_granada_holds   the v0.5 flags (directions)
+# Country variables: gp_ib_goal (the crown's goal, below), gp_ib_navarre_heir, gp_ib_overseas, gp_sc_peace_list
+# (eternal peace: a variable list of countries we leave alone, gp_score_eternal_peace), gp_sc_vassal_target.
+# Goals (gp_ib_goal; texts in gp_brief.txt):
+#   Castile  1 Reconquista - Granada  2 Portugal as a vassal  3 war on Aragon  4 peace with a backed Granada
+#            5 overseas and the Maghreb  6 subdue Portugal one day  7 eternal peace with Portugal
+#   Aragon   11 the Italian crown  12 war on Castile  13 war on Granada  14 overseas
+#   Portugal 21 a protector  22 hold the line  23 war on Castile  24 war on Granada  25 unite Iberia  26 overseas
+#            27 under the Castilian crown
+#   Granada  31 the Maghreb's backing  32 war on Castile  33 the Spanish sultanate  34 the last stand
+# Modifiers obey the game rule "Scenario marks" (gp_rule_scenario_mods).
+###################################
+
+# ---- crowns ------------------------------------------------------------------------------------------
+
+gp_ib_save_crown = {
+	if = {
+		limit = { NOT = { has_global_variable = gp_ib_$NAME$ } }
+		c:$TAG$ ?= { save_scope_as = gp_ib_tmp }
+		if = {
+			limit = { scope:gp_ib_tmp ?= { gp_is_real_country = yes } }
+			set_global_variable = { name = gp_ib_$NAME$ value = scope:gp_ib_tmp }
+		}
+		clear_saved_scope = gp_ib_tmp
+	}
+	if = {
+		limit = { global_var:gp_ib_$NAME$ ?= { gp_is_real_country = yes } }
+		global_var:gp_ib_$NAME$ ?= { save_scope_as = gp_$NAME$ }
+	}
+}
+
+# Country scope: the crown's goal $GOAL$, a war prepared against scope:$TARGET$ (re-armed while the goal stands).
+gp_ib_goal_war = {
+	if = {
+		limit = {
+			NOT = {
+				AND = {
+					has_variable = gp_ib_goal
+					var:gp_ib_goal = $GOAL$
+				}
+			}
+		}
+		set_variable = { name = gp_ib_goal value = $GOAL$ }
+		gp_sc_prepare = { TARGET = $TARGET$ }
+	}
+	else_if = {
+		limit = {
+			is_ai = yes
+			NOT = { has_variable = gp_war_target }
+		}
+		gp_sc_prepare = { TARGET = $TARGET$ }
+	}
+}
+
+# Country scope: goal $GOAL$, a vassal war prepared against scope:$TARGET$ (gp_cb_scenario_vassal).
+gp_ib_goal_vassal = {
+	if = {
+		limit = {
+			NOT = {
+				AND = {
+					has_variable = gp_ib_goal
+					var:gp_ib_goal = $GOAL$
+				}
+			}
+		}
+		set_variable = { name = gp_ib_goal value = $GOAL$ }
+		gp_sc_prepare_vassal = { TARGET = $TARGET$ }
+	}
+	else_if = {
+		limit = {
+			is_ai = yes
+			NOT = { has_variable = gp_war_target }
+		}
+		gp_sc_prepare_vassal = { TARGET = $TARGET$ }
+	}
+}
+
+# Country scope: a calm goal $GOAL$ (no war prepared by the scenario).
+gp_ib_goal_calm = {
+	if = {
+		limit = {
+			NOT = {
+				AND = {
+					has_variable = gp_ib_goal
+					var:gp_ib_goal = $GOAL$
+				}
+			}
+		}
+		set_variable = { name = gp_ib_goal value = $GOAL$ }
+		if = {
+			limit = { has_variable = gp_sc_vassal_target }
+			remove_variable = gp_sc_vassal_target
+		}
+	}
+}
+
+# Country scope: an AI country prepares a war to make scope:$TARGET$ its vassal (gp_cb_scenario_vassal).
+gp_sc_prepare_vassal = {
+	set_variable = { name = gp_sc_vassal_target value = scope:$TARGET$ }
+	if = {
+		limit = { var:gp_sc_cb_target ?= scope:$TARGET$ }
+		remove_variable = gp_sc_cb_target
+	}
+	if = {
+		limit = {
+			is_ai = yes
+			gp_is_active = yes
+			NOT = { this = scope:$TARGET$ }
+		}
+		gp_set_posture = { POSTURE = preparation }
+		set_variable = { name = gp_war_target value = scope:$TARGET$ }
+		set_variable = { name = gp_posture_left value = 6 }
+	}
+}
+
+# Two countries make an eternal peace: each leaves the other (and its vassals) alone (gp_score_eternal_peace).
+gp_sc_eternal_peace = {
+	scope:$A$ = {
+		add_to_variable_list = { name = gp_sc_peace_list target = scope:$B$ }
+		gp_sc_drop_target = { TARGET = $B$ }
+	}
+	scope:$B$ = {
+		add_to_variable_list = { name = gp_sc_peace_list target = scope:$A$ }
+		gp_sc_drop_target = { TARGET = $A$ }
+	}
+}
+
+# A country-scope modifier kept while a condition holds (add once, remove when gone), under the rule "Scenario marks".
+gp_ib_keep_modifier = {
+	if = {
+		limit = {
+			NOT = { has_game_rule = gp_scenario_mods_off }
+			$WHEN$ = yes
+		}
+		if = {
+			limit = { NOT = { has_country_modifier = $MOD$ } }
+			add_country_modifier = { modifier = $MOD$ years = -1 }
+		}
+	}
+	else_if = {
+		limit = { has_country_modifier = $MOD$ }
+		remove_country_modifier = $MOD$
+	}
+}
+
+# ================================================================================================
+# The yearly check (anchor scope, from gp_west_scenarios)
+# ================================================================================================
+
+gp_sc_iberia = {
+	gp_ib_save_crown = { TAG = CAS NAME = cas }
+	gp_ib_save_crown = { TAG = ARA NAME = ara }
+	gp_ib_save_crown = { TAG = POR NAME = por }
+	gp_ib_save_crown = { TAG = GRA NAME = gra }
+	gp_ib_save_crown = { TAG = NAV NAME = nav }
+	gp_ib_save_crown = { TAG = NAP NAME = nap }
+	gp_ib_checkpoints = yes
+	gp_ib_unions = yes
+	gp_ib_endgame = yes
+	gp_ib_granada = yes
+	gp_ib_portugal = yes
+	gp_ib_aragon = yes
+	gp_ib_castile = yes
+	gp_ib_old_flags = yes
+	clear_saved_scope = gp_cas
+	clear_saved_scope = gp_ara
+	clear_saved_scope = gp_por
+	clear_saved_scope = gp_gra
+	clear_saved_scope = gp_nav
+	clear_saved_scope = gp_nap
+}
+
+# ---- the first move (1357) and the verdict (1400) --------------------------------------------------
+
+gp_ib_checkpoints = {
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_ib }
+			current_date >= 1357.1.1
+		}
+		set_global_variable = { name = gp_sc_ib value = 1 }
+		# Navarre falls to the stronger of Castile and Aragon
+		if = {
+			limit = {
+				gp_ib_free = { WHO = nav }
+				gp_ib_free = { WHO = cas }
+				gp_ib_free = { WHO = ara }
+			}
+			if = {
+				limit = { scope:gp_cas = { country_strength >= scope:gp_ara.country_strength } }
+				scope:gp_cas = { set_variable = gp_ib_navarre_heir }
+				scope:gp_nav = { set_variable = { name = gp_patron value = scope:gp_cas } }
+			}
+			else = {
+				scope:gp_ara = { set_variable = gp_ib_navarre_heir }
+				scope:gp_nav = { set_variable = { name = gp_patron value = scope:gp_ara } }
+			}
+		}
+		else_if = {
+			limit = {
+				gp_ib_free = { WHO = nav }
+				gp_ib_free = { WHO = cas }
+			}
+			scope:gp_cas = { set_variable = gp_ib_navarre_heir }
+		}
+		else_if = {
+			limit = {
+				gp_ib_free = { WHO = nav }
+				gp_ib_free = { WHO = ara }
+			}
+			scope:gp_ara = { set_variable = gp_ib_navarre_heir }
+		}
+	}
+	if = {
+		limit = {
+			has_global_variable = gp_sc_ib
+			global_var:gp_sc_ib = 1
+			current_date >= 1400.1.1
+		}
+		set_global_variable = { name = gp_sc_ib value = 2 }
+		gp_ib_verdict = yes
+	}
+}
+
+# 1400: by now at most three crowns should stand. Castile that took nobody is shaken (crisis +40, "Castilian troubles"
+# for 20 years: max control -15 %, levy -10 %); if Castile and Aragon both stand, both are "Divided crowns" for 20 years
+# (max control and levy -10 %) and Portugal rises ("Portuguese rise", 20 years: max control +10 %, siege ability +15 %,
+# morale +5 %).
+gp_ib_verdict = {
+	if = {
+		limit = {
+			gp_ib_free = { WHO = cas }
+			gp_ib_free = { WHO = ara }
+		}
+		if = {
+			limit = {
+				gp_ib_free = { WHO = por }
+				gp_ib_free = { WHO = gra }
+			}
+			set_global_variable = { name = gp_sc_ib_verdict value = 1 }
+			scope:gp_cas = {
+				gp_crisis_shock = { AMOUNT = 40 }
+				if = {
+					limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+					add_country_modifier = { modifier = gp_sc_castile_troubles years = 20 }
+				}
+			}
+		}
+		else = {
+			set_global_variable = { name = gp_sc_ib_verdict value = 2 }
+		}
+		if = {
+			limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+			scope:gp_cas = { add_country_modifier = { modifier = gp_sc_divided_crowns years = 20 } }
+			scope:gp_ara = { add_country_modifier = { modifier = gp_sc_divided_crowns years = 20 } }
+			if = {
+				limit = { gp_ib_free = { WHO = por } }
+				scope:gp_por = { add_country_modifier = { modifier = gp_sc_portuguese_rise years = 20 } }
+			}
+		}
+	}
+	# Granada still stands backed by the Maghreb: the old v0.5 flag for Morocco's direction
+	if = {
+		limit = {
+			gp_ib_free = { WHO = gra }
+			gp_ib_granada_backed = yes
+		}
+		set_global_variable = { name = gp_sc_granada_holds value = 1 }
+	}
+}
+
+# ---- the unions -------------------------------------------------------------------------------------
+
+gp_ib_unions = {
+	# Castile and Aragon: ten years of alliance make a dynastic union - the weaker crown becomes the vassal of the
+	# stronger (only an AI crown is made a vassal), thirty years later the senior crown absorbs it
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_ib_union }
+			gp_ib_free = { WHO = cas }
+			gp_ib_free = { WHO = ara }
+		}
+		if = {
+			limit = { scope:gp_cas = { is_allied_with = { target = scope:gp_ara } } }
+			if = {
+				limit = { NOT = { has_global_variable = gp_sc_ib_marriage_years } }
+				set_global_variable = { name = gp_sc_ib_marriage_years value = 0 }
+			}
+			set_global_variable = {
+				name = gp_sc_ib_marriage_years
+				value = {
+					value = global_var:gp_sc_ib_marriage_years
+					add = 1
+				}
+			}
+			if = {
+				limit = { global_var:gp_sc_ib_marriage_years >= 10 }
+				if = {
+					limit = {
+						scope:gp_cas = { country_strength >= scope:gp_ara.country_strength }
+						scope:gp_ara = { is_ai = yes }
+					}
+					scope:gp_ara = {
+						make_subject_of = {
+							target = scope:gp_cas
+							type = subject_type:vassal
+						}
+					}
+					set_global_variable = { name = gp_sc_ib_union value = 1 }
+					set_global_variable = { name = gp_sc_ib_union_years value = 0 }
+				}
+				else_if = {
+					limit = {
+						scope:gp_ara = { country_strength > scope:gp_cas.country_strength }
+						scope:gp_cas = { is_ai = yes }
+					}
+					scope:gp_cas = {
+						make_subject_of = {
+							target = scope:gp_ara
+							type = subject_type:vassal
+						}
+					}
+					set_global_variable = { name = gp_sc_ib_union value = 2 }
+					set_global_variable = { name = gp_sc_ib_union_years value = 0 }
+				}
+			}
+		}
+		else = {
+			set_global_variable = { name = gp_sc_ib_marriage_years value = 0 }
+		}
+	}
+	if = {
+		limit = {
+			has_global_variable = gp_sc_ib_union
+			global_var:gp_sc_ib_union = 1
+			exists = scope:gp_cas
+			exists = scope:gp_ara
+			scope:gp_ara = { is_subject_of = scope:gp_cas }
+		}
+		gp_ib_union_tick = { SENIOR = gp_cas JUNIOR = gp_ara }
+	}
+	else_if = {
+		limit = {
+			has_global_variable = gp_sc_ib_union
+			global_var:gp_sc_ib_union = 2
+			exists = scope:gp_cas
+			exists = scope:gp_ara
+			scope:gp_cas = { is_subject_of = scope:gp_ara }
+		}
+		gp_ib_union_tick = { SENIOR = gp_ara JUNIOR = gp_cas }
+	}
+	# Portugal under Castile: fifty years; loyalty 40+ - Castile absorbs it, else the Restoration
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_ib_portugal }
+			exists = scope:gp_por
+			exists = scope:gp_cas
+			scope:gp_por = { is_subject_of = scope:gp_cas }
+		}
+		if = {
+			limit = { NOT = { has_global_variable = gp_sc_ib_pu_years } }
+			set_global_variable = { name = gp_sc_ib_pu_years value = 0 }
+		}
+		set_global_variable = {
+			name = gp_sc_ib_pu_years
+			value = {
+				value = global_var:gp_sc_ib_pu_years
+				add = 1
+			}
+		}
+		scope:gp_por = {
+			set_variable = { name = gp_ib_goal value = 27 }
+			if = {
+				limit = {
+					NOT = { has_game_rule = gp_scenario_mods_off }
+					NOT = { has_country_modifier = gp_sc_portuguese_pride }
+				}
+				add_country_modifier = { modifier = gp_sc_portuguese_pride years = -1 }
+			}
+		}
+		if = {
+			limit = { global_var:gp_sc_ib_pu_years >= 50 }
+			if = {
+				limit = {
+					scope:gp_por = {
+						is_ai = yes
+						subject_loyalty >= 40
+					}
+				}
+				set_global_variable = { name = gp_sc_ib_portugal value = 1 }
+				scope:gp_cas = {
+					annex_country = {
+						country = scope:gp_por
+						reason = Diplomatic
+						transfer = yes
+					}
+				}
+			}
+			else = {
+				# the Restoration: Portugal rises and only has to hold its own land
+				set_global_variable = { name = gp_sc_ib_portugal value = 2 }
+				set_global_variable = { name = gp_sc_ib_peace_years value = 0 }
+				scope:gp_cas = { cancel_subject = scope:gp_por }
+				scope:gp_por = {
+					if = {
+						limit = { has_country_modifier = gp_sc_portuguese_pride }
+						remove_country_modifier = gp_sc_portuguese_pride
+					}
+					if = {
+						limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+						add_country_modifier = { modifier = gp_sc_restoration years = 20 }
+					}
+					set_variable = { name = gp_ib_goal value = 22 }
+				}
+				scope:gp_cas = { gp_sc_prepare = { TARGET = gp_por } }
+			}
+		}
+	}
+	# twenty years after the Restoration: eternal peace between Castile and Portugal
+	if = {
+		limit = {
+			has_global_variable = gp_sc_ib_portugal
+			global_var:gp_sc_ib_portugal = 2
+		}
+		set_global_variable = {
+			name = gp_sc_ib_peace_years
+			value = {
+				value = global_var:gp_sc_ib_peace_years
+				add = 1
+			}
+		}
+		if = {
+			limit = {
+				global_var:gp_sc_ib_peace_years >= 20
+				exists = scope:gp_cas
+				exists = scope:gp_por
+				NOT = { scope:gp_cas = { is_at_war_with = scope:gp_por } }
+			}
+			set_global_variable = { name = gp_sc_ib_portugal value = 3 }
+			gp_sc_eternal_peace = { A = gp_cas B = gp_por }
+			scope:gp_cas = { set_variable = { name = gp_ib_goal value = 7 } }
+		}
+	}
+}
+
+gp_ib_union_tick = {
+	set_global_variable = {
+		name = gp_sc_ib_union_years
+		value = {
+			value = global_var:gp_sc_ib_union_years
+			add = 1
+		}
+	}
+	if = {
+		limit = {
+			global_var:gp_sc_ib_union_years >= 30
+			scope:$JUNIOR$ = { is_ai = yes }
+		}
+		set_global_variable = { name = gp_sc_ib_union value = 3 }
+		scope:$SENIOR$ = {
+			annex_country = {
+				country = scope:$JUNIOR$
+				reason = Diplomatic
+				transfer = yes
+			}
+		}
+	}
+}
+
+# ---- after 1400: the paths, the race, the sultanate -----------------------------------------------
+
+gp_ib_endgame = {
+	if = {
+		limit = {
+			has_global_variable = gp_sc_ib
+			global_var:gp_sc_ib = 2
+		}
+		# the path
+		if = {
+			limit = {
+				gp_ib_free = { WHO = cas }
+				NOT = { gp_ib_free = { WHO = ara } }
+			}
+			set_global_variable = { name = gp_sc_ib_path value = 3 }
+		}
+		else_if = {
+			limit = {
+				gp_ib_free = { WHO = ara }
+				NOT = { gp_ib_free = { WHO = cas } }
+			}
+			set_global_variable = { name = gp_sc_ib_path value = 4 }
+		}
+		else_if = {
+			limit = {
+				NOT = { gp_ib_free = { WHO = cas } }
+				NOT = { gp_ib_free = { WHO = ara } }
+				gp_ib_free = { WHO = gra }
+				scope:gp_gra = {
+					has_variable = gp_region_share
+					var:gp_region_share >= 0.35
+				}
+			}
+			set_global_variable = { name = gp_sc_ib_path value = 6 }
+		}
+		else_if = {
+			limit = {
+				NOT = { gp_ib_free = { WHO = cas } }
+				NOT = { gp_ib_free = { WHO = ara } }
+				gp_ib_free = { WHO = por }
+			}
+			set_global_variable = { name = gp_sc_ib_path value = 5 }
+		}
+		else_if = {
+			limit = { has_global_variable = gp_sc_ib_path }
+			remove_global_variable = gp_sc_ib_path
+		}
+		# the race: only Castile and Portugal are left
+		if = {
+			limit = {
+				gp_ib_free = { WHO = cas }
+				gp_ib_free = { WHO = por }
+				NOT = { gp_ib_free = { WHO = ara } }
+				NOT = { gp_ib_free = { WHO = gra } }
+			}
+			gp_ib_race = yes
+		}
+		else_if = {
+			limit = { has_global_variable = gp_sc_ib_race }
+			remove_global_variable = gp_sc_ib_race
+		}
+		# Castile's old wish to subdue Portugal, 1600 and 1700 (25 % each)
+		if = {
+			limit = {
+				NOT = { has_global_variable = gp_sc_ib_1600 }
+				current_date >= 1600.1.1
+			}
+			set_global_variable = { name = gp_sc_ib_1600 value = 1 }
+			gp_ib_old_wish = yes
+		}
+		if = {
+			limit = {
+				NOT = { has_global_variable = gp_sc_ib_1700 }
+				current_date >= 1700.1.1
+			}
+			set_global_variable = { name = gp_sc_ib_1700 value = 1 }
+			gp_ib_old_wish = yes
+		}
+		# the Spanish sultanate: France takes up arms against Granada
+		if = {
+			limit = {
+				has_global_variable = gp_sc_ib_path
+				global_var:gp_sc_ib_path = 6
+				exists = scope:gp_fra
+				NOT = { scope:gp_fra = { var:gp_sc_cb_target ?= scope:gp_gra } }
+			}
+			scope:gp_fra = { gp_sc_prepare = { TARGET = gp_gra } }
+		}
+	}
+}
+
+# Castile and Portugal alone: the stronger needs three quarters of their joint strength to go to war; otherwise the
+# land of the other quietly goes back to it (one location a year), and a crown left without Iberian land is absorbed
+# whole, with its colonies.
+gp_ib_race = {
+	set_variable = {
+		name = gp_ib_tmp_sum
+		value = {
+			value = "scope:gp_cas.country_strength"
+			add = "scope:gp_por.country_strength"
+		}
+	}
+	set_global_variable = {
+		name = gp_sc_ib_race
+		value = {
+			value = "scope:gp_cas.country_strength"
+			multiply = 100
+			divide = {
+				value = var:gp_ib_tmp_sum
+				min = 1
+			}
+		}
+	}
+	remove_variable = gp_ib_tmp_sum
+	if = {
+		limit = {
+			global_var:gp_sc_ib_race >= 75
+			NOT = { scope:gp_cas = { is_target_in_variable_list = { name = gp_sc_peace_list target = scope:gp_por } } }
+		}
+		scope:gp_cas = { gp_ib_goal_war = { GOAL = 6 TARGET = gp_por } }
+	}
+	else_if = {
+		limit = {
+			global_var:gp_sc_ib_race <= 25
+			NOT = { scope:gp_por = { is_target_in_variable_list = { name = gp_sc_peace_list target = scope:gp_cas } } }
+		}
+		scope:gp_por = { gp_ib_goal_war = { GOAL = 25 TARGET = gp_cas } }
+	}
+	else = {
+		scope:gp_cas = {
+			random_owned_location = {
+				limit = {
+					region = region:iberia_region
+					is_core_of = scope:gp_por
+					NOT = { is_core_of = scope:gp_cas }
+				}
+				change_location_owner = scope:gp_por
+			}
+		}
+		scope:gp_por = {
+			random_owned_location = {
+				limit = {
+					region = region:iberia_region
+					is_core_of = scope:gp_cas
+					NOT = { is_core_of = scope:gp_por }
+				}
+				change_location_owner = scope:gp_cas
+			}
+		}
+	}
+	# a crown without Iberian land passes whole to the other (an AI crown only)
+	if = {
+		limit = {
+			scope:gp_por = {
+				is_ai = yes
+				NOT = { any_owned_location = { region = region:iberia_region } }
+			}
+		}
+		scope:gp_cas = {
+			annex_country = {
+				country = scope:gp_por
+				reason = Diplomatic
+				transfer = yes
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			scope:gp_cas = {
+				is_ai = yes
+				NOT = { any_owned_location = { region = region:iberia_region } }
+			}
+		}
+		scope:gp_por = {
+			annex_country = {
+				country = scope:gp_cas
+				reason = Diplomatic
+				transfer = yes
+			}
+		}
+	}
+}
+
+# 1600 / 1700: a free Portugal with no eternal peace - Castile may try once more to make it a vassal.
+gp_ib_old_wish = {
+	if = {
+		limit = {
+			gp_ib_free = { WHO = cas }
+			gp_ib_free = { WHO = por }
+			NOT = { scope:gp_cas = { is_target_in_variable_list = { name = gp_sc_peace_list target = scope:gp_por } } }
+		}
+		random_list = {
+			25 = { scope:gp_cas = { gp_sc_prepare_vassal = { TARGET = gp_por } } }
+			75 = { }
+		}
+	}
+}
+
+# ---- the crowns' goals --------------------------------------------------------------------------------
+
+gp_ib_granada = {
+	if = {
+		limit = { gp_ib_free = { WHO = gra } }
+		# the Maghreb's backers: Morocco, Tlemcen and Tunis stand by Granada, Morocco is its patron
+		gp_ib_backer = { TAG = MOR }
+		gp_ib_backer = { TAG = TLE }
+		gp_ib_backer = { TAG = TUN }
+		c:MOR ?= { save_scope_as = gp_ib_mor }
+		scope:gp_gra = {
+			if = {
+				limit = { scope:gp_ib_mor ?= { gp_is_real_country = yes } }
+				set_variable = { name = gp_patron value = scope:gp_ib_mor }
+			}
+			gp_ib_keep_modifier = { MOD = gp_sc_maghreb_aid WHEN = gp_ib_backed_here }
+		}
+		clear_saved_scope = gp_ib_mor
+		# the goal
+		if = {
+			limit = {
+				scope:gp_gra = {
+					has_variable = gp_region_share
+					var:gp_region_share >= 0.35
+				}
+				gp_ib_free = { WHO = cas }
+			}
+			scope:gp_gra = { gp_ib_goal_war = { GOAL = 33 TARGET = gp_cas } }
+		}
+		else_if = {
+			limit = {
+				has_global_variable = gp_sc_ib
+				gp_ib_granada_backed = yes
+				gp_ib_free = { WHO = cas }
+			}
+			scope:gp_gra = { gp_ib_goal_war = { GOAL = 32 TARGET = gp_cas } }
+		}
+		else_if = {
+			limit = { has_global_variable = gp_sc_ib_verdict }
+			scope:gp_gra = { gp_ib_goal_calm = { GOAL = 34 } }
+		}
+		else = {
+			scope:gp_gra = { gp_ib_goal_calm = { GOAL = 31 } }
+		}
+	}
+}
+
+gp_ib_backer = {
+	c:$TAG$ ?= {
+		if = {
+			limit = {
+				gp_is_real_country = yes
+				NOT = { has_variable = gp_sc_protect }
+			}
+			set_variable = { name = gp_sc_protect value = scope:gp_gra }
+		}
+	}
+}
+
+gp_ib_portugal = {
+	if = {
+		limit = { gp_ib_free = { WHO = por } }
+		# England first, as the protector Portugal wants (France if England is the French crown's prey)
+		if = {
+			limit = {
+				exists = scope:gp_eng
+				NOT = { scope:gp_eng = scope:gp_por }
+			}
+			scope:gp_por = { set_variable = { name = gp_sc_ally value = scope:gp_eng } }
+			scope:gp_eng = {
+				if = {
+					limit = { NOT = { has_variable = gp_sc_protect } }
+					set_variable = { name = gp_sc_protect value = scope:gp_por }
+				}
+			}
+		}
+		# the goal
+		if = {
+			limit = {
+				NOT = { gp_ib_free = { WHO = cas } }
+				NOT = { gp_ib_free = { WHO = ara } }
+			}
+			if = {
+				limit = { gp_ib_free = { WHO = gra } }
+				scope:gp_por = { gp_ib_goal_war = { GOAL = 24 TARGET = gp_gra } }
+			}
+			else_if = {
+				limit = {
+					scope:gp_por = {
+						has_variable = gp_region_share
+						var:gp_region_share < 0.9
+					}
+				}
+				scope:gp_por = {
+					gp_ib_goal_calm = { GOAL = 25 }
+					if = {
+						limit = { NOT = { has_variable = gp_region_claim } }
+						set_variable = gp_region_claim
+						set_variable = { name = gp_region_claim_years value = 20 }
+					}
+				}
+			}
+			else = {
+				scope:gp_por = {
+					gp_ib_goal_calm = { GOAL = 26 }
+					set_variable = gp_ib_overseas
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				has_global_variable = gp_sc_ib_verdict
+				global_var:gp_sc_ib_verdict = 1
+				gp_ib_free = { WHO = gra }
+			}
+			scope:gp_por = { gp_ib_goal_war = { GOAL = 24 TARGET = gp_gra } }
+		}
+		else_if = {
+			limit = {
+				scope:gp_por = { has_country_modifier = gp_sc_portuguese_rise }
+				gp_ib_free = { WHO = cas }
+				NOT = { scope:gp_por = { is_allied_with = { target = scope:gp_cas } } }
+				NOT = { scope:gp_por = { is_target_in_variable_list = { name = gp_sc_peace_list target = scope:gp_cas } } }
+			}
+			scope:gp_por = { gp_ib_goal_war = { GOAL = 23 TARGET = gp_cas } }
+		}
+		else_if = {
+			limit = { gp_ib_portugal_protected = yes }
+			scope:gp_por = { gp_ib_goal_calm = { GOAL = 22 } }
+		}
+		else = {
+			scope:gp_por = { gp_ib_goal_calm = { GOAL = 21 } }
+		}
+	}
+}
+
+gp_ib_aragon = {
+	if = {
+		limit = { gp_ib_free = { WHO = ara } }
+		scope:gp_ara = {
+			set_variable = gp_sc_puppeteer
+			if = {
+				limit = {
+					exists = scope:gp_fra
+					NOT = { this = scope:gp_fra }
+				}
+				set_variable = { name = gp_patron value = scope:gp_fra }
+			}
+			if = {
+				limit = {
+					gp_ib_free = { WHO = por }
+					NOT = { scope:gp_cas ?= { is_allied_with = { target = scope:gp_por } } }
+				}
+				set_variable = { name = gp_sc_ally value = scope:gp_por }
+			}
+			gp_ib_keep_modifier = { MOD = gp_sc_french_favour WHEN = gp_ib_french_favour_here }
+		}
+		# the Italian crown: Naples (its own or a vassal) and Sicily or Sardinia
+		if = {
+			limit = {
+				NOT = { has_global_variable = gp_sc_ib_aragon_crown }
+				scope:gp_ara = {
+					OR = {
+						owns = location:palermo
+						owns = location:cagliari
+						owns = location:sassari
+					}
+				}
+				location:naples.owner ?= {
+					OR = {
+						this = scope:gp_ara
+						is_subject_of = scope:gp_ara
+					}
+				}
+			}
+			set_global_variable = { name = gp_sc_ib_aragon_crown value = 1 }
+			if = {
+				limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+				scope:gp_ara = { add_country_modifier = { modifier = gp_sc_aragonese_crown years = 25 } }
+			}
+		}
+		# the goal
+		if = {
+			limit = { NOT = { gp_ib_free = { WHO = cas } } }
+			if = {
+				limit = { gp_ib_free = { WHO = gra } }
+				scope:gp_ara = { gp_ib_goal_war = { GOAL = 13 TARGET = gp_gra } }
+			}
+			else = {
+				scope:gp_ara = {
+					gp_ib_goal_calm = { GOAL = 14 }
+					set_variable = gp_ib_overseas
+				}
+				# Portugal helped: eternal peace
+				if = {
+					limit = {
+						gp_ib_free = { WHO = por }
+						NOT = { scope:gp_ara = { is_target_in_variable_list = { name = gp_sc_peace_list target = scope:gp_por } } }
+					}
+					gp_sc_eternal_peace = { A = gp_ara B = gp_por }
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				OR = {
+					has_global_variable = gp_sc_ib_aragon_crown
+					current_date >= 1400.1.1
+				}
+				NOT = { scope:gp_ara = { is_allied_with = { target = scope:gp_cas } } }
+			}
+			scope:gp_ara = { gp_ib_goal_war = { GOAL = 12 TARGET = gp_cas } }
+		}
+		else_if = {
+			limit = {
+				gp_ib_free = { WHO = nap }
+				NOT = { scope:gp_nap = { is_allied_with = { target = scope:gp_ara } } }
+			}
+			scope:gp_ara = { gp_ib_goal_vassal = { GOAL = 11 TARGET = gp_nap } }
+		}
+		else = {
+			scope:gp_ara = { gp_ib_goal_calm = { GOAL = 11 } }
+		}
+	}
+}
+
+gp_ib_castile = {
+	if = {
+		limit = { gp_ib_free = { WHO = cas } }
+		if = {
+			limit = { NOT = { has_global_variable = gp_sc_ib } }
+			# the setup years: Granada first if it stands alone, otherwise a truce with it
+			if = {
+				limit = {
+					gp_ib_free = { WHO = gra }
+					gp_ib_granada_backed = no
+				}
+				scope:gp_cas = { gp_ib_goal_war = { GOAL = 1 TARGET = gp_gra } }
+			}
+			else_if = {
+				limit = { gp_ib_free = { WHO = gra } }
+				scope:gp_cas = {
+					gp_ib_goal_calm = { GOAL = 4 }
+					set_variable = { name = gp_sc_ally value = scope:gp_gra }
+					gp_sc_drop_target = { TARGET = gp_gra }
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				gp_ib_free = { WHO = gra }
+				gp_ib_granada_backed = no
+			}
+			scope:gp_cas = { gp_ib_goal_war = { GOAL = 1 TARGET = gp_gra } }
+		}
+		else_if = {
+			limit = {
+				gp_ib_free = { WHO = por }
+				gp_ib_portugal_protected = no
+				NOT = { scope:gp_por = { is_allied_with = { target = scope:gp_cas } } }
+				NOT = { scope:gp_cas = { is_target_in_variable_list = { name = gp_sc_peace_list target = scope:gp_por } } }
+				NOT = { has_global_variable = gp_sc_ib_race }
+			}
+			scope:gp_cas = { gp_ib_goal_vassal = { GOAL = 2 TARGET = gp_por } }
+		}
+		else_if = {
+			limit = {
+				gp_ib_free = { WHO = ara }
+				NOT = { scope:gp_ara = { is_allied_with = { target = scope:gp_cas } } }
+				gp_ib_french_favour = no
+			}
+			scope:gp_cas = { gp_ib_goal_war = { GOAL = 3 TARGET = gp_ara } }
+		}
+		else_if = {
+			limit = { gp_ib_free = { WHO = gra } }
+			scope:gp_cas = { gp_ib_goal_war = { GOAL = 1 TARGET = gp_gra } }
+		}
+		else_if = {
+			limit = {
+				gp_ib_free = { WHO = ara }
+				NOT = { scope:gp_ara = { is_allied_with = { target = scope:gp_cas } } }
+			}
+			scope:gp_cas = { gp_ib_goal_war = { GOAL = 3 TARGET = gp_ara } }
+		}
+		else_if = {
+			limit = { has_global_variable = gp_sc_ib_race }
+			# the race decides (gp_ib_race)
+		}
+		else_if = {
+			limit = {
+				gp_ib_free = { WHO = por }
+				scope:gp_cas = { is_target_in_variable_list = { name = gp_sc_peace_list target = scope:gp_por } }
+			}
+			scope:gp_cas = {
+				gp_ib_goal_calm = { GOAL = 7 }
+				set_variable = gp_ib_overseas
+			}
+		}
+		else_if = {
+			limit = { gp_ib_free = { WHO = por } }
+			scope:gp_cas = {
+				gp_ib_goal_calm = { GOAL = 6 }
+				set_variable = gp_ib_overseas
+			}
+		}
+		else = {
+			scope:gp_cas = {
+				gp_ib_goal_calm = { GOAL = 5 }
+				set_variable = gp_ib_overseas
+			}
+		}
+	}
+}
+
+# ---- the v0.5 flags used by the directions (gp_sc_directions) ------------------------------------
+
+gp_ib_old_flags = {
+	# 4A the Reconquista is complete: no Granada, Castile (or Spain) holds 55 % of Iberia
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_reconquista }
+			NOT = { gp_ib_free = { WHO = gra } }
+			scope:gp_cas ?= {
+				has_variable = gp_region_share
+				var:gp_region_share >= 0.55
+			}
+		}
+		set_global_variable = { name = gp_sc_reconquista value = 1 }
+	}
+	# 4C the Aragonese sea: Aragon holds Sicily or Sardinia and three locations in Italy
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_aragon_sea }
+			scope:gp_ara ?= {
+				OR = {
+					owns = location:palermo
+					owns = location:cagliari
+					owns = location:sassari
+				}
+				any_owned_location = {
+					count >= 3
+					region = region:italy_region
+				}
+			}
+		}
+		set_global_variable = { name = gp_sc_aragon_sea value = 1 }
+	}
+}
+
+# ================================================================================================
+# The end of a war (country scope, gp_on_war_end_effect): the Spanish sultanate beaten by France falls apart into French
+# vassals - Castile, Aragon, Andalusia (Seville), Murcia, Portugal, Navarre; Granada keeps its own area.
+# ================================================================================================
+
+gp_ib_war_end = {
+	if = {
+		limit = {
+			has_global_variable = gp_sc_ib_path
+			global_var:gp_sc_ib_path = 6
+			NOT = { has_global_variable = gp_sc_ib_sultanate_broken }
+			global_var:gp_ib_gra ?= this
+			scope:loser ?= this
+			scope:winner ?= { global_var:gp_sc_fra_crown ?= this }
+		}
+		set_global_variable = { name = gp_sc_ib_sultanate_broken value = 1 }
+		save_scope_as = gp_brk
+		scope:winner = { save_scope_as = gp_lord }
+		gp_sc_release_vassal_of = { TAG = CAS AREA = castile_area }
+		gp_sc_release_vassal_of = { TAG = CAS AREA = leon_area }
+		gp_sc_release_vassal_of = { TAG = CAS AREA = toledo_area }
+		gp_sc_release_vassal_of = { TAG = CAS AREA = extremadura_area }
+		gp_sc_release_vassal_of = { TAG = CAS AREA = galicia_area }
+		gp_sc_release_vassal_of = { TAG = ARA AREA = aragon_area }
+		gp_sc_release_vassal_of = { TAG = ARA AREA = catalonia_area }
+		gp_sc_release_vassal_of = { TAG = ARA AREA = valencia_area }
+		gp_sc_release_vassal_of = { TAG = ARA AREA = balearics_area }
+		gp_sc_release_vassal_of = { TAG = SEV AREA = andalusia_area }
+		gp_sc_release_vassal_of = { TAG = MUC AREA = murcia_area }
+		gp_sc_release_vassal_of = { TAG = POR AREA = north_portugal_area }
+		gp_sc_release_vassal_of = { TAG = POR AREA = south_portugal_area }
+		gp_sc_release_vassal_of = { TAG = NAV AREA = navarre_area }
+		clear_saved_scope = gp_brk
+		clear_saved_scope = gp_lord
+	}
+}
+
+# Like gp_sc_release_vassal (gp_scenarios_hyw.txt), but the new state becomes the vassal of scope:gp_lord, not of the
+# country that gives the land (scope:gp_brk).
+gp_sc_release_vassal_of = {
+	if = {
+		limit = {
+			NOT = { tag = $TAG$ }
+			exists = capital
+			NOT = { capital.area = area:$AREA$ }
+			any_owned_location = { area = area:$AREA$ }
+		}
+		if = {
+			limit = { NOT = { c:$TAG$ ?= { gp_is_real_country = yes } } }
+			every_owned_location = {
+				limit = { area = area:$AREA$ }
+				add_core = c:$TAG$
+			}
+			create_country_from_cores_in_our_locations = c:$TAG$
+			c:$TAG$ ?= {
+				make_subject_of = {
+					target = scope:gp_lord
+					type = subject_type:vassal
+				}
+			}
+		}
+		else_if = {
+			limit = { c:$TAG$ = { is_subject_of = scope:gp_lord } }
+			every_owned_location = {
+				limit = { area = area:$AREA$ }
+				change_location_owner = c:$TAG$
+			}
+		}
+	}
+}
+
+# ================================================================================================
+# Every country, yearly (gp_sc_country_upkeep): the Pyrenees - French land under an Iberian crown and Iberian land under
+# a French one never settles (location modifier "A foreign crown": max control -50 %, unrest; renewed yearly for 400
+# days, so it fades by itself once the land is back with its own people).
+# ================================================================================================
+
+gp_ib_country_upkeep = {
+	if = {
+		limit = {
+			NOT = { has_game_rule = gp_scenario_mods_off }
+			exists = capital
+			capital.region = region:iberia_region
+			any_owned_location = { region = region:france_region }
+		}
+		every_owned_location = {
+			limit = { region = region:france_region }
+			gp_ib_mark_foreign = yes
+		}
+	}
+	else_if = {
+		limit = {
+			NOT = { has_game_rule = gp_scenario_mods_off }
+			exists = capital
+			capital.region = region:france_region
+			any_owned_location = { region = region:iberia_region }
+		}
+		every_owned_location = {
+			limit = { region = region:iberia_region }
+			gp_ib_mark_foreign = yes
+		}
+	}
+}
+
+gp_ib_mark_foreign = {
+	if = {
+		limit = { has_location_modifier = gp_sc_foreign_crown }
+		remove_location_modifier = gp_sc_foreign_crown
+	}
+	add_location_modifier = { modifier = gp_sc_foreign_crown days = 400 }
+}

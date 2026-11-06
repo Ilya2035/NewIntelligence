@@ -54,3 +54,81 @@ gp_sc_restless_fief = {
 	local_unrest = 0.5
 	local_pop_join_rebel_threshold = 0.1
 }
+
+# v0.9 Hundred Years' War, French victory (100 years): the English crown builds and keeps its fleet cheaply - a French
+# landing becomes rare.
+gp_sc_wooden_walls = {
+	game_data = { category = country }
+	navy_heavy_ship_maintenance_cost_modifier = -0.25
+	navy_light_ship_maintenance_cost_modifier = -0.25
+	navy_galley_maintenance_cost_modifier = -0.25
+	navy_heavy_ship_build_cost_modifier = -0.25
+	navy_light_ship_build_cost_modifier = -0.25
+	ship_build_speed = 0.25
+}
+
+# ---- v0.9 the Iberian chess game (gp_scenarios_iberia.txt) ----
+
+# Granada while a Maghreb country stands by it.
+gp_sc_maghreb_aid = {
+	game_data = { category = country }
+	global_manpower_modifier = 0.2
+	land_morale_modifier = 0.05
+}
+
+# Aragon while the French crown favours it (France's opinion 150+).
+gp_sc_french_favour = {
+	game_data = { category = country }
+	global_manpower_modifier = 0.1
+	global_estate_target_satisfaction = 0.05
+}
+
+# Aragon's Italian crown (25 years): Naples and the isles.
+gp_sc_aragonese_crown = {
+	game_data = { category = country }
+	global_levy_size_modifier = 0.1
+	ship_build_speed = 0.15
+}
+
+# 1400, Castile took none of its rivals (20 years).
+gp_sc_castile_troubles = {
+	game_data = { category = country }
+	global_max_control = -0.15
+	global_levy_size_modifier = -0.1
+}
+
+# 1400, Castile and Aragon both stand (20 years).
+gp_sc_divided_crowns = {
+	game_data = { category = country }
+	global_max_control = -0.1
+	global_levy_size_modifier = -0.1
+}
+
+# 1400, the hour of Portugal (20 years): order at home, sieges, a people that believes.
+gp_sc_portuguese_rise = {
+	game_data = { category = country }
+	global_max_control = 0.1
+	global_estate_target_satisfaction = 0.1
+	siege_ability = 0.15
+	land_morale_modifier = 0.05
+}
+
+# Portugal as a vassal of Castile: the loyalty of the Portuguese is hard to win.
+gp_sc_portuguese_pride = {
+	game_data = { category = country }
+	loyalty_to_overlord = -15
+}
+
+# The Restoration (20 years): Portugal only has to hold its own land.
+gp_sc_restoration = {
+	game_data = { category = country }
+	global_defensive = 0.25
+	land_morale_modifier = 0.1
+}
+
+# Land across the Pyrenees under a foreign crown: it never settles.
+gp_sc_foreign_crown = {
+	game_data = { category = location }
+	local_max_control = -0.5
+	local_unrest = 0.25
+}

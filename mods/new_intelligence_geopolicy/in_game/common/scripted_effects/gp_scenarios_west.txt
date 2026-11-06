@@ -109,6 +109,7 @@ gp_sc_country_upkeep = {
 		remove_variable = gp_sc_cb_target
 	}
 	gp_sc_hyw_country_upkeep = yes	# v0.8 colony bans, Scotland's hour, marks of lost guarantees (gp_scenarios_hyw.txt)
+	gp_ib_country_upkeep = yes	# v0.9 the Pyrenees: a foreign crown never settles (gp_scenarios_iberia.txt)
 }
 
 # ================================================================================================
@@ -273,77 +274,7 @@ gp_sc_scotland = {
 	}
 }
 
-# ---- 4. Iberia ----------------------------------------------------------------------------------
-
-gp_sc_iberia = {
-	# 4A the Reconquista is complete: no Granada, Castile (or Spain) holds 55 % of Iberia
-	if = {
-		limit = {
-			NOT = { has_global_variable = gp_sc_reconquista }
-			NOT = { country_exists = c:GRA }
-			OR = {
-				c:CAS ?= {
-					has_variable = gp_region_share
-					var:gp_region_share >= 0.55
-				}
-				c:SPA ?= {
-					has_variable = gp_region_share
-					var:gp_region_share >= 0.55
-				}
-			}
-		}
-		set_global_variable = { name = gp_sc_reconquista value = 1 }
-	}
-	# 4B a Portuguese Iberia: Portugal holds 40 % of the peninsula
-	if = {
-		limit = {
-			NOT = { has_global_variable = gp_sc_portugal }
-			c:POR ?= {
-				has_variable = gp_region_share
-				var:gp_region_share >= 0.4
-			}
-		}
-		set_global_variable = { name = gp_sc_portugal value = 1 }
-		c:POR ?= {
-			set_variable = gp_region_claim
-			set_variable = { name = gp_region_claim_years value = 20 }
-		}
-		c:CAS ?= { gp_sc_course = { POSTURE = recovery YEARS = 6 } }
-	}
-	# 4C the Aragonese sea: Aragon holds Sicily or Sardinia and three locations in Italy
-	if = {
-		limit = {
-			NOT = { has_global_variable = gp_sc_aragon_sea }
-			c:ARA ?= {
-				OR = {
-					owns = location:palermo
-					owns = location:cagliari
-					owns = location:sassari
-				}
-				any_owned_location = {
-					count >= 3
-					region = region:italy_region
-				}
-			}
-		}
-		set_global_variable = { name = gp_sc_aragon_sea value = 1 }
-	}
-	# 4D Granada holds: by 1450 Granada lives and is allied with Morocco
-	if = {
-		limit = {
-			NOT = { has_global_variable = gp_sc_granada_holds }
-			current_date >= 1450.1.1
-			c:GRA ?= {
-				c:MOR ?= { is_allied_with = { target = prev } }
-			}
-		}
-		set_global_variable = { name = gp_sc_granada_holds value = 1 }
-		c:GRA ?= { save_scope_as = gp_gra }
-		c:MOR ?= { set_variable = { name = gp_sc_protect value = scope:gp_gra } }
-		c:CAS ?= { gp_sc_prepare = { TARGET = gp_gra } }
-		clear_saved_scope = gp_gra
-	}
-}
+# ---- 4. Iberia: the Iberian chess game, gp_scenarios_iberia.txt (v0.9) ---------------------------------
 
 # ================================================================================================
 # Directions set by the scenarios (called at the end of gp_update_directions, AI only, scope:gp_c)
@@ -423,6 +354,14 @@ gp_sc_directions = {
 		limit = {
 			has_global_variable = gp_sc_granada_holds
 			tag = MOR
+		}
+		gp_sc_dir_add = { DIR = maghrebi }
+	}
+	# v0.9 Portugal, master of its Iberian game, crosses to the Maghreb (and no further into Africa)
+	if = {
+		limit = {
+			has_variable = gp_ib_overseas
+			global_var:gp_ib_por ?= scope:gp_c
 		}
 		gp_sc_dir_add = { DIR = maghrebi }
 	}
