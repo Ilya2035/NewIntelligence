@@ -365,6 +365,12 @@ gp_sc_directions = {
 		}
 		gp_sc_dir_add = { DIR = maghrebi }
 	}
+	# v0.10 the victorious France: client states in Italy, Algiers and Tunis
+	if = {
+		limit = { has_variable = gp_sc_fr_victor }
+		gp_sc_dir_add = { DIR = into_italy }
+		gp_sc_dir_add = { DIR = maghrebi }
+	}
 	gp_sc_directions_central = yes	# v0.6 (gp_scenarios_central.txt)
 }
 

@@ -582,6 +582,8 @@ gp_sc_isles_sail = {
 		}
 		# v0.9 the winner of the Iberian game (gp_scenarios_iberia.txt)
 		has_variable = gp_ib_overseas
+		# v0.10 the victorious France: Louisiana, the Caribbean
+		has_variable = gp_sc_fr_victor
 	}
 }
 
@@ -650,4 +652,32 @@ gp_ib_french_favour = {
 # Country scope (Aragon): the same, for the modifier.
 gp_ib_french_favour_here = {
 	gp_ib_french_favour = yes
+}
+
+# v0.10 Country scope: a plot is brewing against our crown (a marriage of crowns, gp_scenarios_iberia.txt).
+gp_ib_plot_against_us = {
+	OR = {
+		AND = {
+			has_global_variable = gp_sc_ib_mar_por
+			global_var:gp_sc_ib_mar_por = 1
+			global_var:gp_sc_ib_victim_por ?= this
+		}
+		AND = {
+			has_global_variable = gp_sc_ib_mar_ara
+			global_var:gp_sc_ib_mar_ara = 1
+			global_var:gp_sc_ib_victim_ara ?= this
+		}
+	}
+}
+
+# v0.10 The great crowns of the West (England, France, Castile, Portugal, Aragon - the crowns saved by the scenarios):
+# beyond their own region they make client states, they do not take land (author, 2026-11-07).
+gp_is_great_crown = {
+	OR = {
+		global_var:gp_sc_eng_crown ?= this
+		global_var:gp_sc_fra_crown ?= this
+		global_var:gp_ib_cas ?= this
+		global_var:gp_ib_por ?= this
+		global_var:gp_ib_ara ?= this
+	}
 }

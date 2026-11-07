@@ -1118,3 +1118,164 @@ gp_yan_f = {
 		set_country_rank_effect = { rank = country_rank:rank_kingdom }
 	}
 }
+
+# ---- v0.10 after the break-up of France and the Hundred Years' War (author, 2026-11-07: "the French lands may come
+# together not as France but as something new - a kingdom of the south, Lotharingia, the Kingdom of Burgundy; and whoever
+# holds all England and all France deserves a name of its own") ----
+
+# Occitania - the lands of the langue d'oc gathered into a kingdom of the south.
+gp_occitania_f = {
+	level = 3
+	required_locations_fraction = 0.8
+	rule = plausible
+	content_priority = 700
+
+	potential = {
+		OR = {
+			tag = TOU
+			tag = AQN
+			tag = PRO
+			tag = GUY
+			tag = AMG
+			tag = FOI
+			culture = culture:languedocien
+			culture = culture:gascon
+			culture = culture:provencal
+			culture = culture:limousin
+			culture = culture:auvergnat
+		}
+	}
+
+	allow = {
+		owns = location:toulouse
+	}
+
+	name = OCC
+	flag = TOU
+	adjective = OCC_ADJ
+	tag = OCC
+	color = map_OCC
+
+	areas = {
+		languedoc_area
+		guyenne_area
+		gascony_area
+		provence_area
+		auvergne_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# Lotharingia - the middle kingdom between France and the Empire, revived from Lorraine and Champagne.
+gp_lotharingia_f = {
+	level = 3
+	required_locations_fraction = 0.8
+	rule = plausible
+	content_priority = 700
+
+	potential = {
+		OR = {
+			tag = LOR
+			tag = BAR
+			tag = CHP
+			tag = MTZ
+			culture = culture:lorrain
+			culture = culture:franc_comtois
+		}
+	}
+
+	allow = {
+		owns = location:nancy
+	}
+
+	name = LTG
+	flag = LOR
+	adjective = LTG_ADJ
+	tag = LTG
+	color = map_LTG
+
+	areas = {
+		lorraine_area
+		champagne_area
+		franche_comte_area
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_kingdom }
+	}
+}
+
+# The Holy British Empire - one crown over all England and all France.
+gp_holy_british_f = {
+	level = 5
+	required_locations_fraction = 0.9
+	rule = plausible
+	content_priority = 800
+
+	potential = {
+		OR = {
+			tag = ENG
+			tag = GBR
+			tag = AGV
+			culture = culture:english
+			culture = culture:norman
+		}
+	}
+
+	allow = {
+		owns = location:london
+		owns = location:paris
+	}
+
+	name = HBE
+	flag = GBR
+	adjective = HBE_ADJ
+	tag = HBE
+	color = map_HBE
+
+	regions = {
+		great_britain_region
+		france_region
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_empire }
+	}
+}
+
+# The Iberian Union - one crown over all Iberia, whoever wins the Iberian game.
+gp_iberian_union_f = {
+	level = 3
+	required_locations_fraction = 0.9
+	rule = plausible
+	content_priority = 750
+
+	potential = {
+		exists = capital
+		capital.region = region:iberia_region
+		OR = {
+			tag = CAS
+			tag = SPA
+			tag = POR
+			tag = ARA
+			tag = MDC
+		}
+	}
+
+	allow = {
+		owns = location:madrid
+	}
+
+	name = IBU
+	flag = SPA
+	adjective = IBU_ADJ
+	tag = IBU
+	color = map_IBU
+
+	regions = {
+		iberia_region
+	}
+	form_effect = {
+		set_country_rank_effect = { rank = country_rank:rank_empire }
+	}
+}

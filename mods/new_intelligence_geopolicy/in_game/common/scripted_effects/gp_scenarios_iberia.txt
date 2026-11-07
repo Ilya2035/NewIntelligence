@@ -291,66 +291,24 @@ gp_ib_verdict = {
 	}
 }
 
-# ---- the unions -------------------------------------------------------------------------------------
+# ---- the unions and the plots (v0.10) ------------------------------------------------------------------
+# Author, 2026-11-07: ten years of alliance between Castile and Aragon (or Castile and Portugal) bring a marriage of
+# crowns. If their relations are not ideal (opinion under 150) and one is stronger, the stronger plots against the other
+# court before 1450: an attempt on the king (bandits on the road), 50 % - for Portugal less, the more it guards its king
+# (three decisions, down to 5 %). Success: an AI Aragon falls under Castile as a vassal at once (one crown after 30
+# years); otherwise the victim is shaken (crisis +40). Either way the plotter gets an endless claim on the other court
+# (casus belli "Claim to the throne", gp_cb_dynastic_claim: the war makes the loser its vassal, not land); a failed plot
+# also breaks the alliance. In the Portuguese case France stands by Castile and England by Portugal. A crown with 90 % of
+# the two crowns' strength skips the plot: the claim "absorb the weakened court" comes at once. Ideal relations (150+):
+# the peaceful marriage of v0.9 - the weaker crown (AI) becomes the vassal of the stronger.
+# Global variables per pair ($KEY$ = ara, por): gp_sc_ib_mar_$KEY$_years, gp_sc_ib_mar_$KEY$ (1 marriage, 2 the plot
+# succeeded, 3 the plot was exposed, 4 the weakened court, 5 the peaceful union), gp_sc_ib_plotter_$KEY$,
+# gp_sc_ib_victim_$KEY$. Country variable gp_ib_guards (Portugal's decisions, 0..3).
 
 gp_ib_unions = {
-	# Castile and Aragon: ten years of alliance make a dynastic union - the weaker crown becomes the vassal of the
-	# stronger (only an AI crown is made a vassal), thirty years later the senior crown absorbs it
-	if = {
-		limit = {
-			NOT = { has_global_variable = gp_sc_ib_union }
-			gp_ib_free = { WHO = cas }
-			gp_ib_free = { WHO = ara }
-		}
-		if = {
-			limit = { scope:gp_cas = { is_allied_with = { target = scope:gp_ara } } }
-			if = {
-				limit = { NOT = { has_global_variable = gp_sc_ib_marriage_years } }
-				set_global_variable = { name = gp_sc_ib_marriage_years value = 0 }
-			}
-			set_global_variable = {
-				name = gp_sc_ib_marriage_years
-				value = {
-					value = global_var:gp_sc_ib_marriage_years
-					add = 1
-				}
-			}
-			if = {
-				limit = { global_var:gp_sc_ib_marriage_years >= 10 }
-				if = {
-					limit = {
-						scope:gp_cas = { country_strength >= scope:gp_ara.country_strength }
-						scope:gp_ara = { is_ai = yes }
-					}
-					scope:gp_ara = {
-						make_subject_of = {
-							target = scope:gp_cas
-							type = subject_type:vassal
-						}
-					}
-					set_global_variable = { name = gp_sc_ib_union value = 1 }
-					set_global_variable = { name = gp_sc_ib_union_years value = 0 }
-				}
-				else_if = {
-					limit = {
-						scope:gp_ara = { country_strength > scope:gp_cas.country_strength }
-						scope:gp_cas = { is_ai = yes }
-					}
-					scope:gp_cas = {
-						make_subject_of = {
-							target = scope:gp_ara
-							type = subject_type:vassal
-						}
-					}
-					set_global_variable = { name = gp_sc_ib_union value = 2 }
-					set_global_variable = { name = gp_sc_ib_union_years value = 0 }
-				}
-			}
-		}
-		else = {
-			set_global_variable = { name = gp_sc_ib_marriage_years value = 0 }
-		}
-	}
+	gp_ib_marriage = { KEY = ara OTHER = gp_ara }
+	gp_ib_marriage = { KEY = por OTHER = gp_por }
+	# the peaceful union: thirty years to one crown
 	if = {
 		limit = {
 			has_global_variable = gp_sc_ib_union
@@ -371,7 +329,324 @@ gp_ib_unions = {
 		}
 		gp_ib_union_tick = { SENIOR = gp_ara JUNIOR = gp_cas }
 	}
-	# Portugal under Castile: fifty years; loyalty 40+ - Castile absorbs it, else the Restoration
+	gp_ib_portugal_under_castile = yes
+}
+
+# One pair: Castile and scope:$OTHER$.
+gp_ib_marriage = {
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_ib_mar_$KEY$ }
+			gp_ib_free = { WHO = cas }
+			gp_ib_free = { WHO = $KEY$ }
+		}
+		if = {
+			limit = { scope:gp_cas = { is_allied_with = { target = scope:$OTHER$ } } }
+			if = {
+				limit = { NOT = { has_global_variable = gp_sc_ib_mar_$KEY$_years } }
+				set_global_variable = { name = gp_sc_ib_mar_$KEY$_years value = 0 }
+			}
+			set_global_variable = {
+				name = gp_sc_ib_mar_$KEY$_years
+				value = {
+					value = global_var:gp_sc_ib_mar_$KEY$_years
+					add = 1
+				}
+			}
+			if = {
+				limit = { global_var:gp_sc_ib_mar_$KEY$_years >= 10 }
+				gp_ib_marriage_made = { KEY = $KEY$ OTHER = $OTHER$ }
+			}
+		}
+		else = {
+			set_global_variable = { name = gp_sc_ib_mar_$KEY$_years value = 0 }
+		}
+	}
+	# the plot ripens: 20 % a year until 1450 (at the latest in 1449)
+	else_if = {
+		limit = {
+			has_global_variable = gp_sc_ib_mar_$KEY$
+			global_var:gp_sc_ib_mar_$KEY$ = 1
+		}
+		if = {
+			limit = {
+				global_var:gp_sc_ib_plotter_$KEY$ ?= { gp_is_real_country = yes }
+				global_var:gp_sc_ib_victim_$KEY$ ?= { gp_is_real_country = yes }
+			}
+			global_var:gp_sc_ib_plotter_$KEY$ ?= { save_scope_as = gp_plotter }
+			global_var:gp_sc_ib_victim_$KEY$ ?= { save_scope_as = gp_victim }
+			if = {
+				limit = { current_date >= 1449.1.1 }
+				gp_ib_plot = { KEY = $KEY$ }
+			}
+			else = {
+				random_list = {
+					20 = { gp_ib_plot = { KEY = $KEY$ } }
+					80 = { }
+				}
+			}
+			clear_saved_scope = gp_plotter
+			clear_saved_scope = gp_victim
+		}
+		else = {
+			set_global_variable = { name = gp_sc_ib_mar_$KEY$ value = 3 }
+		}
+	}
+}
+
+gp_ib_marriage_made = {
+	set_variable = {
+		name = gp_ib_tmp_share
+		value = {
+			value = "scope:gp_cas.country_strength"
+			divide = {
+				value = "scope:gp_cas.country_strength"
+				add = "scope:$OTHER$.country_strength"
+				min = 1
+			}
+		}
+	}
+	# 90 % of the strength: no plot is needed
+	if = {
+		limit = { var:gp_ib_tmp_share >= 0.9 }
+		set_global_variable = { name = gp_sc_ib_mar_$KEY$ value = 4 }
+		scope:gp_cas = {
+			gp_ib_claim = { TARGET = $OTHER$ }
+			trigger_event_non_silently = gp_sc.4
+		}
+	}
+	else_if = {
+		limit = { var:gp_ib_tmp_share <= 0.1 }
+		set_global_variable = { name = gp_sc_ib_mar_$KEY$ value = 4 }
+		scope:$OTHER$ = {
+			gp_ib_claim = { TARGET = gp_cas }
+			trigger_event_non_silently = gp_sc.4
+		}
+	}
+	# ideal relations: the peaceful union (Castile and Aragon only, the weaker crown run by the AI)
+	else_if = {
+		limit = {
+			scope:gp_cas = { opinion = { target = scope:$OTHER$ value >= 150 } }
+			scope:$OTHER$ = { opinion = { target = scope:gp_cas value >= 150 } }
+		}
+		set_global_variable = { name = gp_sc_ib_mar_$KEY$ value = 5 }
+		if = {
+			limit = {
+				scope:$OTHER$ = { tag = ARA }
+				var:gp_ib_tmp_share >= 0.5
+				scope:gp_ara = { is_ai = yes }
+			}
+			scope:gp_ara = {
+				make_subject_of = {
+					target = scope:gp_cas
+					type = subject_type:vassal
+				}
+			}
+			set_global_variable = { name = gp_sc_ib_union value = 1 }
+			set_global_variable = { name = gp_sc_ib_union_years value = 0 }
+		}
+		else_if = {
+			limit = {
+				scope:$OTHER$ = { tag = ARA }
+				var:gp_ib_tmp_share < 0.5
+				scope:gp_cas = { is_ai = yes }
+			}
+			scope:gp_cas = {
+				make_subject_of = {
+					target = scope:gp_ara
+					type = subject_type:vassal
+				}
+			}
+			set_global_variable = { name = gp_sc_ib_union value = 2 }
+			set_global_variable = { name = gp_sc_ib_union_years value = 0 }
+		}
+	}
+	# the marriage, and a plot ahead (before 1450): the stronger plots; Castile and Aragon close in strength - Castile
+	# with 60 %, Aragon with 40 %; against Portugal it is always Castile
+	else_if = {
+		limit = { current_date < 1450.1.1 }
+		set_global_variable = { name = gp_sc_ib_mar_$KEY$ value = 1 }
+		if = {
+			limit = {
+				scope:$OTHER$ = { tag = ARA }
+				var:gp_ib_tmp_share >= 0.45
+				var:gp_ib_tmp_share <= 0.55
+			}
+			random_list = {
+				60 = { gp_ib_set_plotter = { KEY = $KEY$ PLOTTER = gp_cas VICTIM = $OTHER$ } }
+				40 = { gp_ib_set_plotter = { KEY = $KEY$ PLOTTER = $OTHER$ VICTIM = gp_cas } }
+			}
+		}
+		else_if = {
+			limit = {
+				OR = {
+					var:gp_ib_tmp_share > 0.55
+					scope:$OTHER$ = { tag = POR }
+				}
+			}
+			gp_ib_set_plotter = { KEY = $KEY$ PLOTTER = gp_cas VICTIM = $OTHER$ }
+		}
+		else = {
+			gp_ib_set_plotter = { KEY = $KEY$ PLOTTER = $OTHER$ VICTIM = gp_cas }
+		}
+		scope:gp_cas = { trigger_event_non_silently = gp_sc.1 }
+		scope:$OTHER$ = { trigger_event_non_silently = gp_sc.1 }
+	}
+	remove_variable = gp_ib_tmp_share
+}
+
+gp_ib_set_plotter = {
+	set_global_variable = { name = gp_sc_ib_plotter_$KEY$ value = scope:$PLOTTER$ }
+	set_global_variable = { name = gp_sc_ib_victim_$KEY$ value = scope:$VICTIM$ }
+}
+
+# The attempt (scope:gp_plotter, scope:gp_victim). The chance: 50 %, minus 15 for each of the victim's guard decisions.
+gp_ib_plot = {
+	if = {
+		limit = { scope:gp_victim = { NOT = { has_variable = gp_ib_guards } } }
+		random_list = {
+			50 = { gp_ib_plot_success = { KEY = $KEY$ } }
+			50 = { gp_ib_plot_exposed = { KEY = $KEY$ } }
+		}
+	}
+	else_if = {
+		limit = { scope:gp_victim = { var:gp_ib_guards <= 1 } }
+		random_list = {
+			35 = { gp_ib_plot_success = { KEY = $KEY$ } }
+			65 = { gp_ib_plot_exposed = { KEY = $KEY$ } }
+		}
+	}
+	else_if = {
+		limit = { scope:gp_victim = { var:gp_ib_guards <= 2 } }
+		random_list = {
+			20 = { gp_ib_plot_success = { KEY = $KEY$ } }
+			80 = { gp_ib_plot_exposed = { KEY = $KEY$ } }
+		}
+	}
+	else = {
+		random_list = {
+			5 = { gp_ib_plot_success = { KEY = $KEY$ } }
+			95 = { gp_ib_plot_exposed = { KEY = $KEY$ } }
+		}
+	}
+	gp_ib_plot_allies = yes
+}
+
+gp_ib_plot_success = {
+	set_global_variable = { name = gp_sc_ib_mar_$KEY$ value = 2 }
+	if = {
+		limit = {
+			scope:gp_victim = {
+				is_ai = yes
+				NOT = { tag = POR }
+			}
+		}
+		scope:gp_victim = {
+			make_subject_of = {
+				target = scope:gp_plotter
+				type = subject_type:vassal
+			}
+		}
+		if = {
+			limit = { scope:gp_plotter = scope:gp_cas }
+			set_global_variable = { name = gp_sc_ib_union value = 1 }
+		}
+		else = {
+			set_global_variable = { name = gp_sc_ib_union value = 2 }
+		}
+		set_global_variable = { name = gp_sc_ib_union_years value = 0 }
+	}
+	else = {
+		scope:gp_victim = { gp_crisis_shock = { AMOUNT = 40 } }
+		scope:gp_plotter = { gp_ib_claim = { TARGET = gp_victim } }
+	}
+	scope:gp_plotter = { trigger_event_non_silently = gp_sc.2 }
+	scope:gp_victim = { trigger_event_non_silently = gp_sc.2 }
+}
+
+gp_ib_plot_exposed = {
+	set_global_variable = { name = gp_sc_ib_mar_$KEY$ value = 3 }
+	scope:gp_plotter = {
+		if = {
+			limit = { is_allied_with = { target = scope:gp_victim } }
+			remove_relation = {
+				type = relation_type:alliance
+				first = scope:gp_plotter
+				second = scope:gp_victim
+			}
+		}
+		gp_ib_claim = { TARGET = gp_victim }
+	}
+	scope:gp_victim = {
+		add_opinion = { target = scope:gp_plotter modifier = gp_opinion_regicide_plot }
+	}
+	scope:gp_plotter = { trigger_event_non_silently = gp_sc.3 }
+	scope:gp_victim = { trigger_event_non_silently = gp_sc.3 }
+}
+
+# Portugal's plot: France stands by Castile, England by Portugal.
+gp_ib_plot_allies = {
+	if = {
+		limit = { scope:gp_victim = { tag = POR } }
+		scope:gp_fra ?= {
+			if = {
+				limit = { NOT = { this = scope:gp_plotter } }
+				set_variable = { name = gp_sc_ally value = scope:gp_plotter }
+			}
+		}
+		scope:gp_eng ?= {
+			if = {
+				limit = { NOT = { this = scope:gp_victim } }
+				set_variable = { name = gp_sc_protect value = scope:gp_victim }
+			}
+		}
+	}
+}
+
+# Country scope: an endless claim on the court of scope:$TARGET$ (gp_cb_dynastic_claim), kept until it is our vassal or
+# gone; an AI country prepares the war and picks its moment.
+gp_ib_claim = {
+	set_variable = { name = gp_sc_claim_target value = scope:$TARGET$ }
+	if = {
+		limit = {
+			is_ai = yes
+			gp_is_active = yes
+			NOT = { this = scope:$TARGET$ }
+		}
+		gp_set_posture = { POSTURE = preparation }
+		set_variable = { name = gp_war_target value = scope:$TARGET$ }
+		set_variable = { name = gp_posture_left value = 6 }
+	}
+}
+
+gp_ib_union_tick = {
+	set_global_variable = {
+		name = gp_sc_ib_union_years
+		value = {
+			value = global_var:gp_sc_ib_union_years
+			add = 1
+		}
+	}
+	if = {
+		limit = {
+			global_var:gp_sc_ib_union_years >= 30
+			scope:$JUNIOR$ = { is_ai = yes }
+		}
+		set_global_variable = { name = gp_sc_ib_union value = 3 }
+		scope:$SENIOR$ = {
+			annex_country = {
+				country = scope:$JUNIOR$
+				reason = Diplomatic
+				transfer = yes
+			}
+		}
+	}
+}
+
+# Portugal under Castile (author, 2026-11-07): after 30 years with loyalty 40+ it is absorbed (an AI Portugal); if
+# Castile cannot bring it to that in 100 years, Portugal goes free for good - the Restoration, and Castile never claims
+# it again (eternal peace twenty years on, gp_sc_ib_peace_years).
+gp_ib_portugal_under_castile = {
 	if = {
 		limit = {
 			NOT = { has_global_variable = gp_sc_ib_portugal }
@@ -401,40 +676,45 @@ gp_ib_unions = {
 			}
 		}
 		if = {
-			limit = { global_var:gp_sc_ib_pu_years >= 50 }
-			if = {
-				limit = {
-					scope:gp_por = {
-						is_ai = yes
-						subject_loyalty >= 40
-					}
-				}
-				set_global_variable = { name = gp_sc_ib_portugal value = 1 }
-				scope:gp_cas = {
-					annex_country = {
-						country = scope:gp_por
-						reason = Diplomatic
-						transfer = yes
-					}
+			limit = {
+				global_var:gp_sc_ib_pu_years >= 30
+				scope:gp_por = {
+					is_ai = yes
+					subject_loyalty >= 40
 				}
 			}
-			else = {
-				# the Restoration: Portugal rises and only has to hold its own land
-				set_global_variable = { name = gp_sc_ib_portugal value = 2 }
-				set_global_variable = { name = gp_sc_ib_peace_years value = 0 }
-				scope:gp_cas = { cancel_subject = scope:gp_por }
-				scope:gp_por = {
-					if = {
-						limit = { has_country_modifier = gp_sc_portuguese_pride }
-						remove_country_modifier = gp_sc_portuguese_pride
-					}
-					if = {
-						limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
-						add_country_modifier = { modifier = gp_sc_restoration years = 20 }
-					}
-					set_variable = { name = gp_ib_goal value = 22 }
+			set_global_variable = { name = gp_sc_ib_portugal value = 1 }
+			scope:gp_cas = {
+				annex_country = {
+					country = scope:gp_por
+					reason = Diplomatic
+					transfer = yes
 				}
-				scope:gp_cas = { gp_sc_prepare = { TARGET = gp_por } }
+			}
+		}
+		else_if = {
+			limit = { global_var:gp_sc_ib_pu_years >= 100 }
+			# the Restoration: Portugal rises and only has to hold its own land
+			set_global_variable = { name = gp_sc_ib_portugal value = 2 }
+			set_global_variable = { name = gp_sc_ib_peace_years value = 0 }
+			scope:gp_cas = { cancel_subject = scope:gp_por }
+			scope:gp_por = {
+				if = {
+					limit = { has_country_modifier = gp_sc_portuguese_pride }
+					remove_country_modifier = gp_sc_portuguese_pride
+				}
+				if = {
+					limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+					add_country_modifier = { modifier = gp_sc_restoration years = 20 }
+				}
+				set_variable = { name = gp_ib_goal value = 22 }
+			}
+			scope:gp_cas = {
+				if = {
+					limit = { var:gp_sc_claim_target ?= scope:gp_por }
+					remove_variable = gp_sc_claim_target
+				}
+				gp_sc_prepare = { TARGET = gp_por }
 			}
 		}
 	}
@@ -465,27 +745,17 @@ gp_ib_unions = {
 	}
 }
 
-gp_ib_union_tick = {
-	set_global_variable = {
-		name = gp_sc_ib_union_years
-		value = {
-			value = global_var:gp_sc_ib_union_years
-			add = 1
-		}
-	}
+# Every country, yearly: an endless claim lasts until the target is our vassal or gone.
+gp_ib_claim_upkeep = {
 	if = {
 		limit = {
-			global_var:gp_sc_ib_union_years >= 30
-			scope:$JUNIOR$ = { is_ai = yes }
-		}
-		set_global_variable = { name = gp_sc_ib_union value = 3 }
-		scope:$SENIOR$ = {
-			annex_country = {
-				country = scope:$JUNIOR$
-				reason = Diplomatic
-				transfer = yes
+			has_variable = gp_sc_claim_target
+			OR = {
+				NOT = { var:gp_sc_claim_target ?= { gp_is_real_country = yes } }
+				var:gp_sc_claim_target ?= { is_subject_of = prev }
 			}
 		}
+		remove_variable = gp_sc_claim_target
 	}
 }
 
@@ -1114,6 +1384,14 @@ gp_sc_release_vassal_of = {
 # ================================================================================================
 
 gp_ib_country_upkeep = {
+	gp_ib_claim_upkeep = yes	# v0.10 endless dynastic claims
+	if = {
+		limit = {
+			gp_is_great_crown = yes
+			NOT = { has_variable = gp_sc_puppeteer }
+		}
+		set_variable = gp_sc_puppeteer	# v0.10 client states, not land, beyond the home region
+	}
 	if = {
 		limit = {
 			NOT = { has_game_rule = gp_scenario_mods_off }
@@ -1146,4 +1424,38 @@ gp_ib_mark_foreign = {
 		remove_location_modifier = gp_sc_foreign_crown
 	}
 	add_location_modifier = { modifier = gp_sc_foreign_crown days = 400 }
+}
+
+# Country scope: one more guard around the king (decisions in gp_decisions.txt).
+gp_ib_add_guard = {
+	if = {
+		limit = { NOT = { has_variable = gp_ib_guards } }
+		set_variable = { name = gp_ib_guards value = 0 }
+	}
+	change_variable = { name = gp_ib_guards add = 1 }
+}
+
+# v0.10 The break-up of Spain (a crisis of 120 for the Castilian crown, once a game; gp_crisis_effects.txt): Catalonia,
+# Aragon (with Valencia and the isles), Navarre, Leon, Galicia, Toledo, Andalusia (Seville), Murcia, Granada and the
+# Portuguese land; the crown keeps the area of its capital. The other great crowns pick up the pieces as client states.
+gp_sc_spain_breakup = {
+	if = {
+		limit = { NOT = { has_global_variable = gp_sc_spain_broken } }
+		set_global_variable = { name = gp_sc_spain_broken value = 1 }
+		save_scope_as = gp_brk
+		gp_sc_release_state = { TAG = CAT AREA = catalonia_area }
+		gp_sc_release_state = { TAG = ARA AREA = aragon_area }
+		gp_sc_release_state = { TAG = ARA AREA = valencia_area }
+		gp_sc_release_state = { TAG = ARA AREA = balearics_area }
+		gp_sc_release_state = { TAG = NAV AREA = navarre_area }
+		gp_sc_release_state = { TAG = LON AREA = leon_area }
+		gp_sc_release_state = { TAG = GLC AREA = galicia_area }
+		gp_sc_release_state = { TAG = TOL AREA = toledo_area }
+		gp_sc_release_state = { TAG = SEV AREA = andalusia_area }
+		gp_sc_release_state = { TAG = MUC AREA = murcia_area }
+		gp_sc_release_state = { TAG = GRA AREA = granada_area }
+		gp_sc_release_state = { TAG = POR AREA = north_portugal_area }
+		gp_sc_release_state = { TAG = POR AREA = south_portugal_area }
+		clear_saved_scope = gp_brk
+	}
 }

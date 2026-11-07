@@ -110,6 +110,13 @@ gp_crisis_apply = {
 				}
 				gp_sc_england_breakup = yes
 			}
+			else_if = {
+				limit = {
+					global_var:gp_ib_cas ?= this
+					NOT = { has_global_variable = gp_sc_spain_broken }
+				}
+				gp_sc_spain_breakup = yes
+			}
 			else = {
 				gp_crisis_release_fief = { WHERE = outer }
 				gp_crisis_release_fief = { WHERE = outer }

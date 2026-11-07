@@ -375,3 +375,39 @@ gp_target_scenario_vassal = {
 		add = 800
 	}
 }
+
+# v0.10 The claim to the throne (gp_cb_dynastic_claim): the AI waits for its moment (no truce, a year after its last war,
+# not in a calm posture) and then goes for the crown.
+gp_target_dynastic_claim = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_sc_claim_target
+		at_war = no
+		months_since_war >= 12
+		NOT = { gp_is_calm_posture = yes }
+	}
+	candidate_list = {
+		var:gp_sc_claim_target ?= {
+			if = {
+				limit = {
+					gp_is_real_country = yes
+					is_subject = no
+					NOT = { has_truce_with = root }
+				}
+				add_to_list = source
+			}
+		}
+	}
+	casus_belli = casus_belli:gp_cb_dynastic_claim
+	score = {
+		add = 28
+		add = {
+			value = scope:target.country_tax_base
+			divide = 100
+		}
+	}
+	sort_value = {
+		add = 850
+	}
+}

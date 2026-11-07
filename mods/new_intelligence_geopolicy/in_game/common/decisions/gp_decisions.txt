@@ -1,0 +1,97 @@
+﻿###################################
+# New Intelligence: Geopolicy - decisions (prefix gp_), v0.10
+#
+# Guarding the Portuguese king (author, 2026-11-07): while a marriage of crowns binds Portugal to Castile and a plot is
+# brewing (gp_scenarios_iberia.txt, gp_sc_ib_mar_por = 1, Portugal the victim), Portugal may take three measures; each
+# cuts the chance of the attempt (50 % -> 35 -> 20 -> 5 %). Format as the Battle mod's decisions.
+###################################
+
+gp_guard_the_king = {
+	decision_category = government_decisions
+
+	potential = {
+		gp_ib_plot_against_us = yes
+		NOT = { has_variable = gp_ib_guard_1 }
+	}
+
+	allow = {
+		at_war = no
+	}
+
+	ai_will_do = {
+		value = 100
+	}
+
+	option = {
+		name = gp_guard_the_king.a
+		ai_chance = { value = 100 }
+		effect = {
+			custom_tooltip = {
+				text = gp_guard_the_king_tt
+				set_variable = gp_ib_guard_1
+				gp_ib_add_guard = yes
+			}
+		}
+	}
+}
+
+gp_order_at_court = {
+	decision_category = government_decisions
+
+	potential = {
+		gp_ib_plot_against_us = yes
+		NOT = { has_variable = gp_ib_guard_2 }
+	}
+
+	allow = {
+		stability >= 0
+	}
+
+	ai_will_do = {
+		value = 100
+	}
+
+	option = {
+		name = gp_order_at_court.a
+		ai_chance = { value = 100 }
+		effect = {
+			custom_tooltip = {
+				text = gp_guard_the_king_tt
+				set_variable = gp_ib_guard_2
+				gp_ib_add_guard = yes
+			}
+		}
+	}
+}
+
+gp_loyal_men = {
+	decision_category = government_decisions
+
+	potential = {
+		gp_ib_plot_against_us = yes
+		NOT = { has_variable = gp_ib_guard_3 }
+	}
+
+	allow = {
+		OR = {
+			NOT = { has_variable = gp_crisis }
+			var:gp_crisis < 40
+		}
+	}
+
+	ai_will_do = {
+		value = 100
+	}
+
+	option = {
+		name = gp_loyal_men.a
+		ai_chance = { value = 100 }
+		effect = {
+			custom_tooltip = {
+				text = gp_guard_the_king_tt
+				set_variable = gp_ib_guard_3
+				gp_ib_add_guard = yes
+			}
+		}
+	}
+}

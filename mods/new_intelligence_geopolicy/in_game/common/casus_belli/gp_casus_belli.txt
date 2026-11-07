@@ -167,3 +167,33 @@ gp_cb_scenario_vassal = {
 		}
 	}
 }
+
+# v0.10 Claim to the throne (gp_scenarios_iberia.txt): after a marriage of crowns and a plot - or against a court too
+# weak to matter - the claimant may take the other crown as its vassal. Endless: it lasts while var:gp_sc_claim_target
+# points at a free country (gp_ib_claim_upkeep); the AI picks its moment.
+gp_cb_dynastic_claim = {
+	years = 10
+	speed = 50
+
+	create_visible = {
+		has_variable = gp_sc_claim_target
+		scope:target ?= root.var:gp_sc_claim_target
+	}
+	create_enabled = {
+		NOT = { has_truce_with = scope:target }
+	}
+
+	war_goal_type = take_capital_subjugation
+
+	ai_subjugation_desire = 1000
+	ai_cede_location_desire = -1000
+
+	additional_war_enthusiasm_attacker = 0.15
+
+	ai_will_do = {
+		add = {
+			desc = "BASE"
+			value = 25
+		}
+	}
+}

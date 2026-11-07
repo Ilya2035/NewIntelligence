@@ -1,0 +1,70 @@
+﻿namespace = gp_sc
+
+###################################
+# New Intelligence: Geopolicy - scenario events (prefix gp_), v0.10
+# Fired by the scenario scripts (trigger_event_non_silently), never by themselves: they tell the player what has
+# happened; the AI gets them too and takes the only option. The consequences are already applied by the script.
+#   gp_sc.1 a marriage of crowns (gp_ib_marriage_made)        gp_sc.2 the attempt succeeded (gp_ib_plot_success)
+#   gp_sc.3 the plot was exposed (gp_ib_plot_exposed)          gp_sc.4 the weakened court (gp_ib_marriage_made)
+#   gp_sc.5 the French princes leave the Empire (gp_sc_france_leaves_empire)
+###################################
+
+gp_sc.1 = {
+	type = country_event
+	title = gp_sc.1.title
+	desc = gp_sc.1.desc
+	outcome = neutral
+	image = "gfx/interface/illustrations/disaster/succession_crisis.dds"
+
+	option = {
+		name = gp_sc.1.a
+	}
+}
+
+gp_sc.2 = {
+	type = country_event
+	title = gp_sc.2.title
+	desc = gp_sc.2.desc
+	outcome = neutral
+	image = "gfx/interface/illustrations/disaster/succession_crisis.dds"
+
+	option = {
+		name = gp_sc.2.a
+	}
+}
+
+gp_sc.3 = {
+	type = country_event
+	title = gp_sc.3.title
+	desc = gp_sc.3.desc
+	outcome = neutral
+	image = "gfx/interface/illustrations/disaster/succession_crisis.dds"
+
+	option = {
+		name = gp_sc.3.a
+	}
+}
+
+gp_sc.4 = {
+	type = country_event
+	title = gp_sc.4.title
+	desc = gp_sc.4.desc
+	outcome = positive
+	image = "gfx/interface/illustrations/disaster/succession_crisis.dds"
+
+	option = {
+		name = gp_sc.4.a
+	}
+}
+
+gp_sc.5 = {
+	type = country_event
+	title = gp_sc.5.title
+	desc = gp_sc.5.desc
+	outcome = neutral
+	image = "gfx/interface/illustrations/situation/hundred_years_war.dds"
+
+	option = {
+		name = gp_sc.5.a
+	}
+}

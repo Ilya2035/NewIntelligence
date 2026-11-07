@@ -523,7 +523,12 @@ gp_sc_hyw_french_victory = {
 			add_country_modifier = { modifier = gp_sc_wooden_walls years = 100 }
 		}
 	}
-	scope:gp_fra = { gp_sc_prepare = { TARGET = gp_eng } }
+	scope:gp_fra = {
+		gp_sc_prepare = { TARGET = gp_eng }
+		# v0.10 the victor: an empire overseas (Louisiana, the Caribbean), Algiers and Tunis, client states in Italy
+		set_variable = gp_sc_fr_victor
+		set_variable = gp_sc_puppeteer
+	}
 }
 
 # 2 French foothold: England gets five years to recover, then strikes.
@@ -882,6 +887,7 @@ gp_sc_france_upkeep = {
 		}
 		clear_saved_scope = gp_fl
 	}
+	gp_sc_france_later = yes	# v0.10
 }
 
 # ================================================================================================
@@ -988,4 +994,129 @@ gp_sc_overseas = {
 		gp_pref_keep = { PREF = gp_colonial_ambition }
 		set_variable = gp_overseas_open
 	}
+}
+
+# ================================================================================================
+# v0.10 Later France (author, 2026-11-07), anchor scope with the crowns saved; from gp_sc_france_upkeep
+# ================================================================================================
+
+gp_sc_france_later = {
+	# the French princes leave the Empire: forty years after the break-up of France they walk out, Vienna resists;
+	# freed, each gets the right to unite France (20 years) and "French liberty" (morale +10 %, 20 years) - a battle royale
+	if = {
+		limit = {
+			has_global_variable = gp_sc_hyw
+			global_var:gp_sc_hyw = 4
+			has_global_variable = gp_sc_hyw_years
+			global_var:gp_sc_hyw_years >= 40
+			NOT = { has_global_variable = gp_sc_france_free }
+		}
+		gp_sc_france_leaves_empire = yes
+	}
+	# France gathered again (60 % of its region in one hand while England still holds French land or a French claim):
+	# the gatherer turns on England - an endless scenario war
+	if = {
+		limit = {
+			has_global_variable = gp_sc_hyw
+			OR = {
+				global_var:gp_sc_hyw = 4
+				global_var:gp_sc_hyw = 5
+			}
+			NOT = { has_global_variable = gp_sc_france_reunited }
+			exists = scope:gp_eng
+			global_var:gp_sc_france_leader ?= {
+				has_variable = gp_region_share
+				var:gp_region_share >= 0.6
+			}
+		}
+		set_global_variable = { name = gp_sc_france_reunited value = 1 }
+		global_var:gp_sc_france_leader ?= {
+			if = {
+				limit = { NOT = { this = scope:gp_eng } }
+				gp_sc_prepare = { TARGET = gp_eng }
+			}
+		}
+	}
+	# the victorious France against Spain: 1.5 times stronger than a Castile without allies - war (10 % a year)
+	if = {
+		limit = {
+			exists = scope:gp_fra
+			scope:gp_fra = {
+				has_variable = gp_sc_fr_victor
+				is_ai = yes
+				NOT = { has_variable = gp_war_target }
+			}
+			global_var:gp_ib_cas ?= {
+				gp_is_real_country = yes
+				is_subject = no
+				NOT = { any_ally = { always = yes } }
+			}
+		}
+		global_var:gp_ib_cas ?= { save_scope_as = gp_cas_t }
+		set_variable = {
+			name = gp_sc_tmp_str
+			value = {
+				value = "scope:gp_cas_t.country_strength"
+				multiply = 1.5
+			}
+		}
+		if = {
+			limit = { scope:gp_fra = { country_strength > scope:gp_c.var:gp_sc_tmp_str } }
+			random_list = {
+				10 = { scope:gp_fra = { gp_sc_prepare = { TARGET = gp_cas_t } } }
+				90 = { }
+			}
+		}
+		remove_variable = gp_sc_tmp_str
+		clear_saved_scope = gp_cas_t
+	}
+}
+
+gp_sc_france_leaves_empire = {
+	set_global_variable = { name = gp_sc_france_free value = 1 }
+	international_organization:hre.leader_country ?= { save_scope_as = gp_emp }
+	region:france_region = {
+		every_present_country = {
+			limit = {
+				gp_is_real_country = yes
+				is_subject = no
+				exists = capital
+				capital.region = region:france_region
+				is_member_of_international_organization = international_organization:hre
+				NOT = { this = scope:gp_eng }
+				NOT = { location:london.owner ?= this }
+			}
+			international_organization:hre ?= { remove_country_from_international_organization = prev }
+			if = {
+				limit = { exists = scope:gp_emp }
+				if = {
+					limit = { var:gp_patron ?= scope:gp_emp }
+					remove_variable = gp_patron
+				}
+			}
+			set_variable = gp_region_claim
+			set_variable = { name = gp_region_claim_years value = 20 }
+			if = {
+				limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+				add_country_modifier = { modifier = gp_sc_french_liberty years = 20 }
+			}
+			trigger_event_non_silently = gp_sc.5
+		}
+	}
+	# Vienna resists: the emperor prepares a war on the strongest of them
+	gp_sc_pick_france_leader = yes
+	global_var:gp_sc_france_leader ?= { save_scope_as = gp_fl }
+	if = {
+		limit = {
+			exists = scope:gp_emp
+			exists = scope:gp_fl
+			NOT = { scope:gp_emp = scope:gp_fl }
+		}
+		scope:gp_emp = {
+			gp_sc_prepare = { TARGET = gp_fl }
+			trigger_event_non_silently = gp_sc.5
+		}
+	}
+	clear_saved_scope = gp_fl
+	clear_saved_scope = gp_emp
 }

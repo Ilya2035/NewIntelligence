@@ -95,3 +95,9 @@ gp_opinion_alliance_fatigue = {
 	min = -40
 	yearly_decay = 3
 }
+
+# v0.10 A plot against our king was exposed (gp_scenarios_iberia.txt): it takes generations to forget.
+gp_opinion_regicide_plot = {
+	value = -100
+	yearly_decay = 2
+}

@@ -1017,3 +1017,32 @@ gp_score_ib_pyrenees = {
 		add = -0.6
 	}
 }
+
+# v0.10 The great crowns beyond their region (England, France, Castile, Portugal, Aragon): land there is not wanted -
+# client states are (gp_sc_puppeteer puts the dominion casus belli first). Their own region, Ireland for the English
+# crown and the wars history prepared are not held back.
+gp_score_great_crowns_abroad = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		gp_is_great_crown = yes
+	}
+	target_trigger = {
+		exists = capital
+		NOT = { capital.region = scope:attacker.capital.region }
+		NOT = {
+			AND = {
+				capital.region = region:ireland_region
+				scope:attacker = { capital.region = region:great_britain_region }
+			}
+		}
+		NOT = { this ?= scope:attacker.var:gp_sc_cb_target }
+		NOT = { this ?= scope:attacker.var:gp_war_target }
+		NOT = { this ?= scope:attacker.var:gp_sc_vassal_target }
+		NOT = { this ?= scope:attacker.var:gp_sc_claim_target }
+	}
+	multiplier = {
+		add = -0.5
+	}
+}

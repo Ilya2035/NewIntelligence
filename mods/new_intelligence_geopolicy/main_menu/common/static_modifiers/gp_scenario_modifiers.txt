@@ -132,3 +132,9 @@ gp_sc_foreign_crown = {
 	local_max_control = -0.5
 	local_unrest = 0.25
 }
+
+# v0.10 The French princes have left the Empire (20 years): every one of them fights to gather France.
+gp_sc_french_liberty = {
+	game_data = { category = country }
+	land_morale_modifier = 0.1
+}
