@@ -1,0 +1,46 @@
+﻿###################################
+# New Intelligence: Geopolicy - message types (v0.11.1)
+# Every generic action looks up a PERFORM_<action>_ACTION message type (vanilla gui/messagetypes/00_messagetypes.txt;
+# the game log said "Failed to find message type: PERFORM_gp_col_act_natives_ACTION"). Log line only, no popup.
+# Loc: PERFORM_gp_col_act_*_ACTION* in gp_geopolicy_l_*.yml.
+###################################
+
+PERFORM_gp_col_act_natives_ACTION={
+log=yes
+onmap=no
+popup=no
+idle=no
+option=yes
+pausepopup=no
+message_category = geopolitics
+}
+
+PERFORM_gp_col_act_cattle_ACTION={
+log=yes
+onmap=no
+popup=no
+idle=no
+option=yes
+pausepopup=no
+message_category = geopolitics
+}
+
+PERFORM_gp_col_act_stockade_ACTION={
+log=yes
+onmap=no
+popup=no
+idle=no
+option=yes
+pausepopup=no
+message_category = geopolitics
+}
+
+PERFORM_gp_col_act_settlers_ACTION={
+log=yes
+onmap=no
+popup=no
+idle=no
+option=yes
+pausepopup=no
+message_category = geopolitics
+}

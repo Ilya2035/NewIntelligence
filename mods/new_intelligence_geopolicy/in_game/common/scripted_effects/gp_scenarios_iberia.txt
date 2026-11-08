@@ -395,17 +395,21 @@ gp_ib_marriage = {
 }
 
 gp_ib_marriage_made = {
+	# v0.11.1: a $PARAM$ inside a quoted script value is not substituted (game log: "scopegp_por$" at this line),
+	# so the other crown is saved under a fixed name first.
+	scope:$OTHER$ = { save_scope_as = gp_ib_other }
 	set_variable = {
 		name = gp_ib_tmp_share
 		value = {
 			value = "scope:gp_cas.country_strength"
 			divide = {
 				value = "scope:gp_cas.country_strength"
-				add = "scope:$OTHER$.country_strength"
+				add = "scope:gp_ib_other.country_strength"
 				min = 1
 			}
 		}
 	}
+	clear_saved_scope = gp_ib_other
 	# 90 % of the strength: no plot is needed
 	if = {
 		limit = { var:gp_ib_tmp_share >= 0.9 }

@@ -126,6 +126,7 @@
 | 71 | действия `type = owncountry` с `select_trigger looking_for_a = colonial_charter`, цены `scaled_gold`, `add_migration` из `capital.province_definition` | `gp_colony_actions.txt` | кнопки на панели показывают цену и условия, нажатие ставит модификатор на локации провинции |
 | 72 | GUI: `dynamicgridbox` из `flowcontainer` вместо `fixedgridbox`, `ColonialCharterItem.GetProgress` в `LessThan_float`, слои иллюстраций `gfx/interface/illustrations/location/...`, `progress_bar_goldish`, `scissor = yes`, `Scope.GetLocation` в списке вкладки | `expansion_lateralview.gui`, `gp_colony_panel.gui`, `gp_balance_tab.gui` | список хартий не съехал, нет падения игры; панель только под своими хартиями |
 | 73 | режим карты: `var:gp_cz_anchor = { var:gp_cz_lead = { value = country_color } }`, `value = rgb { … }` | `gp_map_modes.txt` | зоны в цвете ведущей державы, свободные — песочные |
+| 74 | VERIFIED 2026-11-08 (загрузка v0.11.0 и старт партии): `expansion_lateralview.gui`, `gp_colony_panel.gui`, режим карты, события, действия, кастомная локализация, хартии — без ошибок разбора; годовой отчёт мода отработал. Единственная строка про `expansion_lateralview.gui:1593` — ванильная ошибка русской подсказки `EXPLORATION_CONSTRUCTION_FINISHED_WHEN` (та же строка 1589 в ванили; так же падает ванильный `government_lateralview.gui`). Найдено и исправлено в v0.11.1: у каждой цены нужен тип модификатора `<цена>_cost_modifier` (`main_menu/common/modifier_type_definitions/gp_modifier_types.txt`); у каждого общего действия — тип сообщения `PERFORM_<действие>_ACTION` (`main_menu/gui/messagetypes/gp_messagetypes.txt`); ИИ видит общие действия только из `generic_action_ai_lists` (`gp_colony_list.txt`); `$PARAM$` внутри кавычек значения не подставляется (`gp_ib_marriage_made`, теперь через `save_scope_as`) | загрузка | панель, кнопки, иллюстрации и режим карты ещё надо увидеть глазами |
 
 ## 4. Производительность
 
@@ -135,7 +136,7 @@
 
 ## 5. Совместимость
 
-- Не заменяет ни одного ванильного файла; все вклады — свои файлы с префиксом `gp_`. Под ванильными ключами `on_action` — только `on_actions = { gp_x }` (слияние одноимённых on_action).
+- Заменяет один ванильный файл — `in_game/gui/expansion_lateralview.gui` (с v0.11, ради панели колонии; сверка после патчей — `tools/vanilla_overrides.txt`); остальные вклады — свои файлы с префиксом `gp_`. Под ванильными ключами `on_action` — только `on_actions = { gp_x }` (слияние одноимённых on_action).
 - С Battle (`cw_`) ключи не пересекаются; оба мода вешают разные страновые модификаторы с `ai = yes`, они складываются.
 - Новые теги не объявлены в `setup/countries` (как ванильные NSE / CEL / HEN): цвет и имя приходят из формируемой страны, герб — по ключу тега.
 - При патче: пересверить номера строк и ванильные значения в `gp_defines.txt`; `bash tools/validate.sh new_intelligence_geopolicy` и `bash tools/check_geopolicy_refs.sh`.

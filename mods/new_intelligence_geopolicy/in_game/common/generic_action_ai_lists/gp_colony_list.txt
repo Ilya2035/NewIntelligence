@@ -1,0 +1,19 @@
+﻿###################################
+# New Intelligence: Geopolicy - the AI list of the colony card actions (v0.11.1)
+# The AI looks only at generic actions named in a generic_action_ai_lists entry (vanilla colonial_charters_list
+# holds abandon_colonial_charter); without this list the AI never pressed gp_col_act_* (in_game/common/generic_actions/gp_colony_actions.txt).
+###################################
+
+gp_colony_actions_list = {
+	potential = {
+		modifier:can_colonize = yes
+		is_rebel_country = no
+		num_colonial_charters > 0
+	}
+	actions = {
+		gp_col_act_natives
+		gp_col_act_cattle
+		gp_col_act_stockade
+		gp_col_act_settlers
+	}
+}
