@@ -1451,3 +1451,14 @@ gp_colonial_ambition = {
 	modifier = 2
 	continent = america
 }
+
+# v0.11 The limited colonial right (gp_col_compute_right, gp_colonies.txt): a coastal country of the West that does not
+# dominate its region colonises only the zones of its group (author: "Denmark - somewhere in the north or Canada; the
+# Netherlands a slightly different region"). The vanilla avoid_american_colonization stays; these lift their own zones.
+# Charters outside the zones are withdrawn anyway (gp_col_charter_check).
+gp_col_pref_g1 = { preference_type = exploration modifier = 3 area = jamesie_area area = nunavik_area area = labrador_area area = northern_ontario_area area = james_bay_lowlands_area area = newfoundland_area area = prince_edward_island_area area = acadia_area area = new_brunswick_area }	# Scandinavia: Hudson Bay, Labrador, Acadia
+gp_col_pref_g2 = { preference_type = exploration modifier = 3 area = lesser_antilles_area area = hudson_area area = new_jersey_area area = haudenosaunee_area area = guayana_area area = goringhaikona_area area = southern_africa_coast_area }	# the Low Countries: New Netherland, Guiana, the Antilles, the Cape
+gp_col_pref_g3 = { preference_type = exploration modifier = 3 area = cuba_area area = hispaniola_area area = lesser_antilles_area region = brazil_region }	# Iberia: the Caribbean, Brazil
+gp_col_pref_g4 = { preference_type = exploration modifier = 3 area = newfoundland_area area = acadia_area area = new_brunswick_area area = massachusetts_area area = southern_new_england_area area = maine_area area = lesser_antilles_area }	# Britain: Acadia, New England, the Antilles
+gp_col_pref_g5 = { preference_type = exploration modifier = 3 area = quebec_area area = laurentian_area area = lower_canada_area area = acadia_area area = lesser_antilles_area area = guayana_area }	# France: New France, Acadia, the Antilles, Guiana
+gp_col_pref_g6 = { preference_type = exploration modifier = 3 area = lesser_antilles_area }	# the German and Baltic lands: the Antilles (Courland's Tobago)

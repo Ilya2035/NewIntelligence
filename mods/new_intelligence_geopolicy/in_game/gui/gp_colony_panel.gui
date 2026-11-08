@@ -1,0 +1,219 @@
+﻿###################################
+# New Intelligence: Geopolicy - the colony panel under an own colonial charter (v0.11)
+#
+# Author, 2026-11-08: "a colony shows its progress, visually too - first a village, then a small fortification, then a
+# town in the background; inside there are buttons, decisions, and how much is left until it is settled."
+# Used in the list of colonial charters of the colonisation tab (expansion_lateralview.gui, "# GP v0.11" block);
+# datacontext there: ColonialCharterItem (as the vanilla card colonial_charter_item).
+# Picture: layers of the vanilla location illustration (gfx/interface/illustrations/location, 2654 x 440 with draw
+# offsets in the file names), scaled by 0.197: sky, ground, then by progress - a village (< 67 %), a stockade (34 %+),
+# a town (67 %+). Stages: GP_COL_STAGE_*.
+# Buttons: generic actions gp_col_act_* (in_game/common/generic_actions/gp_colony_actions.txt), called as vanilla calls
+# abandon_colonial_charter - scripted_action_tooltip with parameter target = the charter (shows cost and conditions).
+# Battle mod GUI lessons: fixed sizes only, no datamodel inside.
+###################################
+
+types GP_ColonyTypes {
+	type gp_colony_act_button = button_regular {
+		size = { 128 28 }
+
+		block "gp_act_text" {
+			text_single = {
+				parentanchor = center
+				autoresize = no
+				size = { 120 22 }
+				align = center|nobaseline
+				fontsize = 11
+				default_format = "#color_white"
+				text = "GP_COL_ACT"
+			}
+		}
+	}
+
+	type gp_colony_panel = widget {
+		size = { 525 124 }
+		alwaystransparent = no
+
+		background = {
+			texture = "gfx/interface/colonies/colonial_wooden_background_darker.dds"
+			texture_density = 2
+			spriteType = corneredstretched
+			spriteborder = { 100 100 }
+		}
+
+		# ---- the picture ----
+		widget = {
+			position = { 4 4 }
+			size = { 517 86 }
+			scissor = yes
+
+			icon = {
+				size = { 523 86 }
+				texture = "gfx/interface/illustrations/location/sky/sky_regular_metadata_os2654x440_d0x0.dds"
+			}
+			icon = {
+				position = { 0 56 }
+				size = { 523 30 }
+				texture = "gfx/interface/illustrations/location/ground1/oceanic/oceanic_grassland_ground1_metadata_os2654x440_d0x288.dds"
+			}
+			icon = {
+				visible = "[LessThan_float(ColonialCharterItem.GetProgress, '(float)67')]"
+				position = { 0 18 }
+				size = { 523 26 }
+				texture = "gfx/interface/illustrations/location/settlement1/north_german/rural/north_german_rural11_metadata_os2654x440_d0x92.dds"
+			}
+			icon = {
+				visible = "[GreaterThanOrEqualTo_float(ColonialCharterItem.GetProgress, '(float)67')]"
+				position = { 0 21 }
+				size = { 523 26 }
+				texture = "gfx/interface/illustrations/location/settlement1/north_german/town/north_german_town1_metadata_os2654x440_d0x106.dds"
+			}
+			icon = {
+				visible = "[GreaterThanOrEqualTo_float(ColonialCharterItem.GetProgress, '(float)34')]"
+				position = { 300 22 }
+				size = { 78 36 }
+				texture = "gfx/interface/illustrations/location/fortifications/stockade/stockade_metadata_os2654x440_d0x90.dds"
+			}
+
+			# stage and progress
+			text_single = {
+				visible = "[LessThan_float(ColonialCharterItem.GetProgress, '(float)34')]"
+				position = { 8 4 }
+				autoresize = yes
+				default_format = "#yellow_titles"
+				text = "GP_COL_STAGE_VILLAGE"
+			}
+			text_single = {
+				visible = "[And(GreaterThanOrEqualTo_float(ColonialCharterItem.GetProgress, '(float)34'), LessThan_float(ColonialCharterItem.GetProgress, '(float)67'))]"
+				position = { 8 4 }
+				autoresize = yes
+				default_format = "#yellow_titles"
+				text = "GP_COL_STAGE_FORT"
+			}
+			text_single = {
+				visible = "[GreaterThanOrEqualTo_float(ColonialCharterItem.GetProgress, '(float)67')]"
+				position = { 8 4 }
+				autoresize = yes
+				default_format = "#yellow_titles"
+				text = "GP_COL_STAGE_TOWN"
+			}
+			text_single = {
+				datacontext = "[ColonialCharterItem.GetColonialCharter]"
+				parentanchor = top|right
+				position = { -8 4 }
+				autoresize = yes
+				default_format = "#color_white"
+				text = "GP_COL_PROGRESS"
+			}
+			progressbar = {
+				parentanchor = bottom|left
+				position = { 0 0 }
+				size = { 517 5 }
+				using = progress_bar_goldish
+				min = 0
+				max = 100
+				value = "[ColonialCharterItem.GetProgress]"
+			}
+		}
+
+		# ---- the actions ----
+		hbox = {
+			position = { 4 93 }
+			size = { 517 28 }
+			spacing = 2
+
+			gp_colony_act_button = {
+				blockoverride "gp_act_text" {
+					text_single = {
+						parentanchor = center
+						autoresize = no
+						size = { 120 22 }
+						align = center|nobaseline
+						fontsize = 11
+						default_format = "#color_white"
+						text = "gp_col_act_natives"
+					}
+				}
+				scripted_action_tooltip = {
+					click_type = left
+					click_mode = single
+					action_name = "gp_col_act_natives"
+					actor = "[Player]"
+					parameter = {
+						parameter_name = "target"
+						parameter_value = "[ColonialCharterItem.GetColonialCharter]"
+					}
+				}
+			}
+			gp_colony_act_button = {
+				blockoverride "gp_act_text" {
+					text_single = {
+						parentanchor = center
+						autoresize = no
+						size = { 120 22 }
+						align = center|nobaseline
+						fontsize = 11
+						default_format = "#color_white"
+						text = "gp_col_act_cattle"
+					}
+				}
+				scripted_action_tooltip = {
+					click_type = left
+					click_mode = single
+					action_name = "gp_col_act_cattle"
+					actor = "[Player]"
+					parameter = {
+						parameter_name = "target"
+						parameter_value = "[ColonialCharterItem.GetColonialCharter]"
+					}
+				}
+			}
+			gp_colony_act_button = {
+				blockoverride "gp_act_text" {
+					text_single = {
+						parentanchor = center
+						autoresize = no
+						size = { 120 22 }
+						align = center|nobaseline
+						fontsize = 11
+						default_format = "#color_white"
+						text = "gp_col_act_stockade"
+					}
+				}
+				scripted_action_tooltip = {
+					click_type = left
+					click_mode = single
+					action_name = "gp_col_act_stockade"
+					actor = "[Player]"
+					parameter = {
+						parameter_name = "target"
+						parameter_value = "[ColonialCharterItem.GetColonialCharter]"
+					}
+				}
+			}
+			gp_colony_act_button = {
+				blockoverride "gp_act_text" {
+					text_single = {
+						parentanchor = center
+						autoresize = no
+						size = { 120 22 }
+						align = center|nobaseline
+						fontsize = 11
+						default_format = "#color_white"
+						text = "gp_col_act_settlers"
+					}
+				}
+				scripted_action_tooltip = {
+					click_type = left
+					click_mode = single
+					action_name = "gp_col_act_settlers"
+					actor = "[Player]"
+					parameter = {
+						parameter_name = "target"
+						parameter_value = "[ColonialCharterItem.GetColonialCharter]"
+					}
+				}
+			}
+		}
+	}
+}

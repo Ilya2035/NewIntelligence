@@ -1,0 +1,183 @@
+﻿###################################
+# New Intelligence: Geopolicy - actions of a colony card (v0.11, prefix gp_col_act_)
+#
+# Author, 2026-11-08: "you click on a colony in the colonies tab and it shows its progress - first a village, then a
+# small fortification, then a town - and inside there are buttons to press, decisions, and how much is left to settle."
+# Buttons: the Geopolicy panel under every own charter in the vanilla colonisation list (in_game/gui/expansion_lateralview.gui,
+# block "gp colony panel"), called as vanilla calls abandon_colonial_charter: scripted_action_tooltip with parameter
+# target = the charter. scope:actor = the country, scope:target = the colonial charter.
+# Each action marks every land location of the charter's province with a location modifier for some years
+# (gp_colonial_modifiers.txt); the mark is also what keeps the button disabled until it wears off.
+# The AI uses them too, rarely (ai_tick monthly, once a year per country on average).
+###################################
+
+gp_col_act_natives = {
+	type = owncountry
+
+	ai_tick = monthly
+	ai_tick_frequency = 12
+
+	potential = {
+		scope:actor = { modifier:can_colonize = yes }
+	}
+
+	price = price:gp_col_act_natives
+
+	select_trigger = {
+		looking_for_a = colonial_charter
+		source = actor
+		target_flag = target
+		name = "gp_col_act_select_charter"
+		none_available_msg_key = "abandon_colonial_charter_no_colonial_charters"
+		column = {
+			data = name
+		}
+		visible = {
+			owner = scope:actor
+		}
+		enabled = {
+			province_definition ?= {
+				NOT = { any_location_in_province_definition = { has_location_modifier = gp_col_natives } }
+				any_location_in_province_definition = {
+					is_land = yes
+					has_owner = no
+					population > 0
+				}
+			}
+		}
+	}
+
+	effect = {
+		gp_col_act_mark = { MOD = gp_col_natives YEARS = 10 }
+	}
+
+	ai_will_do = {
+		value = 10
+	}
+}
+
+gp_col_act_cattle = {
+	type = owncountry
+
+	ai_tick = monthly
+	ai_tick_frequency = 12
+
+	potential = {
+		scope:actor = { modifier:can_colonize = yes }
+	}
+
+	price = price:gp_col_act_cattle
+
+	select_trigger = {
+		looking_for_a = colonial_charter
+		source = actor
+		target_flag = target
+		name = "gp_col_act_select_charter"
+		none_available_msg_key = "abandon_colonial_charter_no_colonial_charters"
+		column = {
+			data = name
+		}
+		visible = {
+			owner = scope:actor
+		}
+		enabled = {
+			province_definition ?= {
+				NOT = { any_location_in_province_definition = { has_location_modifier = gp_col_cattle } }
+				any_location_in_province_definition = { owner ?= scope:actor }
+			}
+		}
+	}
+
+	effect = {
+		gp_col_act_cattle_effect = yes
+	}
+
+	ai_will_do = {
+		value = 10
+	}
+}
+
+gp_col_act_stockade = {
+	type = owncountry
+
+	ai_tick = monthly
+	ai_tick_frequency = 12
+
+	potential = {
+		scope:actor = { modifier:can_colonize = yes }
+	}
+
+	price = price:gp_col_act_stockade
+
+	select_trigger = {
+		looking_for_a = colonial_charter
+		source = actor
+		target_flag = target
+		name = "gp_col_act_select_charter"
+		none_available_msg_key = "abandon_colonial_charter_no_colonial_charters"
+		column = {
+			data = name
+		}
+		visible = {
+			owner = scope:actor
+		}
+		enabled = {
+			province_definition ?= {
+				NOT = { any_location_in_province_definition = { has_location_modifier = gp_col_stockade } }
+				any_location_in_province_definition = { owner ?= scope:actor }
+			}
+		}
+	}
+
+	effect = {
+		gp_col_act_mark = { MOD = gp_col_stockade YEARS = 30 }
+	}
+
+	ai_will_do = {
+		value = 5
+		if = {
+			limit = { scope:actor = { has_variable = gp_cz_rival } }
+			add = 20
+		}
+	}
+}
+
+gp_col_act_settlers = {
+	type = owncountry
+
+	ai_tick = monthly
+	ai_tick_frequency = 12
+
+	potential = {
+		scope:actor = { modifier:can_colonize = yes }
+	}
+
+	price = price:gp_col_act_settlers
+
+	select_trigger = {
+		looking_for_a = colonial_charter
+		source = actor
+		target_flag = target
+		name = "gp_col_act_select_charter"
+		none_available_msg_key = "abandon_colonial_charter_no_colonial_charters"
+		column = {
+			data = name
+		}
+		visible = {
+			owner = scope:actor
+		}
+		enabled = {
+			province_definition ?= {
+				NOT = { any_location_in_province_definition = { has_location_modifier = gp_col_settlers } }
+			}
+		}
+	}
+
+	effect = {
+		gp_col_act_settlers_effect = yes
+	}
+
+	ai_will_do = {
+		value = 5
+	}
+}

@@ -596,6 +596,10 @@ gp_update_overseas = {
 			is_subject = no
 			OR = {
 				var:gp_region_share >= 0.6
+				AND = {	# v0.11 a full colonial right (gp_colonies.txt)
+					has_variable = gp_col_right
+					var:gp_col_right = 2
+				}
 				AND = {
 					has_variable = gp_contender
 					var:gp_region_share >= 0.4
@@ -681,8 +685,9 @@ gp_pref_keep = {
 gp_update_alliance_fatigue = {
 	if = {
 		limit = { current_date >= 1450.1.1 }
-		every_ally = {
+		every_known_country = {
 			limit = {
+				is_allied_with = { target = scope:gp_c }
 				gp_is_real_country = yes
 				NOT = { is_subject_or_below_of = scope:gp_c }
 				NOT = { scope:gp_c = { is_subject_or_below_of = prev } }

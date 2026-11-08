@@ -48,6 +48,7 @@ gp_yearly_update = {
 	gp_update_foreign_overlord = yes
 	gp_ensure_colonial_profile = yes
 	gp_update_crisis = yes	# v0.7 destabilisation (gp_crisis_effects.txt), before the control pass
+	gp_col_country_update = yes	# v0.11 the colonial stage (gp_colonies.txt): ardor, colonial right, zones
 	gp_update_region_claim = yes
 	gp_update_control = yes
 	gp_update_alliance_fatigue = yes
@@ -90,6 +91,7 @@ gp_on_war_end_effect = {
 	gp_war_memory = yes
 	gp_crisis_war_end = yes	# v0.7
 	gp_ib_war_end = yes	# v0.9 the Spanish sultanate beaten by France (gp_scenarios_iberia.txt)
+	gp_col_war_end = yes	# v0.11 a zone war: the winner takes the loser's land in the zone (gp_colonies.txt)
 	if = {
 		limit = { scope:loser ?= root }
 		set_variable = gp_recent_defeat

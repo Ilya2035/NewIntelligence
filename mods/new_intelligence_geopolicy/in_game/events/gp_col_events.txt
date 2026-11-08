@@ -1,0 +1,42 @@
+﻿namespace = gp_col
+
+###################################
+# New Intelligence: Geopolicy - events of the colonial stage (v0.11, gp_colonies.txt)
+#   gp_col.1 a colonial charter withdrawn (gp_col_revoke; players only). var:gp_col_revoke_reason:
+#            1 no colonial right, 2 the zone is not open to our limited right, 3 less than 15 % of influence in the zone,
+#            4 the island already belongs to another colonial power, 5 a colony ban of the scenario of the isles. var:gp_col_revoke_zone = the zone anchor (if any).
+###################################
+
+gp_col.1 = {
+	type = country_event
+	title = gp_col.1.title
+	desc = {
+		first_valid = {
+			triggered_desc = {
+				trigger = { var:gp_col_revoke_reason ?= 1 }
+				desc = gp_col.1.desc_right
+			}
+			triggered_desc = {
+				trigger = { var:gp_col_revoke_reason ?= 2 }
+				desc = gp_col.1.desc_group
+			}
+			triggered_desc = {
+				trigger = { var:gp_col_revoke_reason ?= 3 }
+				desc = gp_col.1.desc_influence
+			}
+			triggered_desc = {
+				trigger = { var:gp_col_revoke_reason ?= 5 }
+				desc = gp_col.1.desc_banned
+			}
+			triggered_desc = {
+				desc = gp_col.1.desc_island
+			}
+		}
+	}
+	outcome = negative
+	image = "gfx/interface/illustrations/missions/generic_colonize_explore.dds"
+
+	option = {
+		name = gp_col.1.a
+	}
+}

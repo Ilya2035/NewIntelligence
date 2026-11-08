@@ -1,0 +1,125 @@
+﻿###################################
+# New Intelligence: Geopolicy - triggers of the colonial stage (v0.11, prefix gp_col_ / gp_cz_)
+# Zones: gp_colonial_zones.txt (generated), mechanics: gp_colonies.txt.
+###################################
+
+# Location scope: one of the Low Countries (the Benelux zone, author 2026-11-08: "split North Germany into the Benelux
+# zone and the North German zone"). The vanilla region north_german_region stays as it is - 46 vanilla files use it;
+# the mod treats these five areas as a home zone of their own for the colonial right.
+gp_col_is_low_countries = {
+	OR = {
+		area = area:brabant_area
+		area = area:flanders_area
+		area = area:friesland_area
+		area = area:holland_area
+		area = area:wallonia_area
+	}
+}
+
+# Location scope: the New World - America and Oceania (Australia, New Zealand, the Pacific islands).
+gp_col_is_new_world = {
+	OR = {
+		continent = continent:america
+		continent = continent:oceania
+	}
+}
+
+# Country scope: the capital lies in the New World (an American or Pacific country colonises its own continent freely).
+gp_col_new_world_country = {
+	exists = capital
+	capital = { gp_col_is_new_world = yes }
+}
+
+# Country scope: the zone of scope:gp_col_loc is open to our limited colonial right (var:gp_col_group 1..6).
+gp_col_group_open = {
+	has_variable = gp_col_group
+	scope:gp_col_loc.var:gp_cz_anchor ?= {
+		OR = {
+			AND = { has_variable = gp_cz_g1 prev = { var:gp_col_group = 1 } }
+			AND = { has_variable = gp_cz_g2 prev = { var:gp_col_group = 2 } }
+			AND = { has_variable = gp_cz_g3 prev = { var:gp_col_group = 3 } }
+			AND = { has_variable = gp_cz_g4 prev = { var:gp_col_group = 4 } }
+			AND = { has_variable = gp_cz_g5 prev = { var:gp_col_group = 5 } }
+			AND = { has_variable = gp_cz_g6 prev = { var:gp_col_group = 6 } }
+		}
+	}
+}
+
+# Country scope: the 15 % rule of a zone (author: "to colonise in a zone you need at least 15 % of influence there").
+# A location outside every zone is free; so is a zone nobody has really entered yet (less than 10 points in all).
+gp_col_zone_gate_ok = {
+	OR = {
+		NOT = { scope:gp_col_loc = { has_variable = gp_cz_anchor } }
+		scope:gp_col_loc.var:gp_cz_anchor ?= {
+			OR = {
+				NOT = { has_variable = gp_cz_tot }
+				var:gp_cz_tot < 10
+			}
+		}
+		is_target_in_variable_list = { name = gp_cz_ok target = scope:gp_col_loc.var:gp_cz_anchor }
+	}
+}
+
+# Country scope: may we keep a colonial charter at scope:gp_col_loc (a New World location; capital outside it)?
+gp_col_may_settle_here = {
+	has_variable = gp_col_right
+	OR = {
+		AND = {
+			var:gp_col_right = 2
+			gp_col_zone_gate_ok = yes
+		}
+		AND = {
+			var:gp_col_right = 1
+			scope:gp_col_loc = { has_variable = gp_cz_anchor }
+			gp_col_group_open = yes
+			gp_col_zone_gate_ok = yes
+		}
+	}
+}
+
+# Country scope (root = the colonist), scope:gp_col_loc = a Pacific island location outside the zones: another
+# colonial power (a country from beyond the Pacific, not us, not our subject or overlord) already holds land on this
+# island group (author: "every island is a small colony of its own - first come, first served").
+gp_col_island_taken = {
+	scope:gp_col_loc = {
+		area = {
+			any_location_in_area = {
+				has_owner = yes
+				owner = {
+					exists = capital
+					NOT = { capital.sub_continent = sub_continent:pacific_islands }
+					NOT = { this = root }
+					NOT = { is_subject_or_below_of = root }
+					NOT = { root = { is_subject_or_below_of = prev } }
+				}
+			}
+		}
+	}
+}
+
+# Location scope: an African location that colonists find hard (author: "colonising Africa comes with penalties for
+# everyone except the special zones - the coast, the Maghreb, Algeria and Tunis"): inland, unowned, south of the Maghreb
+# and Egypt.
+gp_col_african_interior = {
+	is_land = yes
+	has_owner = no
+	is_coastal = no
+	continent = continent:africa
+	NOT = { region = region:maghreb_region }
+	NOT = { region = region:egypt_region }
+	NOT = { region = region:macaronesia_region }
+}
+
+# Country scope: an African country at home (capital south of the Maghreb and Egypt, not a colony of an outside power).
+gp_col_african_native_power = {
+	exists = capital
+	capital.continent = continent:africa
+	NOT = { capital.region = region:maghreb_region }
+	NOT = { capital.region = region:egypt_region }
+	NOT = { capital.region = region:macaronesia_region }
+	NOT = { is_subject_type = colonial_nation }
+	OR = {
+		is_subject = no
+		overlord ?= { capital.continent = continent:africa }
+	}
+}

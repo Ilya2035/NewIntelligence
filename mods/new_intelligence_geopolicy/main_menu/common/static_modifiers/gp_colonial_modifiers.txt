@@ -1,0 +1,54 @@
+﻿###################################
+# New Intelligence: Geopolicy - modifiers of the colonial stage (v0.11, gp_colonies.txt). Game rule "Colonial stage".
+# Scenario rules for everyone (players included), named and explained in the loc - not standing AI buffs.
+###################################
+
+# The African interior (inland, unowned, south of the Maghreb and Egypt): settlers come slowly. Removed once the land is
+# someone's overseas possession.
+gp_col_africa_hardship = {
+	game_data = { category = location }
+	local_migration_speed_modifier = -0.5
+}
+
+# An African country at home: its land is defended by people who know every path.
+gp_col_african_homeland = {
+	game_data = { category = country }
+	global_defensive = 0.15
+	land_morale_modifier = 0.05
+}
+
+# A power from outside Asia present in more than two zones of Asia: every new conquest there angers its neighbours more
+# and takes longer to integrate.
+gp_col_asian_overreach = {
+	game_data = { category = country }
+	antagonism_taking_land_giving_modifier = 0.5
+	global_integration_speed_modifier = -0.25
+}
+
+# ---- the colony card actions (gp_colony_actions.txt) ----
+
+# Friendship with the natives: they show the land and the water, settlers stay.
+gp_col_natives = {
+	game_data = { category = location }
+	local_migration_speed_modifier = 0.25
+}
+
+# Cattle and wheat: the colony feeds itself.
+gp_col_cattle = {
+	game_data = { category = location }
+	local_monthly_food_modifier = 0.25
+	local_population_growth = 0.0025
+}
+
+# A stockade: the colony holds; in the zone count it weighs twice (gp_col_presence_location).
+gp_col_stockade = {
+	game_data = { category = location }
+	local_defensive = 0.25
+	local_max_control = 0.05
+}
+
+# Settlers called from home (the migration itself is the add_migration of the action; this only marks the call).
+gp_col_settlers = {
+	game_data = { category = location }
+	local_migration_speed_modifier = 0.1
+}

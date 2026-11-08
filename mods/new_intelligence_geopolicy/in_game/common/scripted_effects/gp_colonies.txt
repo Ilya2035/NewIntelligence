@@ -1,0 +1,732 @@
+﻿###################################
+# New Intelligence: Geopolicy - the colonial stage, part 1 (v0.11, prefix gp_col_ / gp_cz_)
+#
+# Author, 2026-11-07 / 2026-11-08 (docs/GEOPOLICY_COLONIES.md):
+# - colonial ardor grows from colonies, trade and the fleet; a country with high ardor finishes its historical lands and
+#   then turns overseas; colonies five times the homeland - no more wars for land in Europe;
+# - only a country that united or dominates a region may colonise the New World; the others get only "their" zones
+#   (Denmark the north and Canada, the Low Countries a region of their own, ...);
+# - the world beyond the sea is split into colonial zones (Cuba, Hispaniola, the Lesser Antilles; India in three parts;
+#   Australia and New Zealand apart; every Pacific island a small colony of its own); to colonise in a zone you need 15 %
+#   of influence there; two countries with 40-60 % each get a lasting cause for war over the zone;
+# - Africa is hard for colonists except the special zones; African countries are strong at home;
+# - more than two zones of Asia - expansion penalty;
+# - a metropolis falls - its colonies become independent;
+# - a colony shows its progress (a village, then a stockade, then a town) and has actions of its own.
+#
+# Game rule "Colonial stage" (gp_rule_colonies): gp_colonies_off switches all of it off.
+# Data (country): var:gp_col_ardor (0..100) with its parts gp_col_ard_c / _t / _n, var:gp_col_right (0 none, 1 limited,
+# 2 full) and var:gp_col_group (1..6, the zones of a limited right), var:gp_col_overseas / gp_col_home, gp_col_empire,
+# var:gp_col_asia_zones, list gp_cz_ok (zones where we hold 15 %+), list gp_cz_mine (players: zones where we are present),
+# var:gp_cz_rival + var:gp_cz_rival_zone (the zone dispute, gp_cb_colonial_zone).
+# Data (zone anchor location, gp_colonial_zones.txt): var:gp_cz_tot, gp_cz_lead / gp_cz_lead_pct, gp_cz_second /
+# gp_cz_second_pct, gp_cz_pl_pct (the player's share).
+###################################
+
+# ================================================================================================
+# Per country, yearly (gp_yearly_update, scope:gp_c)
+# ================================================================================================
+
+gp_col_country_update = {
+	if = {
+		limit = { has_game_rule = gp_colonies_off }
+		gp_col_clear = yes
+	}
+	else = {
+		gp_col_world_tick = yes
+		gp_col_count = yes
+		gp_col_compute_ardor = yes
+		gp_col_compute_right = yes
+		gp_col_african_home = yes
+		gp_col_overreach_apply = yes
+	}
+}
+
+gp_col_clear = {
+	if = { limit = { has_variable = gp_col_right } remove_variable = gp_col_right }
+	if = { limit = { has_variable = gp_col_group } remove_variable = gp_col_group }
+	if = { limit = { has_variable = gp_col_ardor } remove_variable = gp_col_ardor }
+	if = { limit = { has_variable = gp_col_empire } remove_variable = gp_col_empire }
+	if = { limit = { has_variable = gp_col_banned } remove_variable = gp_col_banned }
+	gp_col_clear_zone_data = yes
+	if = { limit = { has_country_modifier = gp_col_asian_overreach } remove_country_modifier = gp_col_asian_overreach }
+	if = { limit = { has_country_modifier = gp_col_african_homeland } remove_country_modifier = gp_col_african_homeland }
+}
+
+gp_col_clear_zone_data = {
+	clear_variable_list = gp_cz_ok
+	clear_variable_list = gp_cz_mine
+	if = { limit = { has_variable = gp_cz_rival } remove_variable = gp_cz_rival }
+	if = { limit = { has_variable = gp_cz_rival_zone } remove_variable = gp_cz_rival_zone }
+	if = { limit = { has_variable = gp_col_asia_zones } remove_variable = gp_col_asia_zones }
+}
+
+# The first country to tick in a year runs the world pass (zones are global).
+gp_col_world_tick = {
+	if = {
+		limit = { NOT = { has_global_variable = gp_col_tick } }
+		set_global_variable = { name = gp_col_tick days = 360 }
+		gp_cz_setup = yes
+		gp_col_world_update = yes
+	}
+}
+
+# Overseas land (own + colonial subjects), the homeland, charters.
+gp_col_count = {
+	set_variable = { name = gp_col_own_os value = 0 }
+	every_owned_location = {
+		limit = { is_overseas_for_owner = yes }
+		scope:gp_c = { change_variable = { name = gp_col_own_os add = 1 } }
+		if = {
+			limit = { has_location_modifier = gp_col_africa_hardship }
+			remove_location_modifier = gp_col_africa_hardship
+		}
+	}
+	set_variable = { name = gp_col_overseas value = var:gp_col_own_os }
+	every_subject = {
+		limit = { is_subject_type = colonial_nation }
+		scope:gp_c = { change_variable = { name = gp_col_overseas add = prev.num_locations } }
+	}
+	set_variable = { name = gp_col_home value = gp_col_home_value }
+	remove_variable = gp_col_own_os
+	# colonies five times the homeland (and at least 25 locations): an empire beyond the sea
+	if = {
+		limit = {
+			var:gp_col_overseas >= 25
+			gp_col_empire_ratio >= 5
+		}
+		set_variable = gp_col_empire
+	}
+	else_if = {
+		limit = { has_variable = gp_col_empire }
+		remove_variable = gp_col_empire
+	}
+}
+
+gp_col_compute_ardor = {
+	set_variable = { name = gp_col_ard_c value = gp_col_ardor_colonies }
+	set_variable = { name = gp_col_ard_t value = gp_col_ardor_trade }
+	set_variable = { name = gp_col_ard_n value = gp_col_ardor_navy }
+	set_variable = { name = gp_col_ardor value = gp_col_ardor_value }
+}
+
+# Right: 2 full - the country dominates its home region (holds half of it with its subjects; the Low Countries count as
+# a region of their own), or lives in the New World itself; 1 limited - a coastal country of the West, only the zones of
+# its group; 0 none. Subjects (except colonial nations, which colonise their own land) have no right of their own.
+gp_col_compute_right = {
+	set_variable = { name = gp_col_right value = 0 }
+	if = { limit = { has_variable = gp_col_group } remove_variable = gp_col_group }
+	set_variable = { name = gp_col_dom value = 0 }
+	set_variable = { name = gp_col_dom_pct value = 0 }
+	if = {
+		limit = {
+			exists = capital
+			is_subject = no
+		}
+		if = {
+			limit = { gp_col_new_world_country = yes }
+			if = {
+				limit = { culture = { is_culture_native_american = no } }
+				set_variable = { name = gp_col_right value = 2 }
+			}
+		}
+		else = {
+			gp_col_dominance = yes
+			if = {
+				limit = { var:gp_col_dom >= 0.5 }
+				set_variable = { name = gp_col_right value = 2 }
+			}
+			else_if = {
+				limit = { has_ports = yes }
+				if = {
+					limit = {
+						OR = {
+							capital.region = region:scandinavian_region
+							capital.region = region:north_atlantic_islands_region
+						}
+					}
+					set_variable = { name = gp_col_group value = 1 }
+				}
+				else_if = {
+					limit = { capital = { gp_col_is_low_countries = yes } }
+					set_variable = { name = gp_col_group value = 2 }
+				}
+				else_if = {
+					limit = { capital.region = region:iberia_region }
+					set_variable = { name = gp_col_group value = 3 }
+				}
+				else_if = {
+					limit = {
+						OR = {
+							capital.region = region:great_britain_region
+							capital.region = region:ireland_region
+						}
+					}
+					set_variable = { name = gp_col_group value = 4 }
+				}
+				else_if = {
+					limit = { capital.region = region:france_region }
+					set_variable = { name = gp_col_group value = 5 }
+				}
+				else_if = {
+					limit = {
+						OR = {
+							capital.region = region:north_german_region
+							capital.region = region:baltic_region
+						}
+					}
+					set_variable = { name = gp_col_group value = 6 }
+				}
+				if = {
+					limit = { has_variable = gp_col_group }
+					set_variable = { name = gp_col_right value = 1 }
+				}
+			}
+		}
+	}
+	# the scenario bans of the isles stand above the right (gp_sc_overseas, gp_scenarios_hyw.txt): England after a lost
+	# war, the English lands after the break-up, the Irish until they hold their island, the Scots until England falls
+	if = {
+		limit = {
+			OR = {
+				has_variable = gp_sc_no_colonies_years
+				gp_sc_isles_wait = yes
+			}
+		}
+		set_variable = { name = gp_col_right value = 0 }
+		if = { limit = { has_variable = gp_col_group } remove_variable = gp_col_group }
+		set_variable = gp_col_banned
+	}
+	else_if = {
+		limit = { has_variable = gp_col_banned }
+		remove_variable = gp_col_banned
+	}
+	if = {
+		limit = { var:gp_col_right = 0 }
+		gp_col_clear_zone_data = yes
+	}
+	# the AI's taste for the zones of its group (gp_zones.txt)
+	if = {
+		limit = { is_ai = yes }
+		gp_col_group_pref = { N = 1 }
+		gp_col_group_pref = { N = 2 }
+		gp_col_group_pref = { N = 3 }
+		gp_col_group_pref = { N = 4 }
+		gp_col_group_pref = { N = 5 }
+		gp_col_group_pref = { N = 6 }
+	}
+}
+
+gp_col_group_pref = {
+	if = {
+		limit = {
+			var:gp_col_right = 1
+			has_variable = gp_col_group
+			var:gp_col_group = $N$
+		}
+		gp_pref_keep = { PREF = gp_col_pref_g$N$ }
+	}
+	else = {
+		gp_pref_drop = { PREF = gp_col_pref_g$N$ }
+	}
+}
+
+# var:gp_col_dom - the share of the home region held by us and our subjects (the Low Countries: the share of the five
+# Benelux areas).
+gp_col_dominance = {
+	set_variable = { name = gp_col_dom_n value = 0 }
+	if = {
+		limit = { capital = { gp_col_is_low_countries = yes } }
+		gp_col_low_countries_total = yes
+		every_owned_location = {
+			limit = { gp_col_is_low_countries = yes }
+			scope:gp_c = { change_variable = { name = gp_col_dom_n add = 1 } }
+		}
+		every_subject_or_below = {
+			every_owned_location = {
+				limit = { gp_col_is_low_countries = yes }
+				scope:gp_c = { change_variable = { name = gp_col_dom_n add = 1 } }
+			}
+		}
+		set_variable = { name = gp_col_dom value = gp_col_low_share_value }
+	}
+	else = {
+		every_subject_or_below = {
+			every_owned_location = {
+				limit = { region = scope:gp_c.capital.region }
+				scope:gp_c = { change_variable = { name = gp_col_dom_n add = 1 } }
+			}
+		}
+		set_variable = { name = gp_col_dom value = gp_col_dom_value }
+	}
+	set_variable = { name = gp_col_dom_pct value = gp_col_dom_pct_value }
+	remove_variable = gp_col_dom_n
+}
+
+# The number of ownable locations of the Benelux zone, counted once a game.
+gp_col_low_countries_total = {
+	if = {
+		limit = { NOT = { has_global_variable = gp_col_low_total } }
+		set_global_variable = { name = gp_col_low_total value = 0 }
+		area:brabant_area = { every_location_in_area = { limit = { is_ownable = yes } change_global_variable = { name = gp_col_low_total add = 1 } } }
+		area:flanders_area = { every_location_in_area = { limit = { is_ownable = yes } change_global_variable = { name = gp_col_low_total add = 1 } } }
+		area:friesland_area = { every_location_in_area = { limit = { is_ownable = yes } change_global_variable = { name = gp_col_low_total add = 1 } } }
+		area:holland_area = { every_location_in_area = { limit = { is_ownable = yes } change_global_variable = { name = gp_col_low_total add = 1 } } }
+		area:wallonia_area = { every_location_in_area = { limit = { is_ownable = yes } change_global_variable = { name = gp_col_low_total add = 1 } } }
+	}
+}
+
+# African countries are strong at home (author: "give African countries bonuses in their regions").
+gp_col_african_home = {
+	if = {
+		limit = { gp_col_african_native_power = yes }
+		if = {
+			limit = { NOT = { has_country_modifier = gp_col_african_homeland } }
+			add_country_modifier = { modifier = gp_col_african_homeland years = -1 }
+		}
+	}
+	else_if = {
+		limit = { has_country_modifier = gp_col_african_homeland }
+		remove_country_modifier = gp_col_african_homeland
+	}
+}
+
+# More than two zones of Asia (author: "if you went into more than two regions of Asia you get an expansion penalty;
+# Australia is a theme of its own") - counted in the world pass for colonial powers from outside Asia.
+gp_col_overreach_apply = {
+	if = {
+		limit = {
+			has_variable = gp_col_asia_zones
+			var:gp_col_asia_zones > 2
+		}
+		if = {
+			limit = { NOT = { has_country_modifier = gp_col_asian_overreach } }
+			add_country_modifier = { modifier = gp_col_asian_overreach years = -1 }
+		}
+	}
+	else_if = {
+		limit = { has_country_modifier = gp_col_asian_overreach }
+		remove_country_modifier = gp_col_asian_overreach
+	}
+}
+
+# ================================================================================================
+# The world pass (yearly, once): influence in the zones
+# ================================================================================================
+# Influence = presence: every location of the power or of its subjects in the zone 2 points (4 behind a stockade),
+# every colonial charter 3 points, all of it times (1 + ardor / 100). Shares are of all colonial powers present.
+
+gp_col_world_update = {
+	clear_global_variable_list = gp_col_powers
+	every_country = {
+		limit = {
+			has_variable = gp_col_right
+			var:gp_col_right >= 1
+		}
+		add_to_global_variable_list = { name = gp_col_powers target = this }
+		clear_variable_list = gp_cz_ok
+		clear_variable_list = gp_cz_mine
+		set_variable = { name = gp_col_asia_zones value = 0 }
+		if = { limit = { has_variable = gp_cz_rival } remove_variable = gp_cz_rival }
+		if = { limit = { has_variable = gp_cz_rival_zone } remove_variable = gp_cz_rival_zone }
+		set_variable = { name = gp_col_w value = gp_col_weight_value }
+		set_variable = { name = gp_col_wc value = gp_col_weight_charter_value }
+	}
+	every_in_global_list = {
+		variable = gp_cz_anchors
+		set_variable = { name = gp_cz_tot value = 0 }
+		set_variable = { name = gp_cz_p value = 0 }
+		set_variable = { name = gp_cz_lead_pts value = 0 }
+		set_variable = { name = gp_cz_second_pts value = 0 }
+		set_variable = { name = gp_cz_pl_pct value = 0 }
+		if = { limit = { has_variable = gp_cz_lead } remove_variable = gp_cz_lead }
+		if = { limit = { has_variable = gp_cz_second } remove_variable = gp_cz_second }
+	}
+	# pass 1: totals, leader and runner-up of every zone
+	every_in_global_list = {
+		variable = gp_col_powers
+		save_scope_as = gp_cp
+		gp_col_presence = yes
+		every_in_global_list = {
+			variable = gp_cz_anchors
+			limit = { var:gp_cz_p > 0 }
+			change_variable = { name = gp_cz_tot add = var:gp_cz_p }
+			if = {
+				limit = { var:gp_cz_p > var:gp_cz_lead_pts }
+				if = {
+					limit = { has_variable = gp_cz_lead }
+					set_variable = { name = gp_cz_second value = var:gp_cz_lead }
+				}
+				set_variable = { name = gp_cz_second_pts value = var:gp_cz_lead_pts }
+				set_variable = { name = gp_cz_lead value = scope:gp_cp }
+				set_variable = { name = gp_cz_lead_pts value = var:gp_cz_p }
+			}
+			else_if = {
+				limit = { var:gp_cz_p > var:gp_cz_second_pts }
+				set_variable = { name = gp_cz_second value = scope:gp_cp }
+				set_variable = { name = gp_cz_second_pts value = var:gp_cz_p }
+			}
+			set_variable = { name = gp_cz_p value = 0 }
+		}
+		clear_saved_scope = gp_cp
+	}
+	# shares and disputes (two powers with 40-60 % each)
+	every_in_global_list = {
+		variable = gp_cz_anchors
+		if = {
+			limit = { var:gp_cz_tot > 0 }
+			set_variable = { name = gp_cz_lead_pct value = gp_cz_lead_pct_value }
+			set_variable = { name = gp_cz_second_pct value = gp_cz_second_pct_value }
+			if = {
+				limit = {
+					has_variable = gp_cz_lead
+					has_variable = gp_cz_second
+					var:gp_cz_second_pct >= 40
+				}
+				save_scope_as = gp_cz_a
+				var:gp_cz_lead = {
+					if = {
+						limit = { NOT = { has_variable = gp_cz_rival } }
+						set_variable = { name = gp_cz_rival value = scope:gp_cz_a.var:gp_cz_second }
+						set_variable = { name = gp_cz_rival_zone value = scope:gp_cz_a }
+					}
+				}
+				var:gp_cz_second = {
+					if = {
+						limit = { NOT = { has_variable = gp_cz_rival } }
+						set_variable = { name = gp_cz_rival value = scope:gp_cz_a.var:gp_cz_lead }
+						set_variable = { name = gp_cz_rival_zone value = scope:gp_cz_a }
+					}
+				}
+				clear_saved_scope = gp_cz_a
+			}
+		}
+		else = {
+			set_variable = { name = gp_cz_lead_pct value = 0 }
+			set_variable = { name = gp_cz_second_pct value = 0 }
+		}
+	}
+	# pass 2: every power's own share - the 15 % list, the zones of Asia, the player's view
+	every_in_global_list = {
+		variable = gp_col_powers
+		save_scope_as = gp_cp
+		gp_col_presence = yes
+		every_in_global_list = {
+			variable = gp_cz_anchors
+			limit = { var:gp_cz_p > 0 }
+			if = {
+				limit = { gp_cz_p_share_value >= 0.15 }
+				scope:gp_cp = { add_to_variable_list = { name = gp_cz_ok target = prev } }
+			}
+			if = {
+				limit = {
+					has_variable = gp_cz_asia
+					scope:gp_cp = {
+						exists = capital
+						NOT = { capital.continent = continent:asia }
+					}
+				}
+				scope:gp_cp = { change_variable = { name = gp_col_asia_zones add = 1 } }
+			}
+			if = {
+				limit = { scope:gp_cp = { is_ai = no } }
+				set_variable = { name = gp_cz_pl_pct value = gp_cz_p_pct_value }
+				scope:gp_cp = { add_to_variable_list = { name = gp_cz_mine target = prev } }
+			}
+			set_variable = { name = gp_cz_p value = 0 }
+		}
+		clear_saved_scope = gp_cp
+	}
+}
+
+# scope:gp_cp (a colonial power): its presence into var:gp_cz_p of every zone anchor.
+gp_col_presence = {
+	scope:gp_cp = {
+		every_owned_location = {
+			limit = { has_variable = gp_cz_anchor }
+			gp_col_presence_location = yes
+		}
+		every_colonial_charter = {
+			gp_col_presence_charter = yes
+		}
+		every_subject_or_below = {
+			every_owned_location = {
+				limit = { has_variable = gp_cz_anchor }
+				gp_col_presence_location = yes
+			}
+			every_colonial_charter = {
+				gp_col_presence_charter = yes
+			}
+		}
+	}
+}
+
+gp_col_presence_location = {
+	var:gp_cz_anchor = { change_variable = { name = gp_cz_p add = scope:gp_cp.var:gp_col_w } }
+	if = {
+		limit = { has_location_modifier = gp_col_stockade }
+		var:gp_cz_anchor = { change_variable = { name = gp_cz_p add = scope:gp_cp.var:gp_col_w } }
+	}
+}
+
+gp_col_presence_charter = {
+	province_definition ?= {
+		random_location_in_province_definition = {
+			limit = { has_variable = gp_cz_anchor }
+			var:gp_cz_anchor = {
+				change_variable = { name = gp_cz_p add = scope:gp_cp.var:gp_col_wc }
+			}
+		}
+	}
+}
+
+# ================================================================================================
+# Every colonial charter, monthly (colonial_charter_monthly_pulse: root = the country, scope:target = the charter)
+# ================================================================================================
+
+gp_col_charter_check = {
+	scope:target.province_definition ?= {
+		random_location_in_province_definition = {
+			limit = { is_land = yes }
+			save_scope_as = gp_col_loc
+		}
+	}
+	if = {
+		limit = {
+			exists = scope:gp_col_loc
+			exists = capital
+		}
+		# the New World needs a colonial right (and 15 % of the zone)
+		if = {
+			limit = {
+				scope:gp_col_loc = { gp_col_is_new_world = yes }
+				gp_col_new_world_country = no
+				NOT = { is_subject_type = colonial_nation }
+				gp_col_may_settle_here = no
+			}
+			if = {
+				limit = {
+					OR = {
+						NOT = { has_variable = gp_col_right }
+						var:gp_col_right = 0
+					}
+				}
+				if = {
+					limit = { has_variable = gp_col_banned }
+					set_variable = { name = gp_col_revoke_reason value = 5 }
+				}
+				else = {
+					set_variable = { name = gp_col_revoke_reason value = 1 }
+				}
+			}
+			else_if = {
+				limit = {
+					var:gp_col_right = 1
+					OR = {
+						NOT = { scope:gp_col_loc = { has_variable = gp_cz_anchor } }
+						gp_col_group_open = no
+					}
+				}
+				set_variable = { name = gp_col_revoke_reason value = 2 }
+			}
+			else = {
+				set_variable = { name = gp_col_revoke_reason value = 3 }
+			}
+			gp_col_revoke = yes
+		}
+		# the Pacific islands: first come, first served; an outpost becomes a colony at once
+		else_if = {
+			limit = {
+				scope:gp_col_loc = {
+					sub_continent = sub_continent:pacific_islands
+					NOT = { has_variable = gp_cz_anchor }
+				}
+			}
+			if = {
+				limit = { gp_col_island_taken = yes }
+				set_variable = { name = gp_col_revoke_reason value = 4 }
+				gp_col_revoke = yes
+			}
+			else = {
+				scope:target.province_definition ?= {
+					random_location_in_province_definition = {
+						limit = {
+							is_land = yes
+							has_owner = no
+							is_ownable = yes
+						}
+						change_location_owner = root
+						add_pop = {
+							culture = root.culture
+							religion = root.religion
+							type = pop_type:peasants
+							size = 0.05
+						}
+					}
+				}
+			}
+		}
+	}
+	clear_saved_scope = gp_col_loc
+}
+
+# Root = the country, scope:target = the charter, var:gp_col_revoke_reason set: the charter is withdrawn. Players get an
+# event telling why (gp_col.1); the AI loses it silently (its area preferences steer it away, gp_zones.txt).
+gp_col_revoke = {
+	if = {
+		limit = { scope:gp_col_loc = { has_variable = gp_cz_anchor } }
+		set_variable = { name = gp_col_revoke_zone value = scope:gp_col_loc.var:gp_cz_anchor }
+	}
+	else_if = {
+		limit = { has_variable = gp_col_revoke_zone }
+		remove_variable = gp_col_revoke_zone
+	}
+	destroy_colonial_charter = scope:target
+	if = {
+		limit = { is_ai = no }
+		trigger_event_non_silently = gp_col.1
+	}
+}
+
+# ================================================================================================
+# The colony card actions (generic actions gp_col_act_*, in_game/common/generic_actions/gp_colony_actions.txt)
+# scope:actor = the country, scope:target = the charter
+# ================================================================================================
+
+gp_col_act_mark = {
+	scope:target.province_definition ?= {
+		every_location_in_province_definition = {
+			limit = { is_land = yes }
+			add_location_modifier = { modifier = $MOD$ years = $YEARS$ }
+		}
+	}
+}
+
+gp_col_act_cattle_effect = {
+	gp_col_act_mark = { MOD = gp_col_cattle YEARS = 20 }
+	scope:target.province_definition ?= {
+		random_location_in_province_definition = {
+			limit = { owner ?= scope:actor }
+			add_pop = {
+				culture = scope:actor.culture
+				religion = scope:actor.religion
+				type = pop_type:peasants
+				size = 0.1
+			}
+		}
+	}
+}
+
+gp_col_act_settlers_effect = {
+	gp_col_act_mark = { MOD = gp_col_settlers YEARS = 10 }
+	scope:actor = {
+		capital.province_definition ?= { save_scope_as = gp_col_origin }
+		if = {
+			limit = {
+				exists = scope:gp_col_origin
+				exists = scope:target.province_definition
+			}
+			add_migration = {
+				owner = this
+				from = scope:gp_col_origin
+				to = scope:target.province_definition
+				type = pop_type:peasants
+				amount = 0.2
+				months = 24
+				keep_nationality = yes
+			}
+		}
+		clear_saved_scope = gp_col_origin
+	}
+}
+
+# ================================================================================================
+# Africa: the interior is hard for colonists (set once at the start of the colonial pass; the mark goes away as soon as
+# the land is someone's overseas possession, gp_col_count)
+# ================================================================================================
+
+gp_col_africa_setup = {
+	if = {
+		limit = { NOT = { has_game_rule = gp_colonies_off } }
+		region:central_africa_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+		region:kongo_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+		region:ethiopia_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+		region:nubia_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+		region:somalia_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+		region:great_lakes_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+		region:swahili_coast_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+		region:madagascar_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+		region:southern_africa_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+		region:zimbabwe_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+		region:guinea_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+		region:sahel_region = { every_location_in_region = { limit = { gp_col_african_interior = yes } add_location_modifier = { modifier = gp_col_africa_hardship days = -1 } } }
+	}
+}
+
+# ================================================================================================
+# A metropolis falls - its colonies go free (author: "if Britain falls its colonies become independent; if Spain or
+# Portugal falls - independent automatically"). Country scope = the falling crown. Called by the break-ups of the French,
+# English and Spanish crowns and by every collapse at crisis 120 (gp_crisis_effects.txt).
+# ================================================================================================
+
+gp_col_free_colonies = {
+	if = {
+		limit = { NOT = { has_game_rule = gp_colonies_off } }
+		save_scope_as = gp_col_metro
+		every_subject = {
+			limit = { is_subject_type = colonial_nation }
+			save_scope_as = gp_col_free
+			scope:gp_col_metro = { cancel_subject = scope:gp_col_free }
+			clear_saved_scope = gp_col_free
+		}
+		clear_saved_scope = gp_col_metro
+	}
+}
+
+# ================================================================================================
+# The end of a zone war (on_ending_war, root = each side): the winner of a zone dispute takes the loser's land in the
+# zone (and its subjects' land there); the loser's charters in the zone are dissolved.
+# ================================================================================================
+
+gp_col_war_end = {
+	if = {
+		limit = {
+			NOT = { has_game_rule = gp_colonies_off }
+			scope:winner ?= root
+			exists = scope:loser
+			has_variable = gp_cz_rival
+			has_variable = gp_cz_rival_zone
+			var:gp_cz_rival = scope:loser
+		}
+		save_scope_as = gp_col_winner
+		var:gp_cz_rival_zone = { save_scope_as = gp_col_zone }
+		scope:loser = {
+			every_owned_location = {
+				limit = { var:gp_cz_anchor ?= scope:gp_col_zone }
+				change_location_owner = scope:gp_col_winner
+			}
+			every_subject_or_below = {
+				every_owned_location = {
+					limit = { var:gp_cz_anchor ?= scope:gp_col_zone }
+					change_location_owner = scope:gp_col_winner
+				}
+			}
+			every_colonial_charter = {
+				limit = {
+					province_definition ?= {
+						any_location_in_province_definition = { var:gp_cz_anchor ?= scope:gp_col_zone }
+					}
+				}
+				save_scope_as = gp_col_lost_charter
+				scope:loser = { destroy_colonial_charter = scope:gp_col_lost_charter }
+				clear_saved_scope = gp_col_lost_charter
+			}
+			if = { limit = { has_variable = gp_cz_rival } remove_variable = gp_cz_rival }
+			if = { limit = { has_variable = gp_cz_rival_zone } remove_variable = gp_cz_rival_zone }
+		}
+		remove_variable = gp_cz_rival
+		remove_variable = gp_cz_rival_zone
+		clear_saved_scope = gp_col_zone
+		clear_saved_scope = gp_col_winner
+	}
+}

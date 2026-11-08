@@ -597,7 +597,8 @@ gp_ib_free = {
 # Country scope (Granada): a Maghreb country stands by it - an ally, or a friend (opinion 100).
 gp_ib_backed_here = {
 	OR = {
-		any_ally = {
+		any_known_country = {
+			is_allied_with = { target = prev }
 			exists = capital
 			capital.region = region:maghreb_region
 		}

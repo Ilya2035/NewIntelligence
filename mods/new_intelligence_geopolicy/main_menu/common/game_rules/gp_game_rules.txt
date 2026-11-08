@@ -100,3 +100,19 @@ gp_rule_alliance = {
 		flag = general_rule
 	}
 }
+
+# v0.11 The colonial stage (author, 2026-11-08): colonial right, zones with influence (15 % to colonise, a lasting cause
+# for war at 40-60 %), the Pacific islands first come first served, the hard African interior and African homeland,
+# the Asian overreach, colonies freed with a falling metropolis (in_game/common/scripted_effects/gp_colonies.txt).
+gp_rule_colonies = {
+	default = gp_colonies_on
+
+	gp_colonies_on = {
+		flag = gp_colonies_on
+		flag = general_rule
+	}
+	gp_colonies_off = {
+		flag = gp_colonies_off
+		flag = general_rule
+	}
+}

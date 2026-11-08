@@ -197,3 +197,35 @@ gp_cb_dynastic_claim = {
 		}
 	}
 }
+
+# v0.11 A dispute over a colonial zone (author, 2026-11-07: "two countries with 40-60 % of influence in a zone get a
+# lasting cause for war against each other over it"). var:gp_cz_rival / gp_cz_rival_zone are set yearly by the zone
+# pass (gp_col_world_update, gp_colonies.txt) and vanish when the shares change. Vanilla colonial war goal (cheap
+# conquest, overlords stay out); the winner also takes the loser's land in the zone (gp_col_war_end).
+gp_cb_colonial_zone = {
+	years = 5
+	speed = 50
+
+	create_visible = {
+		has_variable = gp_cz_rival
+		scope:target ?= root.var:gp_cz_rival
+	}
+	create_enabled = {
+		NOT = { has_truce_with = scope:target }
+	}
+	declare_enabled = {
+		has_variable = gp_cz_rival
+		scope:target ?= root.var:gp_cz_rival
+	}
+
+	war_goal_type = take_capital_colony_war
+
+	additional_war_enthusiasm_attacker = 0.1
+
+	ai_will_do = {
+		add = {
+			desc = "BASE"
+			value = 20
+		}
+	}
+}

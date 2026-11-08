@@ -1443,6 +1443,7 @@ gp_sc_spain_breakup = {
 		limit = { NOT = { has_global_variable = gp_sc_spain_broken } }
 		set_global_variable = { name = gp_sc_spain_broken value = 1 }
 		save_scope_as = gp_brk
+		gp_col_free_colonies = yes	# v0.11 its colonies go free (gp_colonies.txt)
 		gp_sc_release_state = { TAG = CAT AREA = catalonia_area }
 		gp_sc_release_state = { TAG = ARA AREA = aragon_area }
 		gp_sc_release_state = { TAG = ARA AREA = valencia_area }

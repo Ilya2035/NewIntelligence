@@ -1,0 +1,24 @@
+﻿###################################
+# New Intelligence: Geopolicy - prices of the colony card actions (v0.11, generic_actions/gp_colony_actions.txt).
+# Format: prices/readme.txt (as vanilla create_colonial_charter: scaled_gold with a cap).
+###################################
+
+gp_col_act_natives = {
+	scaled_gold = 1
+	max_scale = 150
+}
+
+gp_col_act_cattle = {
+	scaled_gold = 1
+	max_scale = 150
+}
+
+gp_col_act_stockade = {
+	scaled_gold = 1.5
+	max_scale = 200
+}
+
+gp_col_act_settlers = {
+	scaled_gold = 2
+	max_scale = 250
+}

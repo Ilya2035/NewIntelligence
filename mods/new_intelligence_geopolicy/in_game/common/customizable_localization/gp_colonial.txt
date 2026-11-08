@@ -1,0 +1,103 @@
+﻿###################################
+# New Intelligence: Geopolicy - lines of the colonial stage for the "Balance of power" tab (v0.11, gp_colonies.txt)
+# Called as [Country.Custom('gp_col_right')] and [Country.Custom('gp_col_ardor_effect')] (GP_COL_* in gp_geopolicy_l_*.yml).
+###################################
+
+gp_col_right = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_col_right_off
+		trigger = { has_game_rule = gp_colonies_off }
+	}
+	text = {
+		localization_key = gp_col_right_banned
+		trigger = { has_variable = gp_col_banned }
+	}
+	text = {
+		localization_key = gp_col_right_new_world
+		trigger = {
+			has_variable = gp_col_right var:gp_col_right = 2
+			gp_col_new_world_country = yes
+		}
+	}
+	text = {
+		localization_key = gp_col_right_full
+		trigger = { has_variable = gp_col_right var:gp_col_right = 2 }
+	}
+	text = {
+		localization_key = gp_col_right_g1
+		trigger = {
+			has_variable = gp_col_right var:gp_col_right = 1
+			has_variable = gp_col_group var:gp_col_group = 1
+		}
+	}
+	text = {
+		localization_key = gp_col_right_g2
+		trigger = {
+			has_variable = gp_col_right var:gp_col_right = 1
+			has_variable = gp_col_group var:gp_col_group = 2
+		}
+	}
+	text = {
+		localization_key = gp_col_right_g3
+		trigger = {
+			has_variable = gp_col_right var:gp_col_right = 1
+			has_variable = gp_col_group var:gp_col_group = 3
+		}
+	}
+	text = {
+		localization_key = gp_col_right_g4
+		trigger = {
+			has_variable = gp_col_right var:gp_col_right = 1
+			has_variable = gp_col_group var:gp_col_group = 4
+		}
+	}
+	text = {
+		localization_key = gp_col_right_g5
+		trigger = {
+			has_variable = gp_col_right var:gp_col_right = 1
+			has_variable = gp_col_group var:gp_col_group = 5
+		}
+	}
+	text = {
+		localization_key = gp_col_right_g6
+		trigger = {
+			has_variable = gp_col_right var:gp_col_right = 1
+			has_variable = gp_col_group var:gp_col_group = 6
+		}
+	}
+	text = {
+		localization_key = gp_col_right_subject
+		trigger = { is_subject = yes }
+	}
+	text = {
+		localization_key = gp_col_right_none
+	}
+}
+
+gp_col_ardor_effect = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_col_ardor_empire
+		trigger = { has_variable = gp_col_empire }
+	}
+	text = {
+		localization_key = gp_col_ardor_70
+		trigger = { has_variable = gp_col_ardor var:gp_col_ardor >= 70 }
+	}
+	text = {
+		localization_key = gp_col_ardor_40
+		trigger = { has_variable = gp_col_ardor var:gp_col_ardor >= 40 }
+	}
+	text = {
+		localization_key = gp_col_ardor_25
+		trigger = { has_variable = gp_col_ardor var:gp_col_ardor >= 25 }
+	}
+	text = {
+		localization_key = gp_col_ardor_low
+	}
+}

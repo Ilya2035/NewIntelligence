@@ -235,6 +235,46 @@ template geopolitics_tabs {
 			text = "GP_BP_SC_EMPIRE"
 		}
 
+		# ---- v0.11 the colonial stage (gp_colonies.txt; customizable_localization gp_col_*) ----
+		text_single = {
+			layoutpolicy_horizontal = expanding
+			default_format = "#yellow_titles"
+			text = "GP_COL_TITLE"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_COL_ARDOR"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_COL_RIGHT"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			visible = "[Player.MakeScope.GetVariable('gp_col_empire').IsSet]"
+			text = "GP_COL_EMPIRE"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			visible = "[Player.MakeScope.GetVariable('gp_cz_rival').IsSet]"
+			text = "GP_COL_RIVAL"
+		}
+		text_multi = {
+			layoutpolicy_horizontal = expanding
+			text = "GP_COL_ZONES_NOTE"
+		}
+		vbox = {
+			layoutpolicy_horizontal = expanding
+			datamodel = "[Player.MakeScope.GetList('gp_cz_mine')]"
+			item = {
+				text_multi = {
+					datacontext = "[Scope.GetLocation]"
+					layoutpolicy_horizontal = expanding
+					text = "GP_COL_ZONE_ROW"
+				}
+			}
+		}
+
 		# ---- refresh ----
 		hbox = {
 			layoutpolicy_horizontal = expanding

@@ -1046,3 +1046,99 @@ gp_score_great_crowns_abroad = {
 		add = -0.5
 	}
 }
+
+# ================================================================================================
+# v0.11 The colonial stage (gp_colonies.txt)
+# ================================================================================================
+
+# Colonial ardor (author: "the higher the ardor, the less the country is drawn into Europe: it finishes its historical
+# lands and goes overseas"): targets in Europe outside the home region weigh less from 40 ardor, much less from 70.
+gp_score_colonial_ardor = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		has_variable = gp_col_ardor
+		var:gp_col_ardor >= 40
+		NOT = { has_variable = gp_col_empire }
+	}
+	target_trigger = {
+		exists = capital
+		capital.continent = continent:europe
+		NOT = { capital.region = scope:attacker.capital.region }
+		NOT = { this ?= scope:attacker.var:gp_sc_cb_target }
+		NOT = { this ?= scope:attacker.var:gp_war_target }
+		NOT = { this ?= scope:attacker.var:gp_sc_vassal_target }
+		NOT = { this ?= scope:attacker.var:gp_sc_claim_target }
+	}
+	multiplier = {
+		add = -0.4
+		if = {
+			limit = { scope:attacker.var:gp_col_ardor >= 70 }
+			add = -0.3
+		}
+	}
+}
+
+# Colonies five times the homeland: no more wars for land in Europe outside the home region (author: "only vassals and
+# puppets"); the scenario wars of the great crowns still stand.
+gp_score_colonial_empire = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		has_variable = gp_col_empire
+	}
+	target_trigger = {
+		exists = capital
+		capital.continent = continent:europe
+		NOT = { capital.region = scope:attacker.capital.region }
+		NOT = { this ?= scope:attacker.var:gp_sc_cb_target }
+		NOT = { this ?= scope:attacker.var:gp_sc_vassal_target }
+		NOT = { this ?= scope:attacker.var:gp_sc_claim_target }
+	}
+	multiplier = {
+		add = -0.9
+	}
+}
+
+# Ardor 25+: first the historical lands (Britain with Ireland, France, Iberia - the home region).
+gp_score_ardor_home = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		has_variable = gp_col_ardor
+		var:gp_col_ardor >= 25
+	}
+	target_trigger = {
+		exists = capital
+		OR = {
+			capital.region = scope:attacker.capital.region
+			AND = {
+				capital.region = region:ireland_region
+				scope:attacker = { capital.region = region:great_britain_region }
+			}
+		}
+	}
+	multiplier = {
+		add = 0.25
+	}
+}
+
+# Asian overreach: present in more than two zones of Asia - new targets in Asia weigh much less.
+gp_score_asian_overreach = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_col_asia_zones
+		var:gp_col_asia_zones >= 2
+	}
+	target_trigger = {
+		exists = capital
+		capital.continent = continent:asia
+	}
+	multiplier = {
+		add = -0.6
+	}
+}

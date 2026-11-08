@@ -32,6 +32,10 @@ on_new_ruler = {						# root = country; scope:old_ruler / scope:new_ruler
 	on_actions = { gp_on_new_ruler }
 }
 
+colonial_charter_monthly_pulse = {	# root = country, scope:target = colonial_charter (v0.11 colonial right, zones, islands)
+	on_actions = { gp_col_charter_monthly }
+}
+
 # ---- our on_actions ----------------------------------------------------------------------------
 
 gp_on_game_start = {
@@ -56,4 +60,9 @@ gp_on_war_end = {
 gp_on_new_ruler = {
 	trigger = { gp_is_real_country = yes }
 	effect = { gp_on_new_ruler_effect = yes }
+}
+
+gp_col_charter_monthly = {
+	trigger = { NOT = { has_game_rule = gp_colonies_off } }
+	effect = { gp_col_charter_check = yes }
 }

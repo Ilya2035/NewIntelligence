@@ -411,3 +411,38 @@ gp_target_dynastic_claim = {
 		add = 850
 	}
 }
+
+# v0.11 The zone dispute (gp_cb_colonial_zone): two colonial powers with 40-60 % each in a zone; the AI fights for it
+# when it is the stronger one or roughly equal, a year after its last war.
+gp_target_colonial_zone = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_cz_rival
+		at_war = no
+		months_since_war >= 12
+		NOT = { gp_is_calm_posture = yes }
+	}
+	candidate_list = {
+		var:gp_cz_rival ?= {
+			if = {
+				limit = {
+					gp_is_real_country = yes
+					NOT = { has_truce_with = root }
+				}
+				add_to_list = source
+			}
+		}
+	}
+	casus_belli = casus_belli:gp_cb_colonial_zone
+	score = {
+		add = 22
+		if = {
+			limit = { scope:attacker = { country_strength > scope:target.country_strength } }
+			add = 8
+		}
+	}
+	sort_value = {
+		add = 700
+	}
+}

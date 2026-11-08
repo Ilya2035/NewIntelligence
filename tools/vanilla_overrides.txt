@@ -4,3 +4,4 @@ game/in_game/gui/single_unit_window.gui  0e6eb35ea9298cf60e44ed2e3e757ee1  5301
 game/in_game/common/location_ranks/00_default.txt  eac46655d8a16252ac3f316c0bc1ec5d  212
 game/in_game/common/unit_formation_preference/army.txt  26bfa8d99082af5957ded22cb07316f1  68
 game/in_game/gui/unit_overview.gui  fb036bdefd9d3ab30cc2dd09b103e2c4  3588
+game/in_game/gui/expansion_lateralview.gui  1b7275d52a6ae84b9889242d4928def5  2292

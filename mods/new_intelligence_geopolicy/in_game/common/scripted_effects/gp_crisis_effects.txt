@@ -95,6 +95,7 @@ gp_crisis_apply = {
 		# collapse
 		if = {
 			limit = { var:gp_crisis >= 120 }
+			gp_col_free_colonies = yes	# v0.11 the colonies of a falling metropolis go free (gp_colonies.txt)
 			# v0.8 the French and the English crown fall into their historical lands (gp_scenarios_hyw.txt), once a game
 			if = {
 				limit = {

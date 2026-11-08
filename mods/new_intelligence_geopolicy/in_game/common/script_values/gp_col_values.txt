@@ -1,0 +1,150 @@
+﻿###################################
+# New Intelligence: Geopolicy - values of the colonial stage (v0.11, gp_colonies.txt)
+###################################
+
+# ---- colonial ardor, 0..100 (author: "ardor grows from the number of colonies, from trade and from the fleet") ----
+
+# Colonies: half a point per overseas location (own and colonial subjects'), two per ongoing charter; at most 40.
+gp_col_ardor_colonies = {
+	value = 0
+	if = {
+		limit = { has_variable = gp_col_overseas }
+		add = var:gp_col_overseas
+		divide = 2
+	}
+	add = {
+		value = num_colonial_charters
+		multiply = 2
+	}
+	max = 40
+}
+
+# Trade: the share of trade in the income from trade and taxes, x 60; at most 30 (half the income from trade = 30).
+gp_col_ardor_trade = {
+	value = monthly_trade_income
+	divide = {
+		value = monthly_income_trade_and_tax
+		min = 1
+	}
+	multiply = 60
+	min = 0
+	max = 30
+}
+
+# Fleet: half a point per unit of navy size; at most 30.
+gp_col_ardor_navy = {
+	value = navy_size
+	divide = 2
+	min = 0
+	max = 30
+}
+
+gp_col_ardor_value = {
+	value = 0
+	add = var:gp_col_ard_c
+	add = var:gp_col_ard_t
+	add = var:gp_col_ard_n
+	round = yes
+}
+
+# ---- the homeland and the overseas empire ----
+
+gp_col_home_value = {
+	value = num_locations
+	subtract = var:gp_col_own_os
+	min = 1
+}
+
+gp_col_empire_ratio = {
+	value = var:gp_col_overseas
+	divide = {
+		value = var:gp_col_home
+		min = 1
+	}
+}
+
+# ---- dominance of the home region (with subjects) ----
+
+gp_col_dom_value = {
+	value = 0
+	if = {
+		limit = { has_variable = gp_region_share }
+		add = var:gp_region_share
+	}
+	add = {
+		value = var:gp_col_dom_n
+		divide = {
+			value = var:gp_region_total	# set by gp_compute_region_share earlier in the same yearly update
+			min = 1
+		}
+	}
+}
+
+gp_col_low_share_value = {
+	value = var:gp_col_dom_n
+	divide = {
+		value = global_var:gp_col_low_total
+		min = 1
+	}
+}
+
+# ---- influence in the zones ----
+
+# Weight of one location: 2 x (1 + ardor / 100); a charter is worth one and a half locations.
+gp_col_weight_value = {
+	value = 1
+	if = {
+		limit = { has_variable = gp_col_ardor }
+		add = {
+			value = var:gp_col_ardor
+			divide = 100
+		}
+	}
+	multiply = 2
+}
+
+gp_col_weight_charter_value = {
+	value = gp_col_weight_value
+	multiply = 1.5
+}
+
+# Anchor scope.
+gp_cz_lead_pct_value = {
+	value = var:gp_cz_lead_pts
+	divide = {
+		value = var:gp_cz_tot
+		min = 1
+	}
+	multiply = 100
+	round = yes
+}
+
+gp_cz_second_pct_value = {
+	value = var:gp_cz_second_pts
+	divide = {
+		value = var:gp_cz_tot
+		min = 1
+	}
+	multiply = 100
+	round = yes
+}
+
+gp_cz_p_share_value = {
+	value = var:gp_cz_p
+	divide = {
+		value = var:gp_cz_tot
+		min = 1
+	}
+}
+
+gp_cz_p_pct_value = {
+	value = gp_cz_p_share_value
+	multiply = 100
+	round = yes
+}
+
+gp_col_dom_pct_value = {
+	value = var:gp_col_dom
+	multiply = 100
+	round = yes
+}

@@ -696,6 +696,7 @@ gp_sc_france_breakup = {
 		limit = { NOT = { has_global_variable = gp_sc_france_broken } }
 		set_global_variable = { name = gp_sc_france_broken value = 1 }
 		save_scope_as = gp_brk
+		gp_col_free_colonies = yes	# v0.11 its colonies go free (gp_colonies.txt)
 		gp_sc_release_state = { TAG = BRI AREA = brittany_area }
 		gp_sc_release_state = { TAG = NRM AREA = normandy_area }
 		gp_sc_release_state = { TAG = BUR AREA = burgundy_area }
@@ -724,6 +725,7 @@ gp_sc_england_breakup = {
 		limit = { NOT = { has_global_variable = gp_sc_england_broken } }
 		set_global_variable = { name = gp_sc_england_broken value = 1 }
 		save_scope_as = gp_brk
+		gp_col_free_colonies = yes	# v0.11 its colonies go free (gp_colonies.txt)
 		gp_sc_release_state = { TAG = NOL AREA = northumbria_area }
 		gp_sc_release_state = { TAG = LAN AREA = midlands_area }
 		gp_sc_release_state = { TAG = CRN AREA = west_country_area }
@@ -1049,7 +1051,7 @@ gp_sc_france_later = {
 			global_var:gp_ib_cas ?= {
 				gp_is_real_country = yes
 				is_subject = no
-				NOT = { any_ally = { always = yes } }
+				NOT = { any_known_country = { is_allied_with = { target = prev } } }
 			}
 		}
 		global_var:gp_ib_cas ?= { save_scope_as = gp_cas_t }
