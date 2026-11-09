@@ -1,0 +1,15 @@
+{
+  "name": "New Intelligence",
+  "app_id": "3450310",
+  "mods": [
+    { "folder": "new_intelligence_battle", "source": "mods/new_intelligence_battle" },
+    { "folder": "new_intelligence_geopolicy", "source": "mods/new_intelligence_geopolicy" }
+  ],
+  "required_mods": [
+    { "name": "Cheat Menu Pro", "workshop_id": "3600272327" }
+  ],
+  "engine": {
+    "loader": "version.dll",
+    "files": []
+  }
+}
