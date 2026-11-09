@@ -73,6 +73,10 @@ gp_col_right = {
 		trigger = { is_subject = yes }
 	}
 	text = {
+		localization_key = gp_col_right_not_leading
+		trigger = { has_variable = gp_col_not_leading }
+	}
+	text = {
 		localization_key = gp_col_right_none
 	}
 }

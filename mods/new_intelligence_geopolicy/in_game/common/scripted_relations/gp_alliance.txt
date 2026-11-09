@@ -1,8 +1,17 @@
-﻿# New Intelligence: Geopolicy v0.9 - the vanilla alliance (in_game/common/scripted_relations/alliance.txt, 1.4.7) with
-# one change: an alliance can only be offered between friends - opinion 100 both ways (author, 2026-11-06), unless the
-# game rule "Alliances only between friends" (gp_rule_alliance) is off. Existing alliances are not broken by it (the
-# vanilla will_expire_trigger is unchanged). Re-check against vanilla after every game patch.
-REPLACE:alliance = { 
+﻿# New Intelligence: Geopolicy - the vanilla alliance (in_game/common/scripted_relations/alliance.txt, 1.4.7) with the
+# reasons of the region added to the AI's own weighing (game rule gp_rule_alliance):
+#   gp_alliance_reasons (default, v0.12) - no opinion threshold; the country asked weighs, next to the vanilla reasons
+#     (opinion, trust, needs, common rivals, desire for our land), the reasons of Geopolicy (wants_to_give): rivals for
+#     the same region (-60), the partner is our own regional threat (-50), the partner is ruined (broken -60, in crisis
+#     -40, freshly defeated -20), a partner from another region with no common enemy (-30), before 1450 a partner from
+#     outside the western game or into it (-40), a common regional threat (+15). An ally keeps an alliance by the same
+#     reasons, milder (wants_to_keep). Author, 2026-11-09: "the AI must make the right decision itself, not be held by
+#     frames" - the opinion-100 gate of v0.9 was such a frame (docs/GEOPOLICY_V012_PLAN.md, table 3a);
+#   gp_alliance_friends - the same reasons and, on top, the v0.9 gate: opinion 100 both ways to offer;
+#   gp_alliance_any - the vanilla alliance.
+# Existing alliances are not broken by the rule itself (the vanilla will_expire_trigger is unchanged). Re-check against
+# vanilla after every game patch.
+REPLACE:alliance = {
 	type = diplomacy
 	relation_type = mutual
     uses_diplo_capacity = mutual
@@ -65,7 +74,7 @@ REPLACE:alliance = {
             second = scope:recipient
         }
         OR = {
-            has_game_rule = gp_alliance_any
+            NOT = { has_game_rule = gp_alliance_friends }
             custom_tooltip = {
                 text = gp_alliance_needs_friendship_tt
                 scope:actor = { opinion = { target = scope:recipient value >= 100 } }
@@ -360,6 +369,77 @@ REPLACE:alliance = {
                 max = 3
                 multiply = 5
             }
+
+            # ---- v0.12 Geopolicy: the reasons of the region (the country asked = scope:recipient) ----
+            if = {
+                limit = { NOT = { has_game_rule = gp_alliance_any } }
+                if = {
+                    limit = {
+                        scope:actor = { gp_is_regional_rival_of = { COUNTRY = scope:recipient } }
+                        NOT = { gp_ally_overwhelming_threat = { WHO = scope:recipient PARTNER = scope:actor } }
+                    }
+                    add = {
+                        desc = "GP_ALLY_REGION_RIVALS"
+                        value = -60
+                    }
+                }
+                if = {
+                    limit = { scope:actor = { this ?= scope:recipient.var:gp_threat } }
+                    add = {
+                        desc = "GP_ALLY_OWN_THREAT"
+                        value = -50
+                    }
+                }
+                if = {
+                    limit = { scope:actor = { has_variable = gp_sc_broken } }
+                    add = {
+                        desc = "GP_ALLY_RUINED"
+                        value = -60
+                    }
+                }
+                else_if = {
+                    limit = { scope:actor = { has_variable = gp_crisis var:gp_crisis >= 80 } }
+                    add = {
+                        desc = "GP_ALLY_RUINED"
+                        value = -40
+                    }
+                }
+                else_if = {
+                    limit = { scope:actor = { has_variable = gp_recent_defeat } }
+                    add = {
+                        desc = "GP_ALLY_RUINED"
+                        value = -20
+                    }
+                }
+                if = {
+                    limit = {
+                        gp_ally_far_without_cause = { WHO = scope:recipient PARTNER = scope:actor }
+                        "scope:recipient.num_of_common_rivals(scope:actor)" < 1
+                    }
+                    add = {
+                        desc = "GP_ALLY_FAR_NO_CAUSE"
+                        value = -30
+                    }
+                }
+                if = {
+                    limit = {
+                        current_date < 1450.1.1
+                        gp_ally_crosses_western_game = { WHO = scope:recipient PARTNER = scope:actor }
+                        NOT = { scope:recipient = { gp_shares_threat_with = { COUNTRY = scope:actor } } }
+                    }
+                    add = {
+                        desc = "GP_ALLY_WEST_CLOSED"
+                        value = -40
+                    }
+                }
+                if = {
+                    limit = { scope:recipient = { gp_shares_threat_with = { COUNTRY = scope:actor } } }
+                    add = {
+                        desc = "GP_ALLY_COMMON_THREAT"
+                        value = 15
+                    }
+                }
+            }
         }
     }
 
@@ -517,6 +597,53 @@ REPLACE:alliance = {
             value = "scope:recipient.num_of_common_rivals(scope:actor)"
             max = 3
             multiply = 5
+        }
+
+        # ---- v0.12 Geopolicy: the reasons of the region, milder for an alliance already made (the ally deciding =
+        # scope:actor, its partner = scope:recipient) ----
+        if = {
+            limit = { NOT = { has_game_rule = gp_alliance_any } }
+            if = {
+                limit = {
+                    scope:recipient = { gp_is_regional_rival_of = { COUNTRY = scope:actor } }
+                    NOT = { gp_ally_overwhelming_threat = { WHO = scope:actor PARTNER = scope:recipient } }
+                }
+                add = {
+                    desc = "GP_ALLY_REGION_RIVALS"
+                    value = -30
+                }
+            }
+            if = {
+                limit = { scope:recipient = { has_variable = gp_sc_broken } }
+                add = {
+                    desc = "GP_ALLY_RUINED"
+                    value = -40
+                }
+            }
+            else_if = {
+                limit = { scope:recipient = { has_variable = gp_crisis var:gp_crisis >= 80 } }
+                add = {
+                    desc = "GP_ALLY_RUINED"
+                    value = -25
+                }
+            }
+            else_if = {
+                limit = { scope:recipient = { has_variable = gp_recent_defeat } }
+                add = {
+                    desc = "GP_ALLY_RUINED"
+                    value = -10
+                }
+            }
+            if = {
+                limit = {
+                    gp_ally_far_without_cause = { WHO = scope:actor PARTNER = scope:recipient }
+                    "scope:recipient.num_of_common_rivals(scope:actor)" < 1
+                }
+                add = {
+                    desc = "GP_ALLY_FAR_NO_CAUSE"
+                    value = -15
+                }
+            }
         }
 
 		if = {

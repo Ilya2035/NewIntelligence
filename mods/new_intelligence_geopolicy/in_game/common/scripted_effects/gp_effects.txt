@@ -143,6 +143,7 @@ gp_compute_region_share = {
 			}
 			set_variable = { name = gp_region_total value = 0 }
 			set_variable = { name = gp_region_cached value = capital.region }
+			set_variable = { name = gp_region_peak value = 0 }	# v0.12 a new home region starts a new record
 			capital.region = {
 				every_ownable_location_in_region = {
 					scope:gp_c = { change_variable = { name = gp_region_total add = 1 } }
@@ -161,6 +162,18 @@ gp_compute_region_share = {
 	set_variable = { name = gp_region_share value = gp_region_share_value }
 	set_variable = { name = gp_region_pct value = gp_region_pct_value }	# v0.3 whole percent for the "Balance of power" tab
 	remove_variable = gp_owned_tmp
+	# v0.12 the best share ever held in this home region, and how much of it is kept (gp_update_contender: a historical
+	# contender stays one while it keeps half of its best)
+	if = {
+		limit = {
+			OR = {
+				NOT = { has_variable = gp_region_peak }
+				var:gp_region_share > var:gp_region_peak
+			}
+		}
+		set_variable = { name = gp_region_peak value = var:gp_region_share }
+	}
+	set_variable = { name = gp_region_kept value = gp_region_kept_value }
 }
 
 # ---- momentum of conquest ----------------------------------------------------------------------------
@@ -711,6 +724,20 @@ gp_debug_report = {
 		if = { limit = { has_variable = gp_region_turmoil } debug_log = "GP_REPORT    time of troubles in the region" }
 		if = { limit = { has_variable = gp_historic_contender } debug_log = "GP_REPORT    historic contender" }
 		if = { limit = { has_variable = gp_contender } debug_log = "GP_REPORT    contender of the region" }
+		# v0.12 why it leads (gp_update_contender) and whether it keeps its best share
+		if = { limit = { var:gp_contender_why ?= 1 } debug_log = "GP_REPORT    contender by share (a quarter of the region)" }
+		else_if = { limit = { var:gp_contender_why ?= 2 } debug_log = "GP_REPORT    contender as the strongest of the region" }
+		else_if = { limit = { var:gp_contender_why ?= 3 } debug_log = "GP_REPORT    contender by history (keeps half of its best share)" }
+		if = {
+			limit = {
+				has_variable = gp_region_kept
+				var:gp_region_kept < 0.5
+			}
+			debug_log = "GP_REPORT    lost more than half of its best share of the region"
+		}
+		if = { limit = { var:gp_col_right ?= 2 } debug_log = "GP_REPORT    colonial right full" }
+		else_if = { limit = { var:gp_col_right ?= 1 } debug_log = "GP_REPORT    colonial right limited (own zones)" }
+		else_if = { limit = { has_variable = gp_col_not_leading } debug_log = "GP_REPORT    no colonial right: does not lead its region" }
 		if = { limit = { has_variable = gp_hopeless } debug_log = "GP_REPORT    hopeless minor" }
 		if = { limit = { has_variable = gp_region_claim } debug_log = "GP_REPORT    region claim (90 %)" }
 		if = { limit = { gp_has_unification_right = yes } debug_log = "GP_REPORT    may use the unification casus belli" }

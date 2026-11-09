@@ -4,7 +4,8 @@
 # New Intelligence: Geopolicy - events of the colonial stage (v0.11, gp_colonies.txt)
 #   gp_col.1 a colonial charter withdrawn (gp_col_revoke; players only). var:gp_col_revoke_reason:
 #            1 no colonial right, 2 the zone is not open to our limited right, 3 less than 15 % of influence in the zone,
-#            4 the island already belongs to another colonial power, 5 a colony ban of the scenario of the isles. var:gp_col_revoke_zone = the zone anchor (if any).
+#            4 the island already belongs to another colonial power, 5 a colony ban of the scenario of the isles,
+#            6 (v0.12) the far North and Siberia are for the peoples of the North. var:gp_col_revoke_zone = the zone anchor (if any).
 ###################################
 
 gp_col.1 = {
@@ -27,6 +28,10 @@ gp_col.1 = {
 			triggered_desc = {
 				trigger = { var:gp_col_revoke_reason ?= 5 }
 				desc = gp_col.1.desc_banned
+			}
+			triggered_desc = {
+				trigger = { var:gp_col_revoke_reason ?= 6 }
+				desc = gp_col.1.desc_north
 			}
 			triggered_desc = {
 				desc = gp_col.1.desc_island

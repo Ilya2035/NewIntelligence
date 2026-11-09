@@ -222,8 +222,9 @@ gp_score_light_expansion = {
 
 # v0.3 The region first (author, 2026-11-05: "until 1600 countries work fully for their own region, and a little on the
 # lands next to it"): a target with no land in our home region is worth a third as much (the old 20-year early restraint
-# is folded in here). Who holds 75 % of the home region has earned the right to the neighbouring regions of its
-# macro-region (x0.8 there). Hegemons, empires and steppe hordes are exempt; prepared wars and easy prey are not held back.
+# is folded in here). Who has united the home region (v0.12: 60 %, was 75 %; author, 1628 review: "first its own region,
+# then the next area by interest") has earned the neighbouring regions of its macro-region (x0.8 there). Hegemons,
+# empires and steppe hordes are exempt; prepared wars and easy prey are not held back.
 gp_score_region_first = {
 	attacker_potential = {
 		is_ai = yes
@@ -251,7 +252,7 @@ gp_score_region_first = {
 		add = -0.65
 		if = {
 			limit = {
-				scope:attacker = { var:gp_region_share >= 0.75 }
+				scope:attacker = { var:gp_region_share >= 0.6 }
 				scope:target = {
 					exists = capital
 					capital.sub_continent = scope:attacker.capital.sub_continent
@@ -263,11 +264,16 @@ gp_score_region_first = {
 }
 
 # v0.3 The contenders fight for the region: a contender wants the land of its own home region more.
+# v0.12 ... and the more of it it holds, the more it wants the rest (x1.15 at the start, x1.45 at 60 %, x1.6 at 90 %):
+# one rule for every power instead of a ladder of areas written for each country (docs/GEOPOLICY_V012_PLAN.md, 3a).
+# With the region first (above), the distance discipline and the gathering of kin it makes the general order of
+# expansion: our region before a foreign one, the near before the far, the kin before strangers.
 gp_score_region_home = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
 		has_variable = gp_contender
+		has_variable = gp_region_share
 		exists = capital
 		NOT = { gp_is_calm_posture = yes }
 	}
@@ -275,7 +281,11 @@ gp_score_region_home = {
 		any_owned_location = { region = scope:attacker.capital.region }
 	}
 	multiplier = {
-		add = 0.25
+		add = 0.15
+		add = {
+			value = scope:attacker.var:gp_region_share
+			multiply = 0.5
+		}
 	}
 }
 

@@ -45,12 +45,15 @@ gp_col_country_update = {
 gp_col_clear = {
 	if = { limit = { has_variable = gp_col_right } remove_variable = gp_col_right }
 	if = { limit = { has_variable = gp_col_group } remove_variable = gp_col_group }
+	if = { limit = { has_variable = gp_col_not_leading } remove_variable = gp_col_not_leading }
 	if = { limit = { has_variable = gp_col_ardor } remove_variable = gp_col_ardor }
 	if = { limit = { has_variable = gp_col_empire } remove_variable = gp_col_empire }
 	if = { limit = { has_variable = gp_col_banned } remove_variable = gp_col_banned }
 	gp_col_clear_zone_data = yes
 	if = { limit = { has_country_modifier = gp_col_asian_overreach } remove_country_modifier = gp_col_asian_overreach }
 	if = { limit = { has_country_modifier = gp_col_african_homeland } remove_country_modifier = gp_col_african_homeland }
+	gp_pref_drop = { PREF = gp_col_no_right }
+	gp_pref_drop = { PREF = gp_col_north_foreign }
 }
 
 gp_col_clear_zone_data = {
@@ -111,11 +114,14 @@ gp_col_compute_ardor = {
 }
 
 # Right: 2 full - the country dominates its home region (holds half of it with its subjects; the Low Countries count as
-# a region of their own), or lives in the New World itself; 1 limited - a coastal country of the West, only the zones of
-# its group; 0 none. Subjects (except colonial nations, which colonise their own land) have no right of their own.
+# a region of their own), or lives in the New World itself; 1 limited - a coastal country of the West that leads its
+# region (v0.12: gp_contender), only the zones of its group; 0 none (var:gp_col_not_leading: a coastal country of the West
+# that would have a group but does not lead its region). Subjects (except colonial nations, which colonise their own
+# land) have no right of their own.
 gp_col_compute_right = {
 	set_variable = { name = gp_col_right value = 0 }
 	if = { limit = { has_variable = gp_col_group } remove_variable = gp_col_group }
+	if = { limit = { has_variable = gp_col_not_leading } remove_variable = gp_col_not_leading }
 	set_variable = { name = gp_col_dom value = 0 }
 	set_variable = { name = gp_col_dom_pct value = 0 }
 	if = {
@@ -177,9 +183,20 @@ gp_col_compute_right = {
 					}
 					set_variable = { name = gp_col_group value = 6 }
 				}
+				# v0.12 the limited right belongs to a leading power of its region (gp_contender, computed by share and
+				# strength in gp_update_contender): Denmark, Portugal, a rising Toulouse - not a ruined France or Navarre
+				# (author, 1628 review: "only the uniter of a region colonises; the broken and the small do not")
 				if = {
-					limit = { has_variable = gp_col_group }
+					limit = {
+						has_variable = gp_col_group
+						has_variable = gp_contender
+					}
 					set_variable = { name = gp_col_right value = 1 }
+				}
+				else_if = {
+					limit = { has_variable = gp_col_group }
+					remove_variable = gp_col_group
+					set_variable = gp_col_not_leading
 				}
 			}
 		}
@@ -214,6 +231,28 @@ gp_col_compute_right = {
 		gp_col_group_pref = { N = 4 }
 		gp_col_group_pref = { N = 5 }
 		gp_col_group_pref = { N = 6 }
+		# v0.12 the AI weighs the right before it charters (instead of losing the charter afterwards): without a right
+		# the New World is worth next to nothing to it; the far North and Siberia are worth little to anyone but the
+		# Scandinavians and the peoples of Eastern Europe (author, 1628 review: "the Kola peninsula is a matter for the
+		# Scandinavians and the Slavs, not for the Dutch and the Normans")
+		if = {
+			limit = {
+				var:gp_col_right = 0
+				gp_col_new_world_country = no
+				NOT = { is_subject_type = colonial_nation }
+			}
+			gp_pref_keep = { PREF = gp_col_no_right }
+		}
+		else = {
+			gp_pref_drop = { PREF = gp_col_no_right }
+		}
+		if = {
+			limit = { gp_col_northern_people = no }
+			gp_pref_keep = { PREF = gp_col_north_foreign }
+		}
+		else = {
+			gp_pref_drop = { PREF = gp_col_north_foreign }
+		}
 	}
 }
 
@@ -534,6 +573,17 @@ gp_col_charter_check = {
 			}
 			gp_col_revoke = yes
 		}
+		# v0.12 the far North and Siberia (Kola, Norrland, Karelia, Arkhangelsk, the Urals, Siberia): the Scandinavians and
+		# the peoples of Eastern Europe only
+		else_if = {
+			limit = {
+				scope:gp_col_loc = { gp_col_is_far_north = yes }
+				gp_col_northern_people = no
+				NOT = { is_subject_type = colonial_nation }
+			}
+			set_variable = { name = gp_col_revoke_reason value = 6 }
+			gp_col_revoke = yes
+		}
 		# the Pacific islands: first come, first served; an outpost becomes a colony at once
 		else_if = {
 			limit = {
@@ -571,8 +621,21 @@ gp_col_charter_check = {
 }
 
 # Root = the country, scope:target = the charter, var:gp_col_revoke_reason set: the charter is withdrawn. Players get an
-# event telling why (gp_col.1); the AI loses it silently (its area preferences steer it away, gp_zones.txt).
+# event telling why (gp_col.1).
+# v0.12 For the AI this is only the safety net: the AI weighs the right BEFORE it charters (gp_col_no_right,
+# gp_col_north_foreign, the zone preferences of gp_zones.txt), so a withdrawn AI charter means the weighing was not
+# enough. Each one is logged ("GP_COL AI charter withdrawn, reason N" in debug.log): the next observation counts them, and
+# when none are left this net goes away (docs/GEOPOLICY_V012_PLAN.md, table 3a).
 gp_col_revoke = {
+	if = {
+		limit = { is_ai = yes }
+		if = { limit = { var:gp_col_revoke_reason = 1 } debug_log = "GP_COL AI charter withdrawn, reason 1 (no colonial right)" }
+		else_if = { limit = { var:gp_col_revoke_reason = 2 } debug_log = "GP_COL AI charter withdrawn, reason 2 (outside the zones of the limited right)" }
+		else_if = { limit = { var:gp_col_revoke_reason = 3 } debug_log = "GP_COL AI charter withdrawn, reason 3 (less than 15 % of the zone)" }
+		else_if = { limit = { var:gp_col_revoke_reason = 4 } debug_log = "GP_COL AI charter withdrawn, reason 4 (the island is taken)" }
+		else_if = { limit = { var:gp_col_revoke_reason = 5 } debug_log = "GP_COL AI charter withdrawn, reason 5 (scenario ban of the isles)" }
+		else_if = { limit = { var:gp_col_revoke_reason = 6 } debug_log = "GP_COL AI charter withdrawn, reason 6 (the far North)" }
+	}
 	if = {
 		limit = { scope:gp_col_loc = { has_variable = gp_cz_anchor } }
 		set_variable = { name = gp_col_revoke_zone value = scope:gp_col_loc.var:gp_cz_anchor }

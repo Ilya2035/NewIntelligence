@@ -86,53 +86,67 @@ gp_history_contenders = {
 # Contender or minor (yearly, before the region relations)
 # ================================================================================================
 
-# Contender: a historical contender, or a country holding a quarter of its region, or - when no historical contender is
-# left in the region - its strongest independent country (the Eretnids take the Ottomans' place only if the Ottomans are
-# gone). Hopeless: not a contender, little of the region, and a country at least twice as strong has its capital in the
+# Contender (v0.12, computed - no longer granted by the history flag; author 2026-11-09: "the AI decides by itself, not
+# by frames"). A country is a contender of its region while one of three holds:
+#   1. it holds a quarter of the region;
+#   2. it is the strongest independent country with its capital in the region (Toulouse takes the lead from a ruined
+#      France; the Eretnids from fallen Ottomans);
+#   3. history made it a contender (gp_historic_contender: Moscow at 4 % of Russia in 1337, Brittany at 6 % of France)
+#      and it still holds at least half of the best share it ever had (var:gp_region_kept >= 0.5) - a rising power keeps
+#      its claim, a power that lost most of its land loses it (France at 34 % in 1337 and 8 % in 1628: not a contender).
+# var:gp_contender_why = 1 / 2 / 3 says which (GP_REPORT). A broken power of a scenario (gp_sc_broken) is none.
+# Hopeless: not a contender, little of the region, and a country at least twice as strong has its capital in the
 # region - such a country defends and looks for friends instead of carving a sausage-shaped realm.
 gp_update_contender = {
 	if = { limit = { has_variable = gp_contender } remove_variable = gp_contender }
+	if = { limit = { has_variable = gp_contender_why } remove_variable = gp_contender_why }
 	if = { limit = { has_variable = gp_hopeless } remove_variable = gp_hopeless }
 	if = {
 		limit = {
 			exists = capital
 			is_subject = no
+			NOT = { has_variable = gp_sc_broken }	# v0.5 a broken power (scenario) is no contender
 		}
 		if = {
+			limit = { var:gp_region_share >= 0.25 }
+			set_variable = { name = gp_contender_why value = 1 }
+		}
+		else_if = {
 			limit = {
-				NOT = { has_variable = gp_sc_broken }	# v0.5 a broken power (scenario) is no contender
-				OR = {
-					has_variable = gp_historic_contender
-					var:gp_region_share >= 0.25
-					AND = {
-						NOT = {
-							capital.region = {
-								any_present_country = {
-									has_variable = gp_historic_contender
-									is_subject = no
-									exists = capital
-									capital.region = scope:gp_c.capital.region
-								}
-							}
-						}
-						NOT = {
-							capital.region = {
-								any_present_country = {
-									NOT = { this = scope:gp_c }
-									gp_is_real_country = yes
-									is_subject = no
-									exists = capital
-									capital.region = scope:gp_c.capital.region
-									country_strength > scope:gp_c.country_strength
-								}
-							}
+				NOT = {
+					capital.region = {
+						any_present_country = {
+							NOT = { this = scope:gp_c }
+							gp_is_real_country = yes
+							is_subject = no
+							exists = capital
+							capital.region = scope:gp_c.capital.region
+							country_strength > scope:gp_c.country_strength
 						}
 					}
 				}
 			}
-			set_variable = gp_contender
+			set_variable = { name = gp_contender_why value = 2 }
 		}
 		else_if = {
+			limit = {
+				has_variable = gp_historic_contender
+				has_variable = gp_region_kept
+				var:gp_region_kept >= 0.5
+			}
+			set_variable = { name = gp_contender_why value = 3 }
+		}
+	}
+	if = {
+		limit = { has_variable = gp_contender_why }
+		set_variable = gp_contender
+	}
+	else_if = {
+		limit = {
+			exists = capital
+			is_subject = no
+		}
+		if = {
 			limit = { has_variable = gp_sc_broken }
 			set_variable = gp_hopeless
 		}
@@ -615,14 +629,40 @@ gp_update_overseas = {
 					capital.region = region:anatolia_region
 				}
 			}
-			gp_pref_drop = { PREF = avoid_american_colonization }
-			gp_pref_drop = { PREF = avoid_african_colonization }
-			gp_pref_drop = { PREF = avoid_south_east_asica_colonization }
+			# v0.12 with the colonial stage on, the whole New World opens only with the full colonial right: a contender
+			# at 40 % with a limited right keeps to the zones of its group (gp_col_pref_g*) instead of being drawn to all
+			# of America and losing the charters afterwards
 			if = {
-				limit = { NOT = { has_area_preference = gp_colonial_ambition } }
-				add_area_preference = gp_colonial_ambition
+				limit = {
+					OR = {
+						has_game_rule = gp_colonies_off
+						AND = {
+							has_variable = gp_col_right
+							var:gp_col_right = 2
+						}
+					}
+				}
+				gp_pref_drop = { PREF = avoid_american_colonization }
+				gp_pref_drop = { PREF = avoid_african_colonization }
+				gp_pref_drop = { PREF = avoid_south_east_asica_colonization }
+				if = {
+					limit = { NOT = { has_area_preference = gp_colonial_ambition } }
+					add_area_preference = gp_colonial_ambition
+				}
+				set_variable = gp_overseas_open
 			}
-			set_variable = gp_overseas_open
+			else = {
+				gp_pref_drop = { PREF = gp_colonial_ambition }
+				if = {
+					limit = { NOT = { capital.continent = continent:america } }
+					gp_pref_keep = { PREF = avoid_american_colonization }
+				}
+				if = {
+					limit = { NOT = { capital.continent = continent:africa } }
+					gp_pref_keep = { PREF = avoid_african_colonization }
+				}
+				gp_pref_keep = { PREF = avoid_south_east_asica_colonization }
+			}
 		}
 		if = {
 			limit = { capital.region = region:russian_region }

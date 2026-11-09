@@ -253,6 +253,53 @@ gp_shares_threat_with = {
 	var:gp_threat ?= $COUNTRY$.var:gp_threat
 }
 
+# ---- v0.12 the reasons of an alliance (scripted_relations/gp_alliance.txt; WHO decides, PARTNER is the other side) ----
+# Quoted script values cannot take $PARAM$s (they are not substituted), so the common-rivals test stays in gp_alliance.txt.
+
+# WHO and PARTNER name the same regional threat and it is overwhelming (3x, share 0.75): even rivals make common cause.
+gp_ally_overwhelming_threat = {
+	$WHO$ = {
+		gp_shares_threat_with = { COUNTRY = $PARTNER$ }
+		var:gp_threat_share >= 0.75
+	}
+}
+
+# PARTNER lives in another region and nothing binds the two: no shared regional threat, and PARTNER is not at war with
+# WHO's threat (author, 1628 review: "alliances outside the region only against a common enemy").
+gp_ally_far_without_cause = {
+	$WHO$ = { exists = capital }
+	$PARTNER$ = { exists = capital }
+	NOT = { $WHO$ = { capital.region = $PARTNER$.capital.region } }
+	NOT = { $WHO$ = { gp_shares_threat_with = { COUNTRY = $PARTNER$ } } }
+	NOT = { $WHO$.var:gp_threat ?= { is_at_war_with = $PARTNER$ } }
+}
+
+# A country of the western alliance game: France, Iberia, Britain, Ireland.
+gp_is_western_game_country = {
+	exists = capital
+	OR = {
+		capital.region = region:france_region
+		capital.region = region:iberia_region
+		capital.region = region:great_britain_region
+		capital.region = region:ireland_region
+	}
+}
+
+# Exactly one of the two plays the western game (author, 1628 review: "early in the game the alliance game is played in
+# Western Europe; Austria, the German lands and Italy do not meddle in it") - read before 1450 only.
+gp_ally_crosses_western_game = {
+	OR = {
+		AND = {
+			$WHO$ = { gp_is_western_game_country = yes }
+			$PARTNER$ = { gp_is_western_game_country = no }
+		}
+		AND = {
+			$WHO$ = { gp_is_western_game_country = no }
+			$PARTNER$ = { gp_is_western_game_country = yes }
+		}
+	}
+}
+
 # this = candidate partner of $COUNTRY$ against $COUNTRY$'s regional threat: same faith group, not the threat itself,
 # and either it names the same threat or it is already at war with it (France fighting England for Brittany).
 gp_is_front_partner_of = {

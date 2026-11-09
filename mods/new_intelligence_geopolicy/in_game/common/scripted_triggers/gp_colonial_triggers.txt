@@ -30,6 +30,34 @@ gp_col_new_world_country = {
 	capital = { gp_col_is_new_world = yes }
 }
 
+# v0.12 Location scope: the far North and Siberia - the land that was still empty in 1337 north and east of the settled
+# Baltic (Kola, Norrland, Karelia, Arkhangelsk, the Urals, Siberia). Keep in sync with gp_col_north_foreign (gp_zones.txt).
+gp_col_is_far_north = {
+	OR = {
+		area = area:kola_area
+		area = area:norrland_area
+		area = area:karelia_area
+		area = area:arkhangelsk_area
+		region = region:ural_region
+		region = region:west_siberia_region
+		region = region:east_siberia_region
+	}
+}
+
+# v0.12 Country scope: a people of the North (author, 1628 review: "the Kola peninsula is a matter for the Scandinavians
+# and the Slavs, not for the Dutch and the Normans") - the capital in Scandinavia, on the North Atlantic islands, in
+# Eastern Europe or in Siberia.
+gp_col_northern_people = {
+	exists = capital
+	OR = {
+		capital.region = region:scandinavian_region
+		capital.region = region:north_atlantic_islands_region
+		capital.sub_continent = sub_continent:eastern_europe
+		capital.region = region:west_siberia_region
+		capital.region = region:east_siberia_region
+	}
+}
+
 # Country scope: the zone of scope:gp_col_loc is open to our limited colonial right (var:gp_col_group 1..6).
 gp_col_group_open = {
 	has_variable = gp_col_group

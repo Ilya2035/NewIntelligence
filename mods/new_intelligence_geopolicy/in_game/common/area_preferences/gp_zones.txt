@@ -1462,3 +1462,9 @@ gp_col_pref_g3 = { preference_type = exploration modifier = 3 area = cuba_area a
 gp_col_pref_g4 = { preference_type = exploration modifier = 3 area = newfoundland_area area = acadia_area area = new_brunswick_area area = massachusetts_area area = southern_new_england_area area = maine_area area = lesser_antilles_area }	# Britain: Acadia, New England, the Antilles
 gp_col_pref_g5 = { preference_type = exploration modifier = 3 area = quebec_area area = laurentian_area area = lower_canada_area area = acadia_area area = lesser_antilles_area area = guayana_area }	# France: New France, Acadia, the Antilles, Guiana
 gp_col_pref_g6 = { preference_type = exploration modifier = 3 area = lesser_antilles_area }	# the German and Baltic lands: the Antilles (Courland's Tobago)
+
+# v0.12 The AI weighs the colonial right before it charters (gp_col_compute_right), instead of losing the charter
+# afterwards: with no right the New World is worth next to nothing; the far North and Siberia are worth little to all but
+# the peoples of the North (gp_col_northern_people). The withdrawal of charters stays only as a logged safety net.
+gp_col_no_right = { preference_type = exploration modifier = -0.9 continent = america continent = oceania }
+gp_col_north_foreign = { preference_type = exploration modifier = -0.9 area = kola_area area = norrland_area area = karelia_area area = arkhangelsk_area region = ural_region region = west_siberia_region region = east_siberia_region }

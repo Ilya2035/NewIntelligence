@@ -32,6 +32,18 @@ gp_region_share_value = {
 	}
 }
 
+# v0.12 How much of its best share of the home region a country still holds (1 = all of it; a country that never held
+# anything counts as keeping everything). gp_compute_region_share stores it as var:gp_region_kept.
+gp_region_kept_value = {
+	value = 1
+	if = {
+		limit = { var:gp_region_peak > 0 }
+		multiply = 0
+		add = var:gp_region_share
+		divide = var:gp_region_peak
+	}
+}
+
 # Momentum of conquest: last year's momentum decays by 30 %, this year's net gain of locations is added.
 gp_momentum_next = {
 	value = var:gp_momentum

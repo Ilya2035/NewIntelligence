@@ -86,11 +86,17 @@ gp_rule_collapse = {
 	}
 }
 
-# v0.9 Alliances only between friends (author, 2026-11-06): an alliance can be offered only with opinion 100 both ways
-# (in_game/common/scripted_relations/gp_alliance.txt replaces the vanilla alliance). Existing alliances are kept.
+# Alliances (in_game/common/scripted_relations/gp_alliance.txt replaces the vanilla alliance). v0.12 default "by reason":
+# no opinion threshold, the AI weighs the reasons of the region (rivals, own threat, ruined partner, far partner with no
+# common enemy, the early western game, common threat); "friends only" adds the v0.9 gate (opinion 100 both ways, author
+# 2026-11-06); "as in the game" is vanilla. Existing alliances are kept.
 gp_rule_alliance = {
-	default = gp_alliance_friends
+	default = gp_alliance_reasons
 
+	gp_alliance_reasons = {
+		flag = gp_alliance_reasons
+		flag = general_rule
+	}
 	gp_alliance_friends = {
 		flag = gp_alliance_friends
 		flag = general_rule
