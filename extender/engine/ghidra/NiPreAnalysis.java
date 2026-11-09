@@ -5,7 +5,7 @@
 // Run 1 (2026-11-09) spent more than two hours on one core in "Non-Returning Functions - Discovered",
 // repairing the code flow after calls that never return (ClearFlowAndRepairCmd). That repair is not
 // needed for our map (classes, virtual tables, callers), so run 2 switches it off: only the repair
-// option when it exists, otherwise the whole analyzer.
+// option when it exists, otherwise the whole analyzer. Run 3 also drops constant propagation (see OFF).
 //@category NewIntelligence
 import java.util.Map;
 import java.util.TreeMap;
@@ -19,6 +19,10 @@ public class NiPreAnalysis extends GhidraScript {
         "PDB Universal",                 // no PDB exists; avoid symbol-server lookups
         "PDB MSDIA",
         "Aggressive Instruction Finder", // guesses code in gaps, slow and noisy
+        // Run 2 (26 threads, 18 GB): constant propagation filled the heap to 99.6 % (29 full GCs) in 30 minutes. It adds
+        // references to addresses computed in registers; the x64 code reaches its strings and virtual tables through
+        // RIP-relative operands, which the disassembler already turns into references, so the map does without it.
+        "x86 Constant Reference Analyzer",
     };
 
     private static final String NO_RETURN = "Non-Returning Functions - Discovered";
