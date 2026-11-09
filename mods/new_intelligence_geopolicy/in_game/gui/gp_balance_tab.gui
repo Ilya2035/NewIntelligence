@@ -14,6 +14,16 @@
 # Text: GP_BP_* (gp_geopolicy_l_*.yml), customizable_localization/gp_brief.txt (gp_bp_*).
 ###################################
 
+# v0.12 a dark translucent card behind a row of the tab (same black texture as the vanilla geopolitics card header)
+template gp_bp_card_bg {
+	background = {
+		using = color_black_texture
+		texture_density = 2
+		margin = { 1 1 }
+		alpha = 0.35
+	}
+}
+
 template geopolitics_tabs {
 	header_main_tabs = { #TABS
 		blockoverride "content" {
@@ -81,16 +91,41 @@ template geopolitics_tabs {
 		using = window_main_tabs_margin_alt
 		spacing = 6
 
-		# ---- our region ----
-		text_multi = {
+		# ---- our region: the header card (v0.12: flag, region, a bar of our share) ----
+		hbox = {
 			layoutpolicy_horizontal = expanding
-			default_format = "#yellow_titles"
-			using = Font_Size_Medium
-			text = "GP_BP_TITLE"
-		}
-		text_multi = {
-			layoutpolicy_horizontal = expanding
-			text = "GP_BP_OUR_SHARE"
+			minimumsize = { -1 64 }
+			margin = { 8 6 }
+			spacing = 10
+			using = bg_card_header_01_geopolitics
+
+			country_flag_mid = {
+				datacontext = "[Player]"
+			}
+			vbox = {
+				layoutpolicy_horizontal = expanding
+				spacing = 4
+				text_single = {
+					layoutpolicy_horizontal = expanding
+					default_format = "#yellow_titles"
+					using = Font_Size_Medium
+					text = "GP_BP_TITLE"
+				}
+				widget = {
+					size = { 320 12 }
+					progressbar = {
+						size = { 320 12 }
+						using = progress_bar_goldish
+						min = 0
+						max = 100
+						value = "[FixedPointToFloat(Player.MakeScope.GetVariable('gp_region_pct').GetValue)]"
+					}
+				}
+				text_single = {
+					layoutpolicy_horizontal = expanding
+					text = "GP_BP_OUR_SHARE"
+				}
+			}
 		}
 		text_multi = {
 			layoutpolicy_horizontal = expanding
@@ -121,35 +156,91 @@ template geopolitics_tabs {
 		}
 
 		# ---- the contenders of our region ----
-		text_single = {
+		hbox = {
 			layoutpolicy_horizontal = expanding
-			default_format = "#yellow_titles"
-			text = "GP_BP_CONTENDERS_TITLE"
+			minimumsize = { -1 26 }
+			margin = { 8 2 }
+			using = bg_card_header_01_geopolitics
+			text_single = {
+				default_format = "#yellow_titles"
+				text = "GP_BP_CONTENDERS_TITLE"
+			}
+			expand = {}
 		}
+		# v0.12 a card per country: flag, name, share of the region as a bar (gold for a leading power, blue for the
+		# rest), why it leads (gp_bp_why) and its course. Fixed sizes only inside list items (Battle GUI lessons).
 		vbox = {
 			layoutpolicy_horizontal = expanding
+			spacing = 3
 			datamodel = "[Player.MakeScope.GetList('gp_bp_contenders')]"
 			item = {
 				hbox = {
 					layoutpolicy_horizontal = expanding
-					spacing = 6
-					country_flag_small = {
+					minimumsize = { -1 58 }
+					margin = { 6 4 }
+					spacing = 8
+					using = gp_bp_card_bg
+
+					country_flag_mid = {
 						datacontext = "[Scope.GetCountry]"
 					}
-					text_multi = {
-						datacontext = "[Scope.GetCountry]"
+					vbox = {
 						layoutpolicy_horizontal = expanding
-						text = "GP_BP_ROW"
+						spacing = 2
+						hbox = {
+							layoutpolicy_horizontal = expanding
+							text_single = {
+								datacontext = "[Scope.GetCountry]"
+								text = "GP_BP_ROW_NAME"
+							}
+							expand = {}
+							text_single = {
+								datacontext = "[Scope.GetCountry]"
+								text = "GP_BP_ROW_PCT"
+							}
+						}
+						widget = {
+							datacontext = "[Scope.GetCountry]"
+							size = { 300 10 }
+							progressbar = {
+								visible = "[Country.MakeScope.GetVariable('gp_contender').IsSet]"
+								size = { 300 10 }
+								using = progress_bar_goldish
+								min = 0
+								max = 100
+								value = "[FixedPointToFloat(Country.MakeScope.GetVariable('gp_region_pct').GetValue)]"
+							}
+							progressbar = {
+								visible = "[Not(Country.MakeScope.GetVariable('gp_contender').IsSet)]"
+								size = { 300 10 }
+								using = progress_bar_blue_alt
+								min = 0
+								max = 100
+								value = "[FixedPointToFloat(Country.MakeScope.GetVariable('gp_region_pct').GetValue)]"
+							}
+						}
+						text_multi = {
+							datacontext = "[Scope.GetCountry]"
+							layoutpolicy_horizontal = expanding
+							fontsize = 12
+							text = "GP_BP_ROW_WHY"
+						}
 					}
 				}
 			}
 		}
 
 		# ---- outside powers holding land in our region ----
-		text_single = {
+		hbox = {
 			layoutpolicy_horizontal = expanding
-			default_format = "#yellow_titles"
-			text = "GP_BP_OUTSIDERS_TITLE"
+			minimumsize = { -1 26 }
+			margin = { 8 2 }
+			using = bg_card_header_01_geopolitics
+			text_single = {
+				default_format = "#yellow_titles"
+				text = "GP_BP_OUTSIDERS_TITLE"
+			}
+			expand = {}
 		}
 		text_single = {
 			layoutpolicy_horizontal = expanding
@@ -158,12 +249,17 @@ template geopolitics_tabs {
 		}
 		vbox = {
 			layoutpolicy_horizontal = expanding
+			spacing = 3
 			datamodel = "[Player.MakeScope.GetList('gp_bp_outsiders')]"
 			item = {
 				hbox = {
 					layoutpolicy_horizontal = expanding
-					spacing = 6
-					country_flag_small = {
+					minimumsize = { -1 44 }
+					margin = { 6 4 }
+					spacing = 8
+					using = gp_bp_card_bg
+
+					country_flag_mid = {
 						datacontext = "[Scope.GetCountry]"
 					}
 					text_multi = {
@@ -176,18 +272,29 @@ template geopolitics_tabs {
 		}
 
 		# ---- the macro-region ----
-		text_single = {
+		hbox = {
 			layoutpolicy_horizontal = expanding
-			default_format = "#yellow_titles"
-			text = "GP_BP_MACRO_TITLE"
+			minimumsize = { -1 26 }
+			margin = { 8 2 }
+			using = bg_card_header_01_geopolitics
+			text_single = {
+				default_format = "#yellow_titles"
+				text = "GP_BP_MACRO_TITLE"
+			}
+			expand = {}
 		}
 		vbox = {
 			layoutpolicy_horizontal = expanding
+			spacing = 3
 			datamodel = "[Player.MakeScope.GetList('gp_bp_macro')]"
 			item = {
 				hbox = {
 					layoutpolicy_horizontal = expanding
-					spacing = 6
+					minimumsize = { -1 40 }
+					margin = { 6 4 }
+					spacing = 8
+					using = gp_bp_card_bg
+
 					country_flag_small = {
 						datacontext = "[Scope.GetCountry]"
 					}
@@ -201,10 +308,16 @@ template geopolitics_tabs {
 		}
 
 		# ---- v0.5 scenarios of the West (gp_scenarios_west.txt; customizable_localization gp_bp_sc_*) ----
-		text_single = {
+		hbox = {
 			layoutpolicy_horizontal = expanding
-			default_format = "#yellow_titles"
-			text = "GP_BP_SC_TITLE"
+			minimumsize = { -1 26 }
+			margin = { 8 2 }
+			using = bg_card_header_01_geopolitics
+			text_single = {
+				default_format = "#yellow_titles"
+				text = "GP_BP_SC_TITLE"
+			}
+			expand = {}
 		}
 		text_multi = {
 			layoutpolicy_horizontal = expanding
@@ -236,10 +349,28 @@ template geopolitics_tabs {
 		}
 
 		# ---- v0.11 the colonial stage (gp_colonies.txt; customizable_localization gp_col_*) ----
-		text_single = {
+		hbox = {
 			layoutpolicy_horizontal = expanding
-			default_format = "#yellow_titles"
-			text = "GP_COL_TITLE"
+			minimumsize = { -1 26 }
+			margin = { 8 2 }
+			using = bg_card_header_01_geopolitics
+			text_single = {
+				default_format = "#yellow_titles"
+				text = "GP_COL_TITLE"
+			}
+			expand = {}
+		}
+		# v0.12 colonial ardor as a bar (0..100); the parts are in the text below
+		widget = {
+			visible = "[Player.MakeScope.GetVariable('gp_col_ardor').IsSet]"
+			size = { 320 12 }
+			progressbar = {
+				size = { 320 12 }
+				using = progress_bar_goldish
+				min = 0
+				max = 100
+				value = "[FixedPointToFloat(Player.MakeScope.GetVariable('gp_col_ardor').GetValue)]"
+			}
 		}
 		text_multi = {
 			layoutpolicy_horizontal = expanding

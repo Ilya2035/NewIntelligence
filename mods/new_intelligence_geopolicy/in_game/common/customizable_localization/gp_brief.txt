@@ -140,6 +140,29 @@ gp_bp_status = {
 	}
 }
 
+# v0.12 why a country in the lists of the tab is (or is not) a leading power of its region (gp_update_contender)
+gp_bp_why = {
+	type = country
+	log_loc_errors = yes
+
+	text = {
+		localization_key = gp_bp_why_share
+		trigger = { has_variable = gp_contender_why var:gp_contender_why = 1 }
+	}
+	text = {
+		localization_key = gp_bp_why_strongest
+		trigger = { has_variable = gp_contender_why var:gp_contender_why = 2 }
+	}
+	text = {
+		localization_key = gp_bp_why_history
+		trigger = { has_variable = gp_contender_why var:gp_contender_why = 3 }
+	}
+	text = {
+		localization_key = gp_bp_why_none
+		fallback = yes
+	}
+}
+
 gp_bp_tension = {
 	type = country
 	log_loc_errors = yes
