@@ -8,3 +8,6 @@ desktop.ini
 # Build / scratch
 tools/cache/
 *.log
+
+# Engine builds are made locally per eu5.exe build (extender/engine/build.ps1)
+extender/engine/bin/

@@ -445,6 +445,43 @@ function Invoke-Verify {
     if ($Steam) { Start-SteamVerify }
 }
 
+# ---------------------------------------------------------------- движок
+
+# Каждая правка движка из ni_profile.json: собрана ли, под какую сборку eu5.exe (файл <dll>.json рядом), стоит ли.
+function Get-EngineFiles([string]$ExeSha) {
+    $S = Get-StateHash
+    foreach ($f in @($Prof.engine.files | Where-Object { $_ })) {
+        $src = Join-Path $P.Repo $f.source
+        $meta = Read-JsonFile "$src.json"
+        $for = @()
+        if ($meta -and $meta.exe_sha256) { $for = @($meta.exe_sha256) } elseif ($f.exe_sha256) { $for = @($f.exe_sha256) }
+        $inst = @($S.engine_files | Where-Object { $_.file -ieq $f.file }) | Select-Object -First 1
+        [pscustomobject]@{
+            File      = $f.file
+            Source    = $src
+            Built     = (Test-Path -LiteralPath $src)
+            Stage     = $(if ($meta) { $meta.stage } else { '' })
+            ForExe    = $for
+            Fits      = [bool]($ExeSha -and ($for -contains $ExeSha))
+            Installed = [bool]$inst
+        }
+    }
+}
+
+# Smart App Control (Windows 11): 0 выключен, 1 включён, 2 режим оценки
+function Get-SmartAppControl {
+    $ci = Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' -ErrorAction SilentlyContinue
+    if ($ci -and $null -ne $ci.VerifiedAndReputablePolicyState) { return [int]$ci.VerifiedAndReputablePolicyState }
+    return 0
+}
+
+function Get-EngineLogTail([int]$Lines = 4) {
+    $log = Join-Path $P.Home 'engine.log'
+    if (-not (Test-Path -LiteralPath $log)) { return @() }
+    $all = @((Read-Head $log 1MB) -split "`r?`n" | Where-Object { $_ })
+    return @($all | Select-Object -Last $Lines)
+}
+
 # ---------------------------------------------------------------- статус
 
 function Invoke-Status {
@@ -461,6 +498,9 @@ function Invoke-Status {
     if (Test-Path -LiteralPath $P.Backups) { $backs = @(Get-ChildItem -LiteralPath $P.Backups -Directory | Sort-Object Name) }
     $running = Test-GameRunning
     $loader = Join-Path $G.Dir "binaries\$($Prof.engine.loader)"
+    $eng = @(Get-EngineFiles $sha)
+    $engLog = @(Get-EngineLogTail 4)
+    $engOff = Test-Path -LiteralPath (Join-Path $P.Home 'engine_off')
 
     if ($Json) {
         [ordered]@{
@@ -477,6 +517,10 @@ function Invoke-Status {
             last_run_mods = $run.LoadedMods
             last_run_log  = $run.LogTime
             engine_files  = $S.engine_files
+            engine        = @($eng | Select-Object File, Stage, Built, Fits, Installed)
+            engine_off    = $engOff
+            smart_app_control = (Get-SmartAppControl)
+            engine_log    = $engLog
             loader_present = (Test-Path -LiteralPath $loader)
             integrity     = $integ
             backups       = $backs.Count
@@ -508,11 +552,22 @@ function Invoke-Status {
     }
 
     Head 'Движок'
-    if (@($Prof.engine.files | Where-Object { $_ }).Count -eq 0) { Note 'правок движка в этой версии программы нет: только моды' }
-    foreach ($e in $S.engine_files) { Good "стоит наша правка $($e.file)" }
+    if ($eng.Count -eq 0) { Note 'правок движка в этой версии программы нет: только моды' }
+    foreach ($e in $eng) {
+        $what = "$($e.File) ($($e.Stage))"
+        if (-not $e.Built) { Note "$what не собран: extender\engine\build.ps1" }
+        elseif (-not $e.Fits) { Warn "$what собран под другую сборку eu5.exe: пересоберите (build.ps1)" }
+        elseif ($e.Installed) { Good "$what стоит и подходит к этой сборке" }
+        else { Note "$what собран под эту сборку, не стоит (поставит apply)" }
+    }
     if ((Test-Path -LiteralPath $loader) -and -not (@($S.engine_files | Where-Object { $_.file -ieq $Prof.engine.loader }).Count)) {
         Warn "в binaries лежит чужой $($Prof.engine.loader): не наш, программа его не трогает"
     }
+    if ($engOff) { Warn 'выключатель engine_off: загрузчик только передаёт вызовы, больше ничего' }
+    $sac = Get-SmartAppControl
+    if ($sac -eq 1) { Warn '«Интеллектуальный контроль приложений» Windows включён: неподписанные DLL не грузятся, правки движка ставиться не будут' }
+    elseif ($sac -eq 2) { Note '«Интеллектуальный контроль приложений» в режиме оценки: Windows может включить его сама' }
+    if ($engLog.Count) { Note 'engine.log:'; foreach ($l in $engLog) { Say "       $l" } }
     Show-Integrity $integ
 
     Head 'Последний запуск игры'
@@ -695,32 +750,55 @@ function Invoke-Apply {
         } else { Note 'сборки модов уже в нашем состоянии' }
     }
 
-    # 3. правки движка (каждая работает только на своей сборке eu5.exe)
-    $files = @($Prof.engine.files | Where-Object { $_ })
-    if ($files.Count -eq 0) { Note 'правок движка в этой версии программы нет: только моды' }
+    # 3. правки движка (каждая ставится только на свою сборку eu5.exe)
+    $eng = @(Get-EngineFiles (Get-Sha (Join-Path $G.Dir 'binaries\eu5.exe')))
+    if ($eng.Count -eq 0) { Note 'правок движка в этой версии программы нет: только моды' }
+    elseif ((Get-SmartAppControl) -eq 1 -and -not $Sandbox) {
+        # Smart App Control не даёт загрузить неподписанную DLL; eu5.exe импортирует VERSION.dll,
+        # и с заблокированным version.dll рядом игра просто не запустится
+        Warn 'включён «Интеллектуальный контроль приложений» Windows: он не пускает нашу неподписанную DLL, и игра с ней не запустится. Правки движка не ставлю.'
+    }
     else {
-        $exeSha = Get-Sha (Join-Path $G.Dir 'binaries\eu5.exe')
+        $baseline = Read-JsonFile (Get-BaselinePath)
         $engine = New-Object Collections.ArrayList
         foreach ($e in @($S.engine_files)) { [void]$engine.Add($e) }
-        foreach ($f in $files) {
-            if (@($f.exe_sha256) -notcontains $exeSha) { Warn "правка $($f.file) сделана для другой сборки игры: пропускаю (игра обновилась)"; continue }
-            $src = Join-Path $P.Repo $f.source
-            $dst = Join-Path $G.Dir "binaries\$($f.file)"
-            if (-not (Test-Path -LiteralPath $src)) { Warn "нет файла правки $src"; continue }
-            if ($DryRun) { Note "поставил бы правку движка $($f.file)"; continue }
-            $orig = $null
-            $mine = @($engine | Where-Object { $_.file -ieq $f.file }) | Select-Object -First 1
-            if ((Test-Path -LiteralPath $dst) -and -not $mine) {
-                $orig = Join-Path $P.Originals "build_$($G.BuildId)\$($f.file)"
-                Assert-Writable $orig
-                New-Item -ItemType Directory -Force -Path (Split-Path -Parent $orig) | Out-Null
-                Copy-Item -LiteralPath $dst -Destination $orig -Force
+        foreach ($f in $eng) {
+            $dst = Join-Path $G.Dir "binaries\$($f.File)"
+            $mine = @($engine | Where-Object { $_.file -ieq $f.File }) | Select-Object -First 1
+            if (-not $f.Built -or -not $f.Fits) {
+                if (-not $f.Built) { Warn "$($f.File) не собран: запустите extender\engine\build.ps1" }
+                else { Warn "$($f.File) собран под другую сборку eu5.exe (игра обновилась?): не ставлю, пересоберите build.ps1" }
+                if ($mine -and (Test-Path -LiteralPath $dst) -and (Get-Sha $dst) -eq $mine.sha256) {
+                    if ($DryRun) { Note "убрал бы старую правку $($f.File)" }
+                    else {
+                        Assert-Writable $dst
+                        Remove-Item -LiteralPath $dst -Force
+                        if ($mine.original_backup -and (Test-Path -LiteralPath $mine.original_backup)) { Copy-Item -LiteralPath $mine.original_backup -Destination $dst }
+                        [void]$engine.Remove($mine)
+                        Good "старая правка $($f.File) убрана"
+                    }
+                }
+                continue
             }
+            $orig = $null
+            if ((Test-Path -LiteralPath $dst) -and -not $mine) {
+                # на месте чужой файл: заводской (есть в отпечатке) сохраняем и подменяем, посторонний не трогаем
+                $rel = "binaries/$($f.File)"
+                $isVanilla = $baseline -and ($baseline.files.PSObject.Properties.Name -contains $rel)
+                if (-not $isVanilla) { Warn "в binaries уже лежит чужой $($f.File) (не заводской и не наш): не трогаю, правку не ставлю"; continue }
+                $orig = Join-Path $P.Originals "build_$($G.BuildId)\$($f.File)"
+                if (-not $DryRun) {
+                    Assert-Writable $orig
+                    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $orig) | Out-Null
+                    Copy-Item -LiteralPath $dst -Destination $orig -Force
+                }
+            } elseif ($mine) { $orig = $mine.original_backup }
+            if ($DryRun) { Note "поставил бы правку движка $($f.File) ($($f.Stage))"; continue }
             Assert-Writable $dst
-            Copy-Item -LiteralPath $src -Destination $dst -Force
+            Copy-Item -LiteralPath $f.Source -Destination $dst -Force
             if ($mine) { [void]$engine.Remove($mine) }
-            [void]$engine.Add([ordered]@{ file = $f.file; sha256 = (Get-Sha $dst); original_backup = $orig })
-            Good "поставлена правка движка $($f.file)"
+            [void]$engine.Add([ordered]@{ file = $f.File; sha256 = (Get-Sha $dst); original_backup = $orig })
+            Good "поставлена правка движка $($f.File) ($($f.Stage))"
         }
         if (-not $DryRun) { $S.engine_files = $engine.ToArray() }
     }
@@ -760,6 +838,9 @@ function Invoke-Report {
     $gp = Select-SharedLines (Join-Path $P.Logs 'debug.log') 'GP_REPORT|CW_REPORT'
     $out.Add("== Строки отчёта модов (debug.log): $($gp.Count), последние 400")
     for ($i = [Math]::Max(0, $gp.Count - 400); $i -lt $gp.Count; $i++) { $out.Add($gp[$i]) }
+    $out.Add('')
+    $out.Add('== engine.log (последние 40 строк)')
+    foreach ($l in (Get-EngineLogTail 40)) { $out.Add($l) }
     Assert-Writable $file
     if (-not (Test-Path -LiteralPath $P.Reports)) { New-Item -ItemType Directory -Force -Path $P.Reports | Out-Null }
     [IO.File]::WriteAllLines($file, $out, $Utf8)

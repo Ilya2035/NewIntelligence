@@ -1,0 +1,19 @@
+LIBRARY version.dll
+EXPORTS
+    GetFileVersionInfoA = ni_proxy_GetFileVersionInfoA
+    GetFileVersionInfoByHandle = ni_proxy_GetFileVersionInfoByHandle
+    GetFileVersionInfoExA = ni_proxy_GetFileVersionInfoExA
+    GetFileVersionInfoExW = ni_proxy_GetFileVersionInfoExW
+    GetFileVersionInfoSizeA = ni_proxy_GetFileVersionInfoSizeA
+    GetFileVersionInfoSizeExA = ni_proxy_GetFileVersionInfoSizeExA
+    GetFileVersionInfoSizeExW = ni_proxy_GetFileVersionInfoSizeExW
+    GetFileVersionInfoSizeW = ni_proxy_GetFileVersionInfoSizeW
+    GetFileVersionInfoW = ni_proxy_GetFileVersionInfoW
+    VerFindFileA = ni_proxy_VerFindFileA
+    VerFindFileW = ni_proxy_VerFindFileW
+    VerInstallFileA = ni_proxy_VerInstallFileA
+    VerInstallFileW = ni_proxy_VerInstallFileW
+    VerLanguageNameA = ni_proxy_VerLanguageNameA
+    VerLanguageNameW = ni_proxy_VerLanguageNameW
+    VerQueryValueA = ni_proxy_VerQueryValueA
+    VerQueryValueW = ni_proxy_VerQueryValueW

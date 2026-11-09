@@ -41,4 +41,15 @@ NewIntelligence.cmd report
 
 - какие моды ставить (Battle и Geopolicy из этого репозитория);
 - какой мод обязателен (Cheat Menu Pro, id 3600272327);
-- файлы движка — в версии 0.1 их нет.
+- файлы движка: `version.dll` (загрузчик E1) из `engine\bin`.
+
+## Движок (загрузчик E1)
+
+- `engine\build.ps1` — собрать `version.dll` под текущий `eu5.exe`. Нужен w64devkit в `%USERPROFILE%\Tools\w64devkit`.
+- `engine\tests\run_tests.ps1` — проверить загрузчик без игры.
+- `apply` ставит загрузчик в `binaries`, `factory` убирает.
+- Журнал загрузчика: `Документы\NewIntelligence\engine.log`. Выключатель: создать файл `Документы\NewIntelligence\engine_off`.
+
+E1 в игре ничего не меняет: только проверяет, что это та сборка `eu5.exe`, и пишет журнал.
+
+Пока в Windows включён «Интеллектуальный контроль приложений», Windows не загружает неподписанную DLL. Поэтому `apply` загрузчик не ставит: игра с заблокированным `version.dll` не запустится. Подробности и выходы — в [docs/EXTENDER_FEASIBILITY.md](../docs/EXTENDER_FEASIBILITY.md), раздел 8.

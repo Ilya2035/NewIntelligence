@@ -10,6 +10,8 @@
   ],
   "engine": {
     "loader": "version.dll",
-    "files": []
+    "files": [
+      { "file": "version.dll", "source": "extender/engine/bin/version.dll" }
+    ]
   }
 }
