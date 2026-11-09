@@ -209,3 +209,21 @@ Java нужна 25-я: Ghidra 12.2 требует её (`application.java.min=25
   - Загружены моды Cheat Menu Pro, Battle и Geopolicy.
   - `status`: «заводские файлы плюс наша правка», DLC те же.
   - Шаг E1 закрыт. Следующий — E2, карта движка в Ghidra.
+
+## 9. Карта движка E2: разбор в Ghidra (начат 2026-11-09)
+
+- `extender/engine/ghidra/analyze.ps1` разбирает копию `eu5.exe` (`Tools\ghidra_work\eu5_26377361.exe`, хэш сверен со сборкой 26377361) без окна.
+  - Нагрузка щадящая: 4 потока анализа, низкий приоритет у Java и её дочерних процессов, 12 ГБ памяти.
+  - Проект Ghidra лежит в `Tools\ghidra_work\eu5.gpr`. Журналы там же: `analysis.log` — ход разбора, `script.log` — настройки анализаторов.
+- `extender/engine/ghidra/NiPreAnalysis.java` настраивает анализ перед стартом:
+  - разбор имён классов (RTTI) оставлен;
+  - выключены самые медленные анализаторы (Decompiler Parameter ID, Aggressive Instruction Finder) и поиск символов PDB — открытого `eu5.pdb` нет.
+- Ghidra определила язык и компилятор `x86:LE:64:default:clangwindows`: игра собрана Clang для Windows.
+- Ловушка окружения:
+  - процессы, запущенные из Claude Desktop (упакованное приложение MSIX), пишут в `AppData\Roaming` через перенаправление в `AppData\Local\Packages\Claude_…\LocalCache\Roaming`;
+  - Java 25 видит существующую папку по новому пути, а несозданный файл — по старому, поэтому модуль сценариев Ghidra (OSGi Felix) падал: «The data file must be inside the data dir»;
+  - решение — настройки и кэш Ghidra вынесены в `ghidra_work` (`XDG_CONFIG_HOME`, `XDG_CACHE_HOME`).
+- Дальше, когда разбор закончится:
+  - сценарии-запросы к сохранённому проекту, уже без повторного анализа (`-process -noanalysis -postScript`);
+  - классы ИИ по RTTI (`CAi…`, армии, осады, цели войны), их таблицы виртуальных функций и кто их вызывает;
+  - из этого — список функций-кандидатов для E3 и E4 с байтовыми шаблонами вместо адресов.
