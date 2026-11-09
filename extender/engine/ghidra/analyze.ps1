@@ -11,7 +11,10 @@
     Прогон 2 (по просьбе автора: «все мощности, 20 % оставить нам»): 26 потоков из 32, 18 ГБ памяти
     из 31, без медленной починки кода после невозвращающих функций (NiPreAnalysis.java). Через 30 минут
     поиск констант в 26 потоках заполнил память (99,6 %).
-    Прогон 3: 16 потоков, 18 ГБ, поиск констант выключен.
+    Прогон 3: 16 потоков, 18 ГБ, поиск констант выключен. Нехватка памяти на «Create Address Tables»
+    после разбора классов, проект не сохранился.
+    Прогон 4: включены только нужные карте шаги (белый список в NiPreAnalysis.java), 12 потоков.
+    Итог проверяется честно: код выхода Java, строка «Abort» в журнале и размер сохранённого проекта.
 
 .EXAMPLE
     .\analyze.ps1 -Exe C:\Users\fyrno\Tools\ghidra_work\eu5_26377361.exe -MaxCpu 26 -MaxMem 18G
@@ -38,6 +41,7 @@ $argList = @($work, 'eu5', '-import', $Exe, '-overwrite', '-max-cpu', "$MaxCpu",
     '-log', (Join-Path $work 'analysis.log'), '-scriptlog', (Join-Path $work 'script.log'))
 $p = Start-Process -FilePath $bat -ArgumentList $argList -PassThru -NoNewWindow `
     -RedirectStandardOutput (Join-Path $work 'console.log') -RedirectStandardError (Join-Path $work 'console.err')
+$null = $p.Handle   # без обращения к Handle PowerShell 5.1 теряет код выхода процесса, запущенного с -PassThru
 try { $p.PriorityClass = 'BelowNormal' } catch { }
 
 # Java запускается из bat-файла чуть позже: ждём её до 2 минут и тоже ставим низкий приоритет.
@@ -52,5 +56,15 @@ for ($i = 0; $i -lt 60 -and -not $p.HasExited; $i++) {
     Start-Sleep -Seconds 2
 }
 $p.WaitForExit()
-Write-Host "Разбор закончен, код $($p.ExitCode)"
-exit $p.ExitCode
+# analyzeHeadless.bat при сбое Java пишет «Abort due to Headless analyzer error» и всё равно может вернуть 0,
+# а проект сохраняется только в самом конце - поэтому проверяем и журнал, и размер проекта.
+$console = Join-Path $work 'console.log'
+$aborted = (Test-Path $console) -and (Select-String -Path $console -Pattern 'Abort due to Headless analyzer error|OutOfMemoryError' -Quiet)
+$rep = Join-Path $work 'eu5.rep'
+$saved = (Test-Path $rep) -and (((Get-ChildItem $rep -Recurse -File | Measure-Object Length -Sum).Sum) -gt 1MB)
+if ($aborted -or -not $saved -or $p.ExitCode -ne 0) {
+    Write-Host "Разбор НЕ удался: код $($p.ExitCode), сбой в журнале: $aborted, проект сохранён: $saved"
+    exit 1
+}
+Write-Host "Разбор закончен, проект сохранён"
+exit 0
