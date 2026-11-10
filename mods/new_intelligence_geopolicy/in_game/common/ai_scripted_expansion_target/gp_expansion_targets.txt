@@ -5,6 +5,20 @@
 # score / sort_value: scope:attacker, scope:target. A target is picked when its score reaches
 # EXPANSION_TARGET_SCORE_NEEDED_TO_PICK (25 with gp_defines.txt); vanilla attack_neighbors scores tax base / distance * 10.
 # Strength values are relative_strength shares 0..1.
+#
+# v0.12.1 (diag D4, D6) PRESSURE DAMPING. The lists that history or a scenario prepares - the prepared war, the intruder,
+# the unification, the scenario war and vassal, the dynastic claim and the two Eastern lists at the end - carry a fixed score
+# of 20-28 + tax/100, and 25 alone is the pick threshold: a beaten or threatened country was carried to a war by that score
+# alone (Castile attacked Aragon and Portugal while it was losing). Each of them now loses 0.2 per point of the attacker's
+# PRESSURE (scope:attacker.gp_pressure_load, 0..100, script_values/gp_values.txt: lost wars, a threat on its soil, exhaustion;
+# pressed from 40, hot from 45): from ~8 points on a prepared war no longer reaches the threshold by itself; the engine's own desire can still
+# lift it. Not damped: contain_threat (the pressed defend), home_region (tax/distance, no fixed score), horde_tribute,
+# colonial_zone, and outer_dominion (it has its own rule: -12 for a power with under a quarter of its home region). The factor
+# 0.2 is the same in every damped list - one number to retune (search "gp_pressure_load"). Beside it gp_score_pressure_restraint
+# (gp_expansion_scores.txt) takes score and multiplier off every target that is not the regional threat.
+# v0.12.1 the lists "throne claim" and "kin neighbour" are new (diag D4): the Eastern road, see the end of the file.
+# Next observation: no war declared by a country with GP_REPORT "pressure >= 40" on a target that is not its threat (Castile
+# 1413-65); no Polish-Lithuanian war (1365); no Spremberg / Aquileia / Holstein client wars; Poland -> Halych / Volhynia.
 ###################################
 
 # 1. The war a preparing country got ready for (gp_posture_preparation, var:gp_war_target chosen in gp_pick_war_target).
@@ -15,6 +29,10 @@ gp_target_prepared_war = {
 		has_variable = gp_posture_preparation
 		has_variable = gp_war_target
 		at_war = no
+		# v0.12.1 (D6) no new war on the heels of the last: Castile attacked Portugal in 1395 right after a lost war. A
+		# CRUTCH (flagged): the cooldown is a gate; the replacement is the personality's own ai_months_between_wars plus the
+		# exhaustion terms of the pressure model.
+		months_since_war >= 18
 	}
 	candidate_list = {
 		var:gp_war_target ?= {
@@ -32,6 +50,10 @@ gp_target_prepared_war = {
 		add = {
 			value = scope:target.country_tax_base
 			divide = 100
+		}
+		subtract = {	# v0.12.1 pressure damping (see the header)
+			value = scope:attacker.gp_pressure_load
+			multiply = 0.2
 		}
 	}
 	sort_value = {
@@ -108,6 +130,10 @@ gp_target_expel_intruder = {
 	}
 	score = {
 		add = 20
+		subtract = {	# v0.12.1 pressure damping (see the header)
+			value = scope:attacker.gp_pressure_load
+			multiply = 0.2
+		}
 	}
 	sort_value = {
 		add = 500
@@ -251,6 +277,22 @@ gp_target_outer_dominion = {
 			limit = { scope:attacker = { has_variable = gp_sc_puppeteer } }
 			add = 15	# v0.7 the puppeteer of a scenario
 		}
+		# v0.12.1 (diag D4) client states beyond the region are for a power that already holds a quarter of its own region (the
+		# stage at which the sphere preferences open, gp_share_regional). The "ring of client states" bonus above went to every
+		# Western power in an expansion role: Bohemia (10 % of South Germany) made the one-location lordship Spremberg its
+		# client in 1358, Austria (17 %) Aquileia twice, Denmark three Holstein counties. A score malus, not a ban: 22 + 6 - 12
+		# = 16 + tax/100 stays under the pick threshold 25, but a scenario (puppeteer +15) or the engine's own desire can still
+		# lift it. One number, no list of countries: the active are those that hold their home region (France: >= 25 % all game,
+		# England: >= 55 %; they keep their ring of client states).
+		if = {
+			limit = {
+				scope:attacker = {
+					has_variable = gp_region_share
+					var:gp_region_share < 0.25
+				}
+			}
+			add = -12
+		}
 		add = {
 			value = scope:target.country_tax_base
 			divide = 100
@@ -285,6 +327,11 @@ gp_target_regional_unification = {
 				NOT = { is_allied_with = { target = root } }
 				NOT = { this ?= root.var:gp_ruler_like }
 				NOT = { this ?= root.var:gp_patron }
+				# v0.12.1 (diag D4) old friends unite by crown, not by war: the only war Poland declared in 129 years was this
+				# list's war on Lithuania (1365), the ally of 1325 (Aldona's marriage). A CRUTCH (flagged): the replacement is the
+				# v0.15 "secret court" union (influence -> marriage -> union) of docs/GEOPOLICY_V012_PLAN.md; the same exclusion
+				# already stands in gp_target_outer_dominion above.
+				NOT = { gp_is_old_friend_of = { COUNTRY = root } }
 				relative_strength = {
 					target = root
 					value < 0.45		# weaker than ~0.8x the attacker
@@ -299,6 +346,10 @@ gp_target_regional_unification = {
 		add = {
 			value = scope:target.country_tax_base
 			divide = 100
+		}
+		subtract = {	# v0.12.1 the pressed unite nothing (pressure damping, see the header)
+			value = scope:attacker.gp_pressure_load
+			multiply = 0.2
 		}
 	}
 	sort_value = {
@@ -335,6 +386,10 @@ gp_target_scenario_war = {
 			value = scope:target.country_tax_base
 			divide = 100
 		}
+		subtract = {	# v0.12.1 the scenario waits until the country is no longer pressed (pressure damping, see the header)
+			value = scope:attacker.gp_pressure_load
+			multiply = 0.2
+		}
 	}
 	sort_value = {
 		add = 800
@@ -369,6 +424,10 @@ gp_target_scenario_vassal = {
 		add = {
 			value = scope:target.country_tax_base
 			divide = 100
+		}
+		subtract = {	# v0.12.1 (pressure damping, see the header)
+			value = scope:attacker.gp_pressure_load
+			multiply = 0.2
 		}
 	}
 	sort_value = {
@@ -405,6 +464,10 @@ gp_target_dynastic_claim = {
 		add = {
 			value = scope:target.country_tax_base
 			divide = 100
+		}
+		subtract = {	# v0.12.1 (pressure damping, see the header)
+			value = scope:attacker.gp_pressure_load
+			multiply = 0.2
 		}
 	}
 	sort_value = {
@@ -444,5 +507,140 @@ gp_target_colonial_zone = {
 	}
 	sort_value = {
 		add = 700
+	}
+}
+
+# v0.12.1 (diag D4) The throne claim in hand. The casus belli the history events hand out - Casimir's claim on Halych and
+# Volhynia after the death of Boleslaw-Yuri II (vanilla flavor_vol.txt:665-955, 20 years), the Luxembourg claim on Poland
+# (flavor_BOH.txt:861-866) - is a war the country has been waiting for, not an obstacle: gp_attacker_has_claim lifts the
+# restraints of the defense posture and of "own region first" (gp_expansion_scores.txt), and this list names the claimed
+# neighbour as a target. Neighbours only; the casus belli is left to the AI (cb_claim_throne has ai_will_do 100,
+# casus_belli/claim_throne.txt; whether it is declarable without a claimant character is UNVERIFIED - the Piast cores of
+# gp_sc_east give the AI a second casus belli). Two ways to hold the claim: the engine's casus belli (vanilla form
+# religious_leagues.txt:150, root = { has_casus_belli_of_type_on = { target = prev ... } }) or the register of the mod
+# (var:gp_claimed_by on the claimed country, written by gp_sc_east, gp_scenarios_central.txt). Modelled on
+# gp_target_dynastic_claim above. Pressure damping as in the header: the pressed do not collect claims.
+# Next observation: Poland at war with Halych or Volhynia between 1341 and ~1362, unless it is pressed.
+gp_target_throne_claim = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		at_war = no
+		months_since_war >= 12
+		NOT = { gp_is_calm_posture = yes }
+		NOT = { has_variable = gp_role_besieged }
+	}
+	candidate_list = {
+		every_neighbor_country = {
+			limit = {
+				gp_is_real_country = yes
+				exists = capital
+				NOT = { is_subject_or_below_of = root }
+				NOT = { root = { is_subject_or_below_of = prev } }
+				NOT = { in_union_with = root }
+				NOT = { has_truce_with = root }
+				NOT = { is_allied_with = { target = root } }
+				OR = {
+					var:gp_claimed_by ?= root
+					root = {
+						has_casus_belli_of_type_on = {
+							type = casus_belli:cb_claim_throne
+							target = prev
+						}
+					}
+				}
+			}
+			add_to_list = source
+		}
+	}
+	score = {
+		add = 26
+		add = {
+			value = scope:target.country_tax_base
+			divide = 100
+		}
+		subtract = {	# pressure damping, see the header
+			value = scope:attacker.gp_pressure_load
+			multiply = 0.2
+		}
+	}
+	sort_value = {
+		add = 850
+	}
+}
+
+# v0.12.1 (diag D4) Kin first (author, 2026-11-10: "these are the Slavs, who should mostly fight one another"; ladders of
+# docs/GEOPOLICY_V012_PLAN.md): a Slavic power finds its next war among the weaker Slavic neighbours - also beyond its home
+# region, where no other scripted list reaches (the unification, intruder and home-region lists above all stop at the region
+# border): Poland - Halych and Volhynia, Moscow - Tver and Ryazan, Serbia - Bosnia. Weaker = at most ~0.8x the attacker. A
+# subject of a third power is allowed when it is a loose tribute payer (Halych and Volhynia are tributaries of the Horde,
+# main_menu/setup/1337/12_diplomacy.txt) or when its overlord is the weaker one; a vassal of a power we cannot match is its
+# master's business (the Silesian dukes under Bohemia). Not for the calm, the besieged, the hopeless or the pressed (posture and
+# damping). Modelled on gp_target_regional_unification above; the culture group, not a list of countries, is the whole rule.
+# Next observation: wars Slav -> Slav, among them Poland -> Halych / Volhynia and Moscow -> Tver / Ryazan.
+gp_target_kin_neighbour = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		gp_is_slavic = yes
+		exists = capital
+		at_war = no
+		months_since_war >= 30
+		NOT = { has_variable = gp_role_status_quo }
+		NOT = { has_variable = gp_role_besieged }
+		NOT = { has_variable = gp_hopeless }
+		NOT = { gp_is_calm_posture = yes }
+		OR = {
+			has_variable = gp_posture_expansion
+			has_variable = gp_posture_opportunism
+			has_variable = gp_posture_preparation
+		}
+	}
+	candidate_list = {
+		every_neighbor_country = {
+			limit = {
+				gp_is_real_country = yes
+				exists = capital
+				gp_is_slavic = yes
+				NOT = { is_subject_or_below_of = root }
+				NOT = { root = { is_subject_or_below_of = prev } }
+				NOT = { in_union_with = root }
+				NOT = { has_truce_with = root }
+				NOT = { is_allied_with = { target = root } }
+				NOT = { gp_is_old_friend_of = { COUNTRY = root } }
+				NOT = { this ?= root.var:gp_ruler_like }
+				OR = {
+					is_subject = no
+					is_subject_type = tributary
+					overlord ?= {
+						relative_strength = {
+							target = root
+							value < 0.45
+						}
+					}
+				}
+				relative_strength = {
+					target = root
+					value < 0.45		# weaker than ~0.8x the attacker (share)
+				}
+			}
+			add_to_list = source
+		}
+	}
+	score = {
+		add = 24
+		add = {
+			value = scope:target.country_tax_base
+			divide = 100
+		}
+		subtract = {	# pressure damping, see the header
+			value = scope:attacker.gp_pressure_load
+			multiply = 0.2
+		}
+	}
+	sort_value = {
+		add = 450
+		add = scope:target.country_tax_base
 	}
 }

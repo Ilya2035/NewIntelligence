@@ -380,6 +380,26 @@ gp_obj_patron_client = {
 		scope:actor = { at_war = yes }
 	}
 
+	# v0.12.1 (diag D4) the patron stops courting and defending a client it means to fight: the orbit (relations 150,
+	# defence of the client) and the claim pull opposite ways. Poland held the opening order "war on Halych" and this
+	# objective at the same time. Cancelled while the patron holds a throne claim on the client (Poland - Halych after the
+	# death of Boleslaw-Yuri II; the register var:gp_claimed_by of gp_sc_east, or the engine's casus belli, form of vanilla
+	# forced_divert_trade.txt:57) or has the client as its prepared war. Re-created at the next yearly check once the claim
+	# and the plan are gone. Next observation: Poland's opinion of Halych and Volhynia no longer climbs to 150 in the years it
+	# prepares or holds the claim; the opening war on Halych is not cancelled by its own orbit.
+	cancel_trigger = {
+		OR = {
+			scope:recipient = { var:gp_claimed_by ?= scope:actor }
+			scope:actor = {
+				has_casus_belli_of_type_on = {
+					type = casus_belli:cb_claim_throne
+					target = scope:recipient
+				}
+			}
+			scope:actor = { var:gp_war_target ?= scope:recipient }
+		}
+	}
+
 	improve_relation = yes
 	improve_relation_limit = 150
 	defensive_support = yes

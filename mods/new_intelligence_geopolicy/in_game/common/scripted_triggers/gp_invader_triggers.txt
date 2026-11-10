@@ -1,0 +1,89 @@
+﻿###################################
+# New Intelligence: Geopolicy - the foreign invader: triggers (prefix gp_), v0.12.1
+#
+# Author, 2026-11-10 (observation 1337-1466): "an additional temporary united alliance against Morocco; an invader that has lost
+# twice loses interest" (docs/GEOPOLICY_V012_PLAN.md principle 5: against a common strong enemy from outside the neighbours unite).
+# An INVADER is a foreign power - another REGION, another SUB-CONTINENT and another FAITH GROUP - that fights the leaders of a region,
+# or fought them within the last five years (country variable gp_inv_active, kept yearly by gp_update_invader in
+# gp_invader_effects.txt; the victims read the global list gp_inv_list in gp_update_threat). It becomes the regional threat
+# (gp_threat, flag gp_threat_invader) of every country of the region it fights in - v0.12.1: by default only of countries with a capital
+# in Iberia (gp_inv_in_scope below, game rule gp_rule_invader_scope) -, so that everything that already
+# hangs on gp_threat works against it at once: the posture "common front", the front partners, the alliance reasons, the objective
+# "common front", the casus belli "contain the threat". Game rule gp_rule_invader (gp_game_rules.txt): pact (default) / front / off.
+###################################
+
+# this = the foreign power, $COUNTRY$ = the country it is foreign to: an independent state with a capital in another region, another
+# sub-continent and another faith group (Morocco for Castile; the Ottomans for Serbia and Castile for Morocco count only with the
+# setting gp_invader_world, see gp_inv_in_scope). Model: gp_is_intruder_of
+# (gp_triggers.txt).
+gp_is_foreign_power_of = {
+	gp_is_real_country = yes
+	exists = capital
+	$COUNTRY$ = { exists = capital }
+	is_subject = no
+	NOT = { capital.region = $COUNTRY$.capital.region }
+	NOT = { capital.sub_continent = $COUNTRY$.capital.sub_continent }
+	NOT = { religion.group = $COUNTRY$.religion.group }
+}
+
+# this = a country: its capital lies in a region where the foreign invader works - the staged rollout of the independent review
+# (2026-11-10). The author asked for Morocco and Iberia; the first build was worldwide and, by the reviewers' reading of the 1337
+# setup (never seen in the game), would have flagged Byzantium as the invader of 19 Anatolian beyliks (the Ottomans among them) and
+# Denmark as the invader of pagan Lithuania on the first pass (the foothold arm of gp_effects.txt needs only three locations in a
+# foreign region). Game rule gp_rule_invader_scope: Iberia (default) / world.
+# Used on the VICTIM (gp_threat_find_invader), on the enemy war leader (gp_inv_foe_ok) and on the winner of a lost war (gp_inv_war_end).
+gp_inv_in_scope = {
+	exists = capital
+	OR = {
+		has_game_rule = gp_invader_world
+		capital.region = region:iberia_region
+	}
+}
+
+# this = an enemy of the would-be invader, scope:gp_c = the would-be invader (gp_update_invader; gp_yearly_update saves the country as
+# scope:gp_c): a foreign power's victim in a region where the invader works (gp_inv_in_scope). The game rule gp_invader_off switches
+# the whole mechanism off.
+gp_inv_foe_ok = {
+	gp_inv_in_scope = yes
+	gp_is_foreign_power_of = { COUNTRY = scope:gp_c }
+}
+
+# this = the invader, $COUNTRY$ = the country whose region is invaded (gp_update_threat of the victim, A1: ordered_in_global_list over
+# gp_inv_list). var:gp_inv_foe = the enemy war leader that made it an invader; its region is the invaded one. A spent invader (it has
+# lost twice, gp_inv_spend) no longer counts. No strength gate on purpose: Castile is the first victim of Morocco and 2.7x its size
+# (docs/research/14_hq_limits_at_game_start.md: 244 against 90 locations), a dwarf is kept out in gp_update_invader (20 locations).
+gp_is_invader_of = {
+	NOT = { this = $COUNTRY$ }
+	has_variable = gp_inv_active
+	NOT = { has_variable = gp_inv_spent }
+	gp_is_real_country = yes
+	exists = capital
+	$COUNTRY$ = { exists = capital }
+	NOT = { is_subject_or_below_of = $COUNTRY$ }
+	NOT = { $COUNTRY$ = { is_subject_or_below_of = prev } }
+	NOT = { in_union_with = $COUNTRY$ }
+	NOT = { capital.region = $COUNTRY$.capital.region }
+	NOT = { capital.sub_continent = $COUNTRY$.capital.sub_continent }
+	NOT = { religion.group = $COUNTRY$.religion.group }
+	var:gp_inv_foe ?= { capital.region = $COUNTRY$.capital.region }
+}
+
+# WHO and PARTNER both name the same foreign invader as their regional threat (alliance reasons, gp_alliance.txt: GP_ALLY_INVADER).
+gp_ally_invader_front = {
+	$WHO$ = {
+		has_variable = gp_threat_invader
+		gp_shares_threat_with = { COUNTRY = $PARTNER$ }
+	}
+	# v0.12.1 re-check: fellow victims only - the partner must name the invader its threat too (with the Iberia staging: another
+	# Iberian crown), not merely have the same country as its threat by strength (Tlemcen, a free Granada)
+	$PARTNER$ = { has_variable = gp_threat_invader }
+}
+
+# Game rule gp_rule_invader: the temporary pact (the script allies the AI countries of a front, gp_inv_pact_with) is the default; the
+# settings "front" (the evaluation alone) and "off" switch it off. Tested as "not front, not off" like gp_is_active (not mode_off),
+# so that a missing rule still reads as the default.
+gp_inv_pact_enabled = {
+	gp_is_active = yes	# v0.12.1 review: Geopolicy AI = Off changes nothing, the script alliances included
+	NOT = { has_game_rule = gp_invader_front }
+	NOT = { has_game_rule = gp_invader_off }
+}

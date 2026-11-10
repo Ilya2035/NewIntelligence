@@ -32,6 +32,20 @@
 # Country variables: gp_sc_island_power (England after state 1), gp_sc_rival_crown, gp_sc_truce_with (state 7),
 # gp_sc_no_colonies_years (countdown), gp_sc_scot_hour_years (countdown).
 # Modifiers obey the game rule "Scenario marks" (gp_rule_scenario_mods); the break-ups happen whatever the rules.
+#
+# v0.12.1 (observation 1337-1466, author 2026-11-10: "France landed in Wales; England a bit stronger, France slightly weaker"):
+#   * the war goal of the vanilla Hundred Years' War no longer allows Welsh, Irish and northern English land (in_game/common/
+#     wargoals/gp_wargoals.txt) - the war is about France;
+#   * the machine calls gp_sc_prepare_hyw, the old unguarded form of gp_sc_prepare (gp_scenarios_west.txt): a pressed crown is
+#     not forced into "preparation" by the other scenarios any more, but the posture forcing of the Hundred Years' War ignores
+#     pressure (only that: the yearly posture pass and the 0.2 damping of the two forced lists still read it, see gp_sc_prepare);
+#   * state 6 gives each crown a small, temporary, historically named nudge for 20 years (gp_sc_lancastrian_host,
+#     gp_sc_armagnac_feud; AI crowns only, under the rules "Scenario marks" and "Nudges"; the author may veto each one), removed
+#     again when the state ends (gp_sc_hyw_last_war_end);
+#   * state 7 closes the vanilla situation with its own stalemate outcome (gp_sc_hyw_end_vanilla): the vanilla monthly lottery
+#     (hundred_years_war.10 / .11 / .20 / .21) handed France a war on England in 1455, in the middle of "the crowns leave each
+#     other alone". A CRUTCH (a scripted order, docs 3a); the evaluation route would be a weight on the vanilla event option,
+#     which needs an override of the vanilla event.
 ###################################
 
 # ---- the crowns ----------------------------------------------------------------------------------
@@ -134,7 +148,7 @@ gp_sc_hyw_keep_at_it = {
 				NOT = { this = scope:$TARGET$ }
 				NOT = { has_variable = gp_war_target }
 			}
-			gp_sc_prepare = { TARGET = $TARGET$ }
+			gp_sc_prepare_hyw = { TARGET = $TARGET$ }
 		}
 	}
 }
@@ -357,7 +371,7 @@ gp_sc_hyw_from_victory = {
 			random_list = {
 				25 = {
 					set_global_variable = { name = gp_sc_old_ambitions value = 1 }
-					scope:gp_eng = { gp_sc_prepare = { TARGET = gp_fra } }
+					scope:gp_eng = { gp_sc_prepare_hyw = { TARGET = gp_fra } }
 				}
 				75 = {
 					set_global_variable = { name = gp_sc_old_ambitions value = 2 }
@@ -403,7 +417,7 @@ gp_sc_hyw_from_foothold = {
 					NOT = { this = scope:gp_fra }
 					NOT = { has_variable = gp_war_target }
 				}
-				gp_sc_prepare = { TARGET = gp_fra }
+				gp_sc_prepare_hyw = { TARGET = gp_fra }
 				if = {
 					limit = {
 						is_ai = yes
@@ -426,11 +440,11 @@ gp_sc_hyw_english_advantage = {
 			limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
 			add_country_modifier = { modifier = gp_sc_crecy years = 20 }
 		}
-		gp_sc_prepare = { TARGET = gp_fra }
+		gp_sc_prepare_hyw = { TARGET = gp_fra }
 	}
 	scope:gp_fra = {
 		gp_crisis_shock = { AMOUNT = 20 }
-		gp_sc_prepare = { TARGET = gp_eng }
+		gp_sc_prepare_hyw = { TARGET = gp_eng }
 	}
 }
 
@@ -438,10 +452,11 @@ gp_sc_hyw_english_advantage = {
 # lean on it; England makes client states instead of annexing (gp_sc_puppeteer).
 gp_sc_hyw_dual_monarchy = {
 	gp_sc_hyw_enter = { CODE = 5 }
+	gp_sc_hyw_last_war_end = yes	# v0.12.1
 	gp_sc_pick_france_leader = yes
 	global_var:gp_sc_france_leader ?= {
 		save_scope_as = gp_fl
-		gp_sc_prepare = { TARGET = gp_eng }
+		gp_sc_prepare_hyw = { TARGET = gp_eng }
 	}
 	gp_sc_france_patrons = yes
 	clear_saved_scope = gp_fl
@@ -449,11 +464,66 @@ gp_sc_hyw_dual_monarchy = {
 }
 
 # 6 the last war.
+# v0.12.1 The nudges (author veto points, docs): the Lancastrian host for England (morale +5 %, manpower +5 %) and the quarrel of
+# Armagnacs and Burgundians for France (levies -5 %, morale -3 %), 20 years, event-driven (this state is entered only when 1400
+# came, Paris is French and England is still on the continent), AI crowns only, removed by gp_sc_hyw_last_war_end. Model:
+# gp_sc_hyw_english_advantage below.
 gp_sc_hyw_last_war = {
 	gp_sc_hyw_enter = { CODE = 6 }
 	set_global_variable = { name = gp_sc_hyw_war_years value = 0 }
-	scope:gp_eng = { gp_sc_prepare = { TARGET = gp_fra } }
-	scope:gp_fra = { gp_sc_prepare = { TARGET = gp_eng } }
+	scope:gp_eng = {
+		gp_sc_prepare_hyw = { TARGET = gp_fra }
+		if = {
+			limit = {
+				is_ai = yes
+				NOT = { has_game_rule = gp_scenario_mods_off }
+				NOT = { has_game_rule = gp_nudges_off }
+			}
+			add_country_modifier = { modifier = gp_sc_lancastrian_host years = 20 }
+		}
+	}
+	scope:gp_fra = {
+		gp_sc_prepare_hyw = { TARGET = gp_eng }
+		if = {
+			limit = {
+				is_ai = yes
+				NOT = { has_game_rule = gp_scenario_mods_off }
+				NOT = { has_game_rule = gp_nudges_off }
+			}
+			add_country_modifier = { modifier = gp_sc_armagnac_feud years = 20 }
+		}
+	}
+}
+
+# v0.12.1 The nudges of the last war end with it: called when the state is left for the stalemate, the dual monarchy or the French
+# victory (anchor scope, scope:gp_eng and scope:gp_fra saved; harmless in any other state, there is nothing to remove then).
+gp_sc_hyw_last_war_end = {
+	scope:gp_eng = {
+		if = {
+			limit = { has_country_modifier = gp_sc_lancastrian_host }
+			remove_country_modifier = gp_sc_lancastrian_host
+		}
+	}
+	scope:gp_fra = {
+		if = {
+			limit = { has_country_modifier = gp_sc_armagnac_feud }
+			remove_country_modifier = gp_sc_armagnac_feud
+		}
+	}
+}
+
+# v0.12.1 THE CRUTCH of the Hundred Years' War (docs 3a): the vanilla situation is closed with its own stalemate outcome when the
+# mod's stalemate begins. Kept in its own small effect so that a parse problem here cannot disable the state machine. Model:
+# end_situation / is_situation_active in vanilla scripted_effects/situation_effects.txt (council_of_trent_force_end_effect); the
+# outcome "HYW_STALEMATE" is the name in vanilla common/situations/hundred_years_war.txt (its event .1537 costs both crowns some
+# prestige and its on_ended removes the CBs cb_hundred_years_war / cb_hundred_years_war_fra and the mutual opinion). UNVERIFIED in
+# game: that the effect is valid in this country scope and that a closed situation does not start again (the log of the
+# observation shows no restart of any ended situation).
+gp_sc_hyw_end_vanilla = {
+	if = {
+		limit = { is_situation_active = situation:hundred_years_war }
+		end_situation = { situation = situation:hundred_years_war outcome = "HYW_STALEMATE" }
+	}
 }
 
 # 7 stalemate: England has lost its guarantees in France (the land marks below); an AI England turns its French lands
@@ -461,6 +531,7 @@ gp_sc_hyw_last_war = {
 # 20 years; the crowns leave each other alone (gp_score_hyw_truce) - but do not make friends.
 gp_sc_hyw_stalemate = {
 	gp_sc_hyw_enter = { CODE = 7 }
+	gp_sc_hyw_last_war_end = yes	# v0.12.1 the nudges of the last war end with it (they must not stack with gp_sc_french_weariness)
 	scope:gp_eng = {
 		gp_sc_drop_target = { TARGET = gp_fra }
 		set_variable = { name = gp_sc_truce_with value = scope:gp_fra }
@@ -486,6 +557,7 @@ gp_sc_hyw_stalemate = {
 			add_country_modifier = { modifier = gp_sc_french_weariness years = 20 }
 		}
 	}
+	gp_sc_hyw_end_vanilla = yes	# v0.12.1 the crowns leave each other alone - the vanilla lottery of wars is closed too
 }
 
 # 4 the break-up of France: the crown keeps only the area of its capital; the princes join the Empire, the emperor is
@@ -505,6 +577,7 @@ gp_sc_hyw_french_collapse = {
 # Countries and Germany, no colonies for 50 years); France prepares a landing.
 gp_sc_hyw_french_victory = {
 	gp_sc_hyw_enter = { CODE = 1 }
+	gp_sc_hyw_last_war_end = yes	# v0.12.1
 	scope:gp_eng = {
 		gp_sc_course = { POSTURE = recovery YEARS = 10 }
 		gp_crisis_shock = { AMOUNT = 20 }
@@ -524,7 +597,7 @@ gp_sc_hyw_french_victory = {
 		}
 	}
 	scope:gp_fra = {
-		gp_sc_prepare = { TARGET = gp_eng }
+		gp_sc_prepare_hyw = { TARGET = gp_eng }
 		# v0.10 the victor: an empire overseas (Louisiana, the Caribbean), Algiers and Tunis, client states in Italy
 		set_variable = gp_sc_fr_victor
 		set_variable = gp_sc_puppeteer
@@ -603,7 +676,7 @@ gp_sc_scottish_hour = {
 				limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
 				add_country_modifier = { modifier = gp_sc_scottish_hour years = 20 }
 			}
-			gp_sc_prepare = { TARGET = gp_eng }
+			gp_sc_prepare_hyw = { TARGET = gp_eng }
 			if = {
 				limit = { NOT = { has_area_preference = gp_sc_scot_northumbria } }
 				add_area_preference = gp_sc_scot_northumbria
@@ -881,7 +954,7 @@ gp_sc_france_upkeep = {
 		gp_sc_pick_france_leader = yes
 		global_var:gp_sc_france_leader ?= {
 			save_scope_as = gp_fl
-			gp_sc_prepare = { TARGET = gp_eng }
+			gp_sc_prepare_hyw = { TARGET = gp_eng }
 		}
 		if = {
 			limit = { global_var:gp_sc_hyw = 5 }
@@ -1035,7 +1108,7 @@ gp_sc_france_later = {
 		global_var:gp_sc_france_leader ?= {
 			if = {
 				limit = { NOT = { this = scope:gp_eng } }
-				gp_sc_prepare = { TARGET = gp_eng }
+				gp_sc_prepare_hyw = { TARGET = gp_eng }
 			}
 		}
 	}
@@ -1065,7 +1138,7 @@ gp_sc_france_later = {
 		if = {
 			limit = { scope:gp_fra = { country_strength > scope:gp_c.var:gp_sc_tmp_str } }
 			random_list = {
-				10 = { scope:gp_fra = { gp_sc_prepare = { TARGET = gp_cas_t } } }
+				10 = { scope:gp_fra = { gp_sc_prepare_hyw = { TARGET = gp_cas_t } } }
 				90 = { }
 			}
 		}
@@ -1115,7 +1188,7 @@ gp_sc_france_leaves_empire = {
 			NOT = { scope:gp_emp = scope:gp_fl }
 		}
 		scope:gp_emp = {
-			gp_sc_prepare = { TARGET = gp_fl }
+			gp_sc_prepare_hyw = { TARGET = gp_fl }
 			trigger_event_non_silently = gp_sc.5
 		}
 	}

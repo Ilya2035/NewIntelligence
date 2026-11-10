@@ -111,7 +111,13 @@ gp_history_postures = {
 	gp_history_preparation = { TAG = ENG TARGET = FRA YEARS = 6 }	# Edward III claims the French crown
 	gp_history_preparation = { TAG = FRA TARGET = ENG YEARS = 5 }	# Philip VI confiscates Gascony (May 1337)
 	gp_history_preparation = { TAG = POL TARGET = HAL YEARS = 6 }	# Casimir's Red Ruthenian campaigns (1340)
-	gp_history_preparation = { TAG = CAS TARGET = GRA YEARS = 6 }	# Alfonso XI and the Straits
+	# v0.12.1 Alfonso XI prepares against the Straits, not against his own tributary: Morocco holds ronda, algeciras, gibraltar and
+	# marbella from the start (Salado 1340, Algeciras 1344), Granada is Castile's tributary (setup 12_diplomacy.txt), so the
+	# old target was no valid war. Three years, not six: a Castile beaten in 1342-44 (author's complaint) must not stay in
+	# "preparation" through the 1340s; the evaluation (pressure, threat) takes over after that - in practice already at the yearly pass of
+	# 1338: the four Iberian locations of Morocco make it Castile's foreign-invader threat from the first pass, and an offensive course is
+	# then re-chosen at once (gp_update_posture), so the three years are an upper bound.
+	gp_history_preparation = { TAG = CAS TARGET = MOR YEARS = 3 }	# Alfonso XI and the Straits
 	gp_history_posture = { TAG = SER POSTURE = expansion YEARS = 8 }	# Dusan's empire
 	gp_history_posture = { TAG = TUR POSTURE = expansion YEARS = 8 }	# Orhan's Bithynia
 	gp_history_posture = { TAG = LIT POSTURE = expansion YEARS = 6 }	# Gediminas and the Rus' lands

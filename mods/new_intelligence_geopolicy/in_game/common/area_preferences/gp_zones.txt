@@ -243,6 +243,9 @@ gp_sav_sphere = {
 # ================================================================================================
 
 # Castile: the crown lands; the Portuguese and Aragonese crowns are left to vanilla (union through diplomacy).
+# v0.12.1 (diag D2) "left to vanilla" is not "left alone": vanilla's castile_conquer_spain (modifier 10: Granada, Andalusia,
+# Murcia, Valencia, Aragon, Catalonia, Navarre) pulls Castile at the Aragonese crown from the first day, harder than any ladder
+# below. The mod takes it away while Castile is pressed and gives it back afterwards (gp_update_vanilla_pull, gp_pull_effects.txt).
 gp_cas_core = {
 	preference_type = conquest
 	modifier = 6
@@ -828,8 +831,8 @@ gp_nor_far = {
 # POLAND, THE ORDER, LITHUANIA (vanilla: poland_conquer_prussia 5 / ruthenia 2.5, lithuania_conquer_livonia 10 / ruthenia 5)
 # ================================================================================================
 
-# Poland: the Crown lands; then Silesia, Pomerelia, Red Ruthenia, Podolia, Volhynia (Casimir's conquest of 1340-66)
-# and the Lithuanian union; far: Moldavia, Pomerania, White Ruthenia.
+# Poland: the Crown lands, and from the first day Red Ruthenia and Volhynia (Casimir's conquest of 1340-66, gp_pol_galicia
+# below); then Silesia, Pomerelia, Podolia and the Lithuanian union; far: Moldavia, Pomerania, White Ruthenia.
 gp_pol_core = {
 	preference_type = conquest
 	modifier = 6
@@ -838,16 +841,35 @@ gp_pol_core = {
 	area = central_poland_area
 	area = mazovia_area
 }
+# v0.12.1 Red Ruthenia and Volhynia moved out of the sphere into gp_pol_galicia (always on, below).
 gp_pol_sphere = {
 	preference_type = conquest
 	modifier = 3
 	area = silesia_area
 	area = prussia_area
-	area = red_ruthenia_area
 	area = podolia_area
-	area = volhynia_area
 	area = lithuania_area
 	area = samogitia_area
+}
+# v0.12.1 (diag D4) Poland's Galician road, on from the first day: Casimir III's Red Ruthenian campaigns (1340-66, the Piast
+# claim on Halych-Volhynia after Boleslaw-Yuri II) and the author's ladder (Poland: its own lands -> Prussia, Black Ruthenia,
+# Volhynia, Polesia -> east). Author, 2026-11-10: "Poland should have more influence over Galicia, so that it succeeds".
+# Ranks Galicia above Prussia: vanilla gives Prussia 5 (poland_conquer_prussia) and the whole Ruthenian region 2.5
+# (poland_conquer_ruthenia). Read as a sum, Red Ruthenia and Volhynia stand at 8.5 with this one and Prussia at 5 (8 when the
+# sphere opens); read as a product (the engine's x-factors, docs/GEOPOLICY_IMPLEMENTATION.md GP TODO) 15 against 5 (15): in
+# either reading Galicia leads while Poland holds under a quarter of the Baltic region, which is when it matters.
+# Before this the Galician sphere switched on only at 25 % of the Baltic region (Poland held 21 % at the start; 25-55 % only in
+# 1344-47 and 1426-65), so for 129 years Poland declared one war. UNVERIFIED how the engine stacks two preferences on one
+# area: if the next observation shows the Teutonic Order before Halych, raise the modifier to 8. The Order's own 17 Polish
+# cores (+100 conquer desire) stay the rival pull; Halych is helped by the kin target (gp_target_kin_neighbour), the claim
+# (gp_target_throne_claim) and the Piast cores (gp_sc_east).
+# Next observation: a Polish war on Halych or Volhynia in the first 25 years, not on the Order (truce until 1343); the POL
+# report shows no "defense" years for an allied "threat" (A1).
+gp_pol_galicia = {
+	preference_type = conquest
+	modifier = 6
+	area = red_ruthenia_area
+	area = volhynia_area
 }
 gp_pol_far = {
 	preference_type = conquest
@@ -1418,7 +1440,7 @@ gp_dir_british = { preference_type = conquest modifier = 2 region = ireland_regi
 gp_dir_irish = { preference_type = conquest modifier = 2 region = great_britain_region }
 gp_dir_british_isles = { preference_type = conquest modifier = 2 region = ireland_region }	# v0.5 scenarios 1A and 3B: England (or a victorious Scotland) turns to Ireland
 gp_dir_into_italy = { preference_type = conquest modifier = 2 region = italy_region }	# v0.6 scenario I-2: the invader of Italy
-gp_dir_bohemian = { preference_type = conquest modifier = 2 region = north_german_region region = baltic_region }	# v0.6 scenario E-2: the Bohemian emperor (Brandenburg, Silesia)
+gp_dir_bohemian = { preference_type = conquest modifier = 2 area = silesia_area area = upper_saxony_area area = brandenburg_area }	# v0.6 scenario E-2: the Bohemian emperor (Silesia, Lusatia, Brandenburg); v0.12.1 three areas instead of the two whole regions north_german_region + baltic_region (the Teutonic Order, Poland, Lithuania and Livonia were on the list of the emperor; diag D4), bound to the Bohemian crown in gp_scenarios_central.txt
 gp_sc_scot_northumbria = { preference_type = conquest modifier = 4 area = northumbria_area }	# v0.7 HYW branch 2: Scotland takes Northumbria with French support
 gp_dir_french = { preference_type = conquest modifier = 2 region = italy_region region = north_german_region }
 gp_dir_iberian = { preference_type = conquest modifier = 2 region = maghreb_region }

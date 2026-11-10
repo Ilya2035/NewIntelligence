@@ -1,0 +1,47 @@
+﻿###################################
+# New Intelligence: Geopolicy - scripted expansion scores of the East (prefix gp_), v0.12.1
+#
+# Format and conventions as gp_expansion_scores.txt (attacker_potential: root = attacker; target_trigger: root = target,
+# scope:attacker = attacker; the multiplier is read as 1 + value). A file of its own: the Eastern entries of diag D4.
+###################################
+
+# v0.12.1 (diag D4) Kin first. Author, 2026-11-10: "these are the Slavs, who should mostly fight one another". A Slavic power
+# looks for its wars among its Slavic neighbours - Poland and the Ruthenian princes, Moscow and Tver, Serbia and Bosnia - and
+# the weaker kinsman first. No list of countries: the culture group slavic_group (gp_is_slavic) is the whole rule, the same
+# formula would serve any family by changing the key. Neighbours, and Slavic lands of the same macro-region (sub-continent);
+# an old friend (Poland and its ancient friends) is spared. Not a restraint and not a bonus for strangers: it only orders the
+# targets a Slavic power already has. Model: gp_score_kin_gathering (gp_expansion_scores.txt).
+# Next observation: more declared wars Slav -> Slav (Moscow -> Tver / Ryazan, Poland -> Halych / Volhynia, Serbia -> Bosnia),
+# fewer Slavic wars against Germans, Hungarians and Lithuanians that start in the Slavic power's own initiative.
+gp_score_slavs_among_themselves = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		gp_is_slavic = yes
+		exists = capital
+		NOT = { gp_is_calm_posture = yes }
+	}
+	target_trigger = {
+		gp_is_slavic = yes
+		exists = capital
+		OR = {
+			is_neighbor_of = scope:attacker
+			capital.sub_continent = scope:attacker.capital.sub_continent
+		}
+		NOT = { gp_is_old_friend_of = { COUNTRY = scope:attacker } }
+	}
+	multiplier = {
+		add = 0.3
+		if = {
+			limit = {
+				scope:target = {
+					relative_strength = {
+						target = scope:attacker
+						value < 0.45
+					}
+				}
+			}
+			add = 0.15	# the weaker kinsman first (at most ~0.8x the attacker)
+		}
+	}
+}

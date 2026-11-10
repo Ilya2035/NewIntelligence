@@ -3,6 +3,22 @@
 # same way by the Battle mod (cw_ai_defines.txt). Vanilla 1.4.7 values and line numbers from
 # game/loading_screen/common/defines/00_defines.txt in the comments. Always active: a game rule restoring the vanilla
 # values is impossible, because the 1.4.7 parser rejects "defines = { }" inside a game-rule setting (Battle first launch).
+#
+# v0.12.1 (research D7, author 2026-11-10: "it all comes down to limiters, crutches - do it through the engine"): +18 NAI keys, the
+# valuations and thresholds the engine's own war planner weighs (a sea crossing needs a comparable navy; far and overseas prey
+# decays faster; a country that just fought waits; a war without a reason is less attractive; the AI looks for allies against an
+# overwhelming neighbour; peace takes the war goal, not everything within reach). Not a ban and not a country modifier; AI only.
+# Frozen on purpose: EXPANSION_TARGET_SCORE_NEEDED_TO_PICK / _KEEP stay 25 / 18 (the fixed scores 20-28 of the lists in
+# ai_scripted_expansion_target/gp_expansion_targets.txt are calibrated to them). Not touched: every key the Battle mod owns
+# (cw_ai_defines.txt, cw_war_defines.txt - e.g. AI_TRANSPORT_STRENGTH_THRESHOLD_PER_DISTANCE, AI_CALL_ALLY_STRENGTH_BALANCE_THRESHOLD),
+# the dead key MINIMUM_MONTHS_BETWEEN_EXPANSION (the loader reports it as unknown; the real pause between wars is the personality's
+# ai_months_between_wars). Check after the first boot: grep -a defines.cpp debug.log must name no line of gp_defines.txt.
+# CANARIES (research D7, section 9) - how to see that the new keys really bite:
+#   1. a partial override from a mod is effective at all: set EXPANSION_TARGET_SCORE_NEEDED_TO_PICK to 1000000 for one run 1337 -> 1340
+#      (observer): AI conquest wars must collapse; put 25 back. No change = the override file is not effective.
+#   2. the sign of AI_CONQUER_DESIRE_NAVAL_DISTANCE_MULTIPLIER (the vanilla comment says "smaller number means more likely to attack"):
+#      AI Conquer Desire map mode, France, hover a Welsh location, set -3 for one boot - the row "Distance from capital" must collapse;
+#      if it rises the sign is inverted: set the key back to -0.5 (and re-check AI_CONQUER_DESIRE_DISTANCE_MULTIPLIER, l.1429).
 
 NAI = {
 	# --- beautiful borders: finish the area, finish the region, close the exclaves ---
@@ -21,6 +37,7 @@ NAI = {
 	AI_CONQUER_DESIRE_DISTANCE_MULTIPLIER = -0.15				# l.1429  -0.1
 	AI_CONQUER_DESIRE_CAPITAL_DISTANCE = 80						# l.1433  100
 	DISTANT_WAR_CONQUEST_FACTOR = 0.05							# l.1322  0.1
+	DISTANT_WAR_SUBJUGATION_FACTOR = 0.17						# l.1323  0.33   v0.12.1 keeps vanilla's 3.3 : 1 against the conquest factor above (was 6.6 : 1: a far vassal was relatively MORE attractive than before)
 	# --- digest before the next bite, fear coalitions a little earlier ---
 	AI_UNINTEGRATED_LAND_EXPANSION_PENALTY = 2.5				# l.1388  2
 	SAFE_AMOUNT_OF_ANTAGONISM = 25								# l.1391  30
@@ -56,6 +73,28 @@ NAI = {
 	# --- v0.3: only the great powers of their regions colonise (author: "first and second of France, Britain, Iberia, Italy,
 	# Scandinavia... only they have the right") - the tax-base gate rises; the eager tags (Sweden, Portugal) stay exempt ---
 	AI_COLONIZE_TAX_BASE_THRESHOLD = 180					# l.641   100  (v0.4: 250 -> 180, dominant powers get the colonial preferences instead)
+	# --- v0.12.1 (research D7): a sea crossing needs a comparable navy; overseas and far prey lose value faster ---
+	NAVY_COMPARABILITY_RATIO = 0.8									# l.1318  0.5    cross-water targets (Gibraltar, Channel, Dardanelles) only for a navy >= 80 % of the enemy's
+	AI_CONQUER_DESIRE_NAVAL_DISTANCE_MULTIPLIER = -0.7				# l.1430  -0.5   overseas prey loses value faster (sign UNVERIFIED, read as for l.1429; canary 2 above)
+	AI_NAVAL_INVASION_THREAT_WEIGHT = 0.002							# l.1023  0.001  a landing next to a waiting army costs twice as much
+	CONQUER_DESIRE_DISTANCE_LOOSEN_FACTOR = 1.25					# l.1200  1.5    a preferred area keeps its reach floor only up to 1.25x the allowed distance
+	CONQUER_DESIRE_DISTANCE_FLOOR_NEAR_HOME = 0.2					# l.1197  0.25   cores and preferred areas at the edge of the reach keep 20 % of their value
+	CONQUER_DESIRE_DISTANCE_TAIL_DECAY = 0.4						# l.1199  0.5    beyond the reach the value falls to 40 % per step (vanilla 50 %)
+	CONQUER_DESIRE_THREAT_MAX = 1.3									# l.1204  1.5    a weak neighbour extends the reach by at most 30 % (vanilla 50 %)
+	# --- after a war, wait: the exhausted do not start the next one (author: "Spain lost to Granada and Morocco and still went for Aragon") ---
+	AI_WAR_EXHAUSTION_EXPANSION_PENALTY = 0.2						# l.1387  0.1
+	SAFE_AMOUNT_OF_WAR_EXHAUSTION = 3								# l.1392  5
+	# --- a war needs a reason; the best target goes first, not a lottery ---
+	NO_CASUS_BELLI_CONQUEST_FACTOR = 0.55							# l.1325  0.8
+	RANDOM_RANGE_OF_EXPANSION_SORTING_VALUES = 0.1					# l.1390  0.25   sort_value of the scripted targets (gp_expansion_targets.txt) decides the order, noise +-10 %
+	# --- seek allies against an overwhelming neighbour (Iberia against Morocco) and respect the allies of the target ---
+	AI_THREAT_TOO_HIGH_THRESHOLD = 0.93								# l.1566  0.875  a 13:1 threat is still answered with allies (vanilla gives up at 7:1)
+	MAX_ALLIES_TO_PICK_AGAINST_ENEMIES = 3							# l.1567  2
+	AI_TOO_WEAK_ALLY = 0.25											# l.1570  0.33
+	WAR_PLANNER_CAN_CALL_DEFENDER_FACTOR = 0.9						# l.1368  0.75   the planner counts the target's callable allies almost in full
+	AI_SCRIPTED_OBJECTIVE_INTERACTION_SCORE_BONUS = 40				# l.1477  25     the AI follows our diplomatic objectives (common front, protector) with more priority
+	# --- limited war aims: take the war goal, not everything within reach ---
+	AI_CONQUER_TREATY_DESIRE_NOT_WARGOAL_MULT = 0.35				# l.1481  0.5
 }
 
 NDiplomacy = {

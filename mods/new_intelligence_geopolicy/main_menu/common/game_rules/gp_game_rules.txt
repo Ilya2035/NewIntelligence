@@ -57,7 +57,8 @@ gp_rule_control = {
 }
 
 # Scenario marks on the land: the location modifiers of the Western scenarios (united Ireland +25 % fort defense for 50
-# years, Irish national consciousness -15 % control under a foreign owner). The scenarios themselves run regardless.
+# years, Irish national consciousness -15 % control under a foreign owner), the Iberian chess marks and, since v0.12.1, the four
+# historical nudges (the rule gp_rule_nudges needs this rule on too). The scenarios themselves run regardless.
 gp_rule_scenario_mods = {
 	default = gp_scenario_mods_on
 
@@ -119,6 +120,78 @@ gp_rule_colonies = {
 	}
 	gp_colonies_off = {
 		flag = gp_colonies_off
+		flag = general_rule
+	}
+}
+
+# v0.12.1 The foreign invader (in_game/common/scripted_effects/gp_invader_effects.txt, scripted_triggers/gp_invader_triggers.txt).
+# Author, 2026-11-10: "an additional temporary united alliance against Morocco". A power from another region, another macro-region
+# and another faith group that fights the leaders of a region (or holds three of its locations) is the regional threat of every
+# country in it: the neighbours close ranks (common front posture, alliance reasons, opinion, the war scores), the rivals of the
+# region lay their feud aside while it lasts. After two lost wars within thirty years the invader loses interest in that region for
+# 25 years. Where it works at all: the rule gp_rule_invader_scope below (Iberia by default).
+#   pact  (default) the AI countries of such a front are also ALLIED BY THE SCRIPT for the length of the crisis and their rivalries
+#                   are removed (create_alliance / remove_rival; a crutch - it lapses when the invader no longer threatens them);
+#   front           the evaluation alone: alliances only by the AI's own reasons (the weights of gp_alliance.txt);
+#   off             no invader: the regional threat is found by strength and neighbourhood only.
+# Code tests: gp_invader_off (everything), gp_invader_front / gp_invader_off (the pact, gp_inv_pact_enabled).
+gp_rule_invader = {
+	default = gp_invader_pact
+
+	gp_invader_pact = {
+		flag = gp_invader_pact
+		flag = general_rule
+	}
+	gp_invader_front = {
+		flag = gp_invader_front
+		flag = general_rule
+	}
+	gp_invader_off = {
+		flag = gp_invader_off
+		flag = general_rule
+	}
+}
+
+# v0.12.1 Where the foreign invader works (independent review of the first build, 2026-11-10). The author asked for Morocco and Iberia
+# only; the first build was worldwide and, by the reviewers' reading of the 1337 setup (never seen in the game), would have flagged
+# Byzantium as the invader of 19 Anatolian beyliks (the Ottomans among them) and Denmark as the invader of pagan Lithuania on the
+# first pass, and would have allied the beyliks with one another by script.
+# Staged rollout: Iberia first, the world after the first observation.
+#   iberia (default) only countries with their capital in the Iberian region have invaders (Morocco against Castile, Aragon,
+#                    Portugal, Navarre; the war arm, the foothold arm and the record of lost wars all look at that region alone);
+#   world            every region (Ottomans against the Balkans, Mamluks against Cilicia, ...) - NOT YET OBSERVED.
+# Code tests: gp_inv_in_scope (scripted_triggers/gp_invader_triggers.txt).
+gp_rule_invader_scope = {
+	default = gp_invader_iberia
+
+	gp_invader_iberia = {
+		flag = gp_invader_iberia
+		flag = general_rule
+	}
+	gp_invader_world = {
+		flag = gp_invader_world
+		flag = general_rule
+	}
+}
+
+# v0.12.1 Historical nudges (author, 2026-11-10, in his own words: a mild nerf of Morocco, a few bonuses for Poland, England a bit
+# stronger, France a bit weaker): four small, TEMPORARY scenario modifiers, each bound to a historical event and explained in its own
+# tooltip - gp_sc_marinid_decline (Morocco, from 1349), gp_sc_lancastrian_host (England), gp_sc_armagnac_feud (France),
+# gp_sc_galician_campaign (Poland, from the death of the last Piast of Halych and Volhynia); definitions and numbers in
+# main_menu/common/static_modifiers/gp_scenario_modifiers.txt. "Off" grants none of them; the scenarios themselves run regardless.
+# The same rule also gates the Polish cores on the Red Ruthenian land of Halych and Volhynia that come with the Galician campaigns
+# (gp_sc_east, gp_scenarios_central.txt) - a change of the map, not a modifier. All of it is for AI countries only, and only while the
+# older rule "Scenario marks" (gp_rule_scenario_mods) is not off either.
+# Code tests where a modifier is granted: NOT = { has_game_rule = gp_nudges_off }.
+gp_rule_nudges = {
+	default = gp_nudges_on
+
+	gp_nudges_on = {
+		flag = gp_nudges_on
+		flag = general_rule
+	}
+	gp_nudges_off = {
+		flag = gp_nudges_off
 		flag = general_rule
 	}
 }

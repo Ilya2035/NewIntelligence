@@ -538,6 +538,14 @@ gp_goal = {
 	}
 
 	text = {
+		localization_key = gp_goal_ib_8
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 8
+		}
+	}
+
+	text = {
 		localization_key = gp_goal_ib_11
 		trigger = {
 			has_variable = gp_ib_goal
@@ -566,6 +574,14 @@ gp_goal = {
 		trigger = {
 			has_variable = gp_ib_goal
 			var:gp_ib_goal = 14
+		}
+	}
+
+	text = {
+		localization_key = gp_goal_ib_15
+		trigger = {
+			has_variable = gp_ib_goal
+			var:gp_ib_goal = 15
 		}
 	}
 
@@ -968,6 +984,17 @@ gp_bp_sc_iberia = {
 			global_var:gp_ib_cas ?= {
 				has_variable = gp_ib_goal
 				var:gp_ib_goal = 4
+			}
+		}
+	}
+
+	text = {
+		localization_key = gp_bp_sc_iberia_first_8
+		trigger = {
+			has_global_variable = gp_sc_ib
+			global_var:gp_ib_cas ?= {
+				has_variable = gp_ib_goal
+				var:gp_ib_goal = 8
 			}
 		}
 	}

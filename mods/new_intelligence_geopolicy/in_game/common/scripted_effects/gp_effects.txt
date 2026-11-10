@@ -8,6 +8,10 @@
 # by the AI's own war-target scoring (ai_scripted_expansion_score), target lists, diplomatic objectives and zones.
 # The country is saved as scope:gp_c at the start of every entry point and used instead of root: in the game-start loop
 # (every_country inside on_game_started_after_lobby) root is NOT the country (first in-game test, 2026-11-04).
+# v0.12.1: the yearly pass also counts, for AI countries, the DRIVE (what it still has to settle at home) and the PRESSURE (what
+# weighs on it) - gp_pressure_effects.txt, gp_values.txt - and finds the regional threat with three more layers (a foreign
+# invader, the victor of the last lost war, "near" and "presses"). The posture scores (eight of the nine read the pressure, expansion
+# and preparation read the drive) and the personality read them.
 ###################################
 
 # ---- entry points --------------------------------------------------------------------------------
@@ -15,6 +19,12 @@
 # global scope (on_game_started_after_lobby)
 gp_on_game_start_effect = {
 	debug_log = "GP_REPORT game start: setting up every real country"
+	# v0.12.1 the vanilla temperament of every AI country is stored BEFORE any set_personality of ours (the scenarios, the
+	# historical openings and gp_setup_country all end in gp_apply_personality); gp_restore_temperament gives it back
+	every_country = {
+		limit = { gp_is_real_country = yes }
+		gp_remember_temperament = yes
+	}
 	gp_history_relations = yes
 	gp_history_contenders = yes
 	every_country = {
@@ -29,6 +39,7 @@ gp_on_game_start_effect = {
 # country scope (game start, newly formed country, released country)
 gp_setup_country = {
 	gp_assign_zone_profile = yes
+	gp_remember_temperament = yes	# v0.12.1 for countries formed or released later (guarded: only once per country)
 	gp_yearly_update = yes
 }
 
@@ -37,6 +48,7 @@ gp_yearly_update = {
 	save_scope_as = gp_c
 	gp_compute_region_share = yes
 	gp_update_momentum = yes
+	gp_update_invader = yes	# v0.12.1 the foreign invader: flag and memory (gp_invader_effects.txt), before the threat reads the list
 	gp_update_threat = yes
 	gp_update_calm = yes
 	gp_update_contender = yes
@@ -69,18 +81,24 @@ gp_yearly_update = {
 		gp_update_role = yes
 		if = {
 			limit = { is_ai = yes }
-			gp_update_posture = yes
+			gp_update_drive = yes	# v0.12.1 what the country still has to settle at home (gp_pressure_effects.txt), after the role
+			gp_update_pressure = yes	# v0.12.1 what weighs on it, after the threat, the crisis and the lost wars
+			gp_update_posture = yes	# ... and the personality once a year
 			gp_update_stage_zones = yes
 			gp_update_directions = yes	# v0.4 (gp_region_effects.txt)
 			gp_update_overseas = yes
+			gp_update_vanilla_pull = yes	# v0.12.1 Castile's and Morocco's vanilla lures follow the pressure / the lost interest (gp_pull_effects.txt)
+			gp_inv_pact_upkeep = yes	# v0.12.1 the temporary alliances lapse with the invader (gp_invader_effects.txt, rule gp_invader_pact)
 		}
 		else = {
 			gp_clear_postures = yes
+			gp_clear_state = yes
 		}
 	}
 	else = {
 		gp_clear_roles = yes
 		gp_clear_postures = yes
+		gp_clear_state = yes
 	}
 	gp_debug_report = yes
 	clear_saved_scope = gp_c
@@ -92,10 +110,12 @@ gp_on_war_end_effect = {
 	gp_crisis_war_end = yes	# v0.7
 	gp_ib_war_end = yes	# v0.9 the Spanish sultanate beaten by France (gp_scenarios_iberia.txt)
 	gp_col_war_end = yes	# v0.11 a zone war: the winner takes the loser's land in the zone (gp_colonies.txt)
+	gp_inv_war_end = yes	# v0.12.1 a lost war against the region a foreign invader fights in goes on its record (gp_invader_effects.txt)
 	if = {
 		limit = { scope:loser ?= root }
 		set_variable = gp_recent_defeat
 		set_variable = { name = gp_defeat_years value = 6 }
+		gp_set_beaten_by = yes	# v0.12.1 the victor is remembered twelve years (gp_age_defeat; gp_is_threat_candidate)
 		if = {
 			limit = {
 				is_ai = yes
@@ -103,6 +123,7 @@ gp_on_war_end_effect = {
 				has_variable = gp_region_share
 			}
 			save_scope_as = gp_c
+			gp_pressure_war_lost = yes	# v0.12.1 the land the peace took, +10 memory, the pressure counted at once - the posture below feels it
 			gp_choose_posture = yes
 			clear_saved_scope = gp_c
 		}
@@ -205,6 +226,22 @@ gp_update_momentum = {
 # Strongest qualifying power present in our home region (fallback: among our neighbours) -> var:gp_threat,
 # var:gp_threat_share = its relative_strength against us (0..1; 0.6 = 1.5x, 0.75 = 3x). Opinion of it is refreshed
 # (remove + add, so it never stacks).
+# v0.12.1 (author, 2026-11-10: "against a common strong enemy the neighbours unite - Portugal, Castile and Aragon against Granada
+# and Morocco"; "if Spain lost it must turn defensive"): the search has three layers.
+#   1. A FOREIGN INVADER first (gp_threat_find_invader): a power of another region, sub-continent and faith that fights the
+#      leaders of our region (gp_inv_list, gp_update_invader) or holds three locations of it. It is the regional threat of every
+#      country of the region (flag gp_threat_invader; by default only for capitals in Iberia, gp_inv_in_scope / game rule
+#      gp_rule_invader_scope), so everything that already hangs on gp_threat works against it
+#      at once: the posture "common front", the front partners, the alliance reasons, the objective "common front".
+#   2. Else the strongest qualifying power of the region / a neighbour (gp_is_threat_candidate: never an ally or an old friend; the
+#      victor of our last lost war counts for twelve years, var:gp_beaten_by).
+#   3. Flags for the threat found: gp_threat_near (a land neighbour, a capital in our region, three locations in it, a border less
+#      than 100 away - a strait is no distance; an invader and the victor of our last lost war are always near) and gp_threat_home
+#      (its capital is in our region).
+#      Read by gp_threat_presses (gp_triggers.txt), gp_pr_threat (the pressure), gp_ps_defense, the role "besieged".
+# NEXT OBSERVATION: "threat is MOR" / "threat is a foreign invader" for the Iberian crowns while Morocco fights or holds land there
+# ("flagged as an invader" on Morocco); Poland no longer names Hungary or Lithuania; England "threat presses" only at war with
+# France; Castile 1418-1465 "threat is near" (otherwise the Strait counts as far: tune the border test).
 gp_update_threat = {
 	if = {
 		limit = { has_variable = gp_threat }
@@ -220,13 +257,33 @@ gp_update_threat = {
 		remove_variable = gp_threat_share
 	}
 	if = {
+		limit = { has_variable = gp_threat_near }
+		remove_variable = gp_threat_near
+	}
+	if = {
+		limit = { has_variable = gp_threat_home }
+		remove_variable = gp_threat_home
+	}
+	if = {
+		limit = { has_variable = gp_threat_invader }
+		remove_variable = gp_threat_invader
+	}
+	if = {
 		limit = { exists = capital }
-		capital.region = {
-			ordered_present_country = {
-				limit = { gp_is_threat_candidate = yes }
-				order_by = country_strength
-				max = 1
-				save_scope_as = gp_found_threat
+		gp_threat_find_invader = yes
+		if = {
+			limit = { exists = scope:gp_found_threat }
+			set_variable = gp_threat_invader
+		}
+		if = {
+			limit = { NOT = { exists = scope:gp_found_threat } }
+			capital.region = {
+				ordered_present_country = {
+					limit = { gp_is_threat_candidate = yes }
+					order_by = country_strength
+					max = 1
+					save_scope_as = gp_found_threat
+				}
 			}
 		}
 		if = {
@@ -246,8 +303,109 @@ gp_update_threat = {
 				value = "scope:gp_found_threat.relative_strength(scope:gp_c)"
 			}
 			add_opinion = { target = scope:gp_found_threat modifier = gp_opinion_regional_threat }
+			gp_threat_mark_near = yes
 		}
 		clear_saved_scope = gp_found_threat
+	}
+}
+
+# Country scope, scope:gp_c = the country: the foreign invader of our region, saved as scope:gp_found_threat (nothing if there is none).
+# Two arms, each in its own small effect so that the least proven construct of the layer cannot take the other down with it:
+# (a) a power flagged by the war arm of gp_update_invader (global list gp_inv_list) and (b) a foreign power that holds three
+# locations of our home region. The game rule gp_rule_invader = gp_invader_off and Geopolicy AI = Off switch both off.
+# Staged rollout (independent review, 2026-11-10): the victim must lie in a region where the invader works - Iberia by default
+# (game rule gp_rule_invader_scope, trigger gp_inv_in_scope), the world on request (Ottomans against the Balkans, Mamluks against
+# Cilicia: NOT YET OBSERVED). The same restriction sits in gp_inv_foe_ok (the war arm) and in gp_inv_war_end (the record of defeats).
+gp_threat_find_invader = {
+	if = {
+		limit = {
+			gp_is_active = yes
+			NOT = { has_game_rule = gp_invader_off }
+			gp_inv_in_scope = yes
+		}
+		gp_threat_find_listed_invader = yes
+		if = {
+			limit = { NOT = { exists = scope:gp_found_threat } }
+			gp_threat_find_foothold = yes
+		}
+	}
+}
+
+# (a) UNVERIFIED and therefore alone: ordered_in_global_list with a limit, max and save_scope_as (vanilla situation_effects.txt:388
+# has limit + max + check_range_bounds = no, hre.txt:1216 has save_scope_as; both are plain forms of the same iterator). A parse
+# error here costs the war arm only. this = the invader in the limit, scope:gp_c = the victim; an ally of ours is never the threat.
+gp_threat_find_listed_invader = {
+	if = {
+		limit = { has_global_variable_list = gp_inv_list }
+		ordered_in_global_list = {
+			variable = gp_inv_list
+			limit = {
+				gp_is_invader_of = { COUNTRY = scope:gp_c }
+				NOT = { is_allied_with = { target = scope:gp_c } }
+			}
+			order_by = country_strength
+			max = 1
+			check_range_bounds = no
+			save_scope_as = gp_found_threat
+		}
+	}
+}
+
+# (b) the foothold arm, the proven ordered_present_country form (gp_update_threat): a power of another sub-continent AND faith that
+# holds three locations of our home region (Morocco at the Strait: "foreign intruder in the home region" in 48 of 80 report years
+# of Castile before 1413); one that has lost twice (gp_inv_spent) no longer counts, and a dwarf (under 20 locations) never does.
+gp_threat_find_foothold = {
+	capital.region = {
+		ordered_present_country = {
+			limit = {
+				gp_is_intruder_of = { COUNTRY = scope:gp_c }
+				NOT = { capital.sub_continent = scope:gp_c.capital.sub_continent }
+				NOT = { religion.group = scope:gp_c.religion.group }
+				NOT = { has_variable = gp_inv_spent }
+				NOT = { is_allied_with = { target = scope:gp_c } }
+				num_locations >= 20
+			}
+			order_by = country_strength
+			max = 1
+			save_scope_as = gp_found_threat
+		}
+	}
+}
+
+# Country scope, scope:gp_c = the country, scope:gp_found_threat = the threat just found: the flags gp_threat_home and
+# gp_threat_near (see gp_update_threat). The border test is the vanilla trigger of scripted_relations/alliance.txt:253
+# (border_distance_to = { country = X value < N }), the mod's own "far" starts above 100 (gp_score_distance_discipline). The
+# victor of our last lost war (var:gp_beaten_by, twelve years) is near whatever the map says: it has crossed our border once.
+gp_threat_mark_near = {
+	if = {
+		limit = {
+			scope:gp_found_threat = {
+				exists = capital
+				capital.region = scope:gp_c.capital.region
+			}
+		}
+		set_variable = gp_threat_home
+	}
+	if = {
+		limit = {
+			OR = {
+				has_variable = gp_threat_invader
+				has_variable = gp_threat_home
+				var:gp_beaten_by ?= scope:gp_found_threat
+				scope:gp_found_threat = { is_neighbor_of = scope:gp_c }
+				scope:gp_found_threat = {
+					any_owned_location = {
+						count >= 3
+						region = scope:gp_c.capital.region
+					}
+				}
+				border_distance_to = {
+					country = scope:gp_found_threat
+					value < 100
+				}
+			}
+		}
+		set_variable = gp_threat_near
 	}
 }
 
@@ -282,10 +440,20 @@ gp_update_region_relations = {
 						add_opinion = { target = prev modifier = gp_opinion_common_enemy }
 						set_variable = gp_has_front_partner
 					}
+					# v0.12.1 a foreign invader names both of us: fellow victims (this = the other country, scope:gp_c = ours;
+					# gp_invader_effects.txt: the opinion, the old rivalry laid aside, with the rule "pact" the temporary alliance)
+					if = {
+						limit = { scope:gp_c = { has_variable = gp_threat_invader } }
+						gp_inv_front_with = yes
+					}
 				}
-				# v0.3 contenders of one region watch each other (gp_region_effects.txt)
+				# v0.3 contenders of one region watch each other (gp_region_effects.txt); v0.12.1 not while a foreign invader
+				# stands in the region
 				if = {
-					limit = { gp_is_regional_rival_of = { COUNTRY = scope:gp_c } }
+					limit = {
+						gp_is_regional_rival_of = { COUNTRY = scope:gp_c }
+						NOT = { scope:gp_c = { has_variable = gp_threat_invader } }
+					}
 					scope:gp_c = {
 						remove_opinion = { target = prev modifier = gp_opinion_regional_rival }
 						add_opinion = { target = prev modifier = gp_opinion_regional_rival }
@@ -338,6 +506,24 @@ gp_age_defeat = {
 			if = { limit = { has_variable = gp_recent_defeat } remove_variable = gp_recent_defeat }
 		}
 	}
+	# v0.12.1 the memory of the victor (gp_set_beaten_by): twelve years, or until the victor is gone
+	if = {
+		limit = { has_variable = gp_beaten_years }
+		change_variable = { name = gp_beaten_years add = -1 }
+		if = {
+			limit = { var:gp_beaten_years <= 0 }
+			remove_variable = gp_beaten_years
+			if = { limit = { has_variable = gp_beaten_by } remove_variable = gp_beaten_by }
+		}
+	}
+	if = {
+		limit = {
+			has_variable = gp_beaten_by
+			NOT = { var:gp_beaten_by ?= { gp_is_real_country = yes } }
+		}
+		remove_variable = gp_beaten_by
+		if = { limit = { has_variable = gp_beaten_years } remove_variable = gp_beaten_years }
+	}
 }
 
 # ---- stages --------------------------------------------------------------------------------------
@@ -378,7 +564,7 @@ gp_update_role = {
 		limit = {
 			has_variable = gp_threat
 			var:gp_threat_share >= 0.75
-			var:gp_threat ?= { is_neighbor_of = scope:gp_c }
+			gp_threat_presses = yes	# v0.12.1 was: the threat is a land neighbour (a strait kept Morocco's 3x out of this rule for 48 years)
 		}
 		set_variable = gp_role_besieged
 	}
@@ -441,7 +627,8 @@ gp_clear_roles = {
 # ---- postures (AI only; plain variables gp_posture_*, see docs/GEOPOLICY_DESIGN.md section 3a) ----------
 
 # Yearly: count the posture down; re-choose when it runs out or when something forces a change (lost war, a
-# stronger enemy at the border, isolation no longer possible, the prepared target gone).
+# stronger enemy at the border, a foreign invader or a pressure of 40+ against an offensive course, isolation no longer possible,
+# the prepared target gone).
 gp_update_posture = {
 	if = {
 		limit = { has_variable = gp_posture_left }
@@ -463,9 +650,29 @@ gp_update_posture = {
 				AND = {
 					has_variable = gp_threat
 					var:gp_threat_share >= 0.67
-					var:gp_threat ?= { is_neighbor_of = scope:gp_c }
+					gp_threat_presses = yes	# v0.12.1 was: the threat is a land neighbour
 					NOT = { has_variable = gp_posture_defense }
 					NOT = { has_variable = gp_posture_common_front }
+				}
+				# v0.12.1 a foreign invader names us: an OFFENSIVE course is looked at again at once (gp_ps_front +40, gp_ps_defense
+				# +30, gp_ps_preparation -40, gp_ps_expansion -25). A calm country (consolidation, peace, isolation) keeps its
+				# 3-7 years: the review found it re-rolled every year while the foothold stood (no inertia, noise of the draw)
+				AND = {
+					has_variable = gp_threat_invader
+					OR = {
+						has_variable = gp_posture_expansion
+						has_variable = gp_posture_preparation
+						has_variable = gp_posture_opportunism
+					}
+				}
+				# v0.12.1 a pressed country drops an offensive course at once instead of waiting out its 3-7 years
+				AND = {
+					gp_is_pressed = yes
+					OR = {
+						has_variable = gp_posture_expansion
+						has_variable = gp_posture_preparation
+						has_variable = gp_posture_opportunism
+					}
 				}
 				AND = {
 					has_variable = gp_posture_preparation
@@ -474,6 +681,9 @@ gp_update_posture = {
 			}
 		}
 		gp_choose_posture = yes
+	}
+	else = {
+		gp_apply_personality = yes	# v0.12.1 the drive and the pressure move between two changes of course: the mentality follows once a year
 	}
 }
 
@@ -704,6 +914,19 @@ gp_debug_report = {
 			BRI = { debug_log = "GP_REPORT BRI Brittany" }
 			KOR = { debug_log = "GP_REPORT KOR Korea" }
 			GLH = { debug_log = "GP_REPORT GLH Golden Horde" }
+			# v0.12.1 the Iberian game and its invader, the Eastern story (gp_is_debug_country)
+			ARA = { debug_log = "GP_REPORT ARA Aragon" }
+			POR = { debug_log = "GP_REPORT POR Portugal" }
+			GRA = { debug_log = "GP_REPORT GRA Granada" }
+			MOR = { debug_log = "GP_REPORT MOR Morocco" }
+			NAV = { debug_log = "GP_REPORT NAV Navarre" }
+			TLE = { debug_log = "GP_REPORT TLE Tlemcen" }
+			TUN = { debug_log = "GP_REPORT TUN Tunis" }
+			HAL = { debug_log = "GP_REPORT HAL Halych" }
+			VOL = { debug_log = "GP_REPORT VOL Volhynia" }
+			TEU = { debug_log = "GP_REPORT TEU Teutonic Order" }
+			KIE = { debug_log = "GP_REPORT KIE Kyiv" }
+			SMO = { debug_log = "GP_REPORT SMO Smolensk" }
 		}
 		if = { limit = { var:gp_region_share >= 0.55 } debug_log = "GP_REPORT    region share >= 0.55" }
 		else_if = { limit = { var:gp_region_share >= 0.25 } debug_log = "GP_REPORT    region share 0.25 - 0.55" }
@@ -763,6 +986,510 @@ gp_debug_report = {
 		if = { limit = { has_variable = gp_posture_recovery } debug_log = "GP_REPORT    posture recovery" }
 		if = { limit = { has_variable = gp_posture_peace } debug_log = "GP_REPORT    posture peace" }
 		if = { limit = { has_variable = gp_posture_isolation } debug_log = "GP_REPORT    posture isolation" }
+		# ---- v0.12.1 why the country does what it does (author, 2026-11-10; vocabulary of the v0.12.1 contract) ----
+		# Drive and pressure (gp_pressure_effects.txt) in buckets; the parts of the pressure that weigh 8 points or more; the
+		# remembered temperament and the personality now; the threat (who, near, presses, foreign invader) and the victor of the last
+		# lost war; the war target and its class; the scenario states. Literal tags only (debug_log cannot print a scope).
+		if = {
+			limit = { has_variable = gp_drive }
+			if = { limit = { var:gp_drive < 15 } debug_log = "GP_REPORT    drive < 15" }
+			else_if = { limit = { var:gp_drive < 30 } debug_log = "GP_REPORT    drive 15 - 30" }
+			else_if = { limit = { var:gp_drive < 50 } debug_log = "GP_REPORT    drive 30 - 50" }
+			else = { debug_log = "GP_REPORT    drive >= 50" }
+		}
+		if = {
+			limit = { has_variable = gp_pressure }
+			if = { limit = { var:gp_pressure >= 70 } debug_log = "GP_REPORT    pressure >= 70" }
+			else_if = { limit = { var:gp_pressure >= 40 } debug_log = "GP_REPORT    pressure 40 - 70" }
+			else_if = { limit = { var:gp_pressure >= 20 } debug_log = "GP_REPORT    pressure 20 - 40" }
+			else_if = { limit = { var:gp_pressure >= 10 } debug_log = "GP_REPORT    pressure 10 - 20" }
+			else = { debug_log = "GP_REPORT    pressure < 10" }
+			set_variable = { name = gp_dbg value = gp_pr_threat }
+			if = { limit = { var:gp_dbg >= 8 } debug_log = "GP_REPORT    pressure part: the regional threat" }
+			set_variable = { name = gp_dbg value = gp_pr_kept }
+			if = { limit = { var:gp_dbg >= 8 } debug_log = "GP_REPORT    pressure part: land gone from the home region" }
+			set_variable = { name = gp_dbg value = gp_pr_war }
+			if = { limit = { var:gp_dbg >= 8 } debug_log = "GP_REPORT    pressure part: war (streak, losing, exhaustion)" }
+			set_variable = { name = gp_dbg value = gp_pr_crisis }
+			if = { limit = { var:gp_dbg >= 8 } debug_log = "GP_REPORT    pressure part: crisis" }
+			remove_variable = gp_dbg
+			if = {
+				limit = {
+					has_variable = gp_pr_mem
+					var:gp_pr_mem >= 8
+				}
+				debug_log = "GP_REPORT    pressure part: memory of lost wars"
+			}
+		}
+		if = { limit = { has_variable = gp_pr_hot } debug_log = "GP_REPORT    pressure hot" }
+		if = { limit = { has_variable = gp_war_years var:gp_war_years >= 3 } debug_log = "GP_REPORT    at war three years running or more" }
+		if = { limit = { is_in_losing_war = yes } debug_log = "GP_REPORT    in a losing war right now" }
+		if = {
+			limit = { has_variable = gp_region_kept }
+			if = { limit = { var:gp_region_kept <= 0.4 } debug_log = "GP_REPORT    kept: crushed (<= 0.4)" }
+			else_if = { limit = { var:gp_region_kept <= 0.6 } debug_log = "GP_REPORT    kept 0.4 - 0.6" }
+			else = { debug_log = "GP_REPORT    kept: intact (> 0.6)" }
+		}
+		if = { limit = { has_variable = gp_threat_near } debug_log = "GP_REPORT    threat is near" }
+		if = { limit = { gp_threat_presses = yes } debug_log = "GP_REPORT    threat presses" }
+		if = { limit = { has_variable = gp_threat_invader } debug_log = "GP_REPORT    threat is a foreign invader" }
+		if = { limit = { has_variable = gp_inv_active } debug_log = "GP_REPORT    flagged as an invader" }
+		if = { limit = { has_variable = gp_inv_spent } debug_log = "GP_REPORT    invader that lost interest" }
+		if = {
+			limit = { has_variable = gp_threat }
+			var:gp_threat ?= { gp_dbg_tag_threat = yes }
+		}
+		if = {
+			limit = { has_variable = gp_beaten_by }
+			var:gp_beaten_by ?= { gp_dbg_tag_beaten = yes }
+		}
+		if = {
+			limit = { is_ai = yes }
+			if = { limit = { var:gp_base_temper ?= 0 } debug_log = "GP_REPORT    temperament isolationist" }
+			else_if = { limit = { var:gp_base_temper ?= 1 } debug_log = "GP_REPORT    temperament cautious" }
+			else_if = { limit = { var:gp_base_temper ?= 2 } debug_log = "GP_REPORT    temperament defensive" }
+			else_if = { limit = { var:gp_base_temper ?= 3 } debug_log = "GP_REPORT    temperament friendly" }
+			else_if = { limit = { var:gp_base_temper ?= 4 } debug_log = "GP_REPORT    temperament balanced" }
+			else_if = { limit = { var:gp_base_temper ?= 5 } debug_log = "GP_REPORT    temperament opportunistic" }
+			else_if = { limit = { var:gp_base_temper ?= 6 } debug_log = "GP_REPORT    temperament expansionist" }
+			else_if = { limit = { var:gp_base_temper ?= 7 } debug_log = "GP_REPORT    temperament aggressive" }
+			if = { limit = { ai_personality = ai_personality:ai_aggressive } debug_log = "GP_REPORT    personality aggressive" }
+			else_if = { limit = { ai_personality = ai_personality:ai_expansionist } debug_log = "GP_REPORT    personality expansionist" }
+			else_if = { limit = { ai_personality = ai_personality:ai_opportunistic } debug_log = "GP_REPORT    personality opportunistic" }
+			else_if = { limit = { ai_personality = ai_personality:ai_defensive } debug_log = "GP_REPORT    personality defensive" }
+			else_if = { limit = { ai_personality = ai_personality:ai_cautious } debug_log = "GP_REPORT    personality cautious" }
+			else_if = { limit = { ai_personality = ai_personality:ai_friendly } debug_log = "GP_REPORT    personality friendly" }
+			else_if = { limit = { ai_personality = ai_personality:ai_isolationist } debug_log = "GP_REPORT    personality isolationist" }
+			else = { debug_log = "GP_REPORT    personality balanced" }
+		}
+		if = {
+			limit = { has_variable = gp_war_target }
+			var:gp_war_target ?= { gp_dbg_tag_target = yes }
+			if = {
+				limit = {
+					var:gp_war_target ?= {
+						exists = capital
+						capital.region = scope:gp_c.capital.region
+					}
+				}
+				debug_log = "GP_REPORT    war target inside the home region"
+			}
+			else = { debug_log = "GP_REPORT    war target OUTSIDE the home region" }
+			if = { limit = { var:gp_war_target ?= { is_neighbor_of = scope:gp_c } } debug_log = "GP_REPORT    war target is a neighbour" }
+			else = { debug_log = "GP_REPORT    war target is not a neighbour" }
+		}
+		if = { limit = { has_variable = gp_sc_cb_target } debug_log = "GP_REPORT    a scenario war is prepared (gp_sc_cb_target)" }
+		if = {
+			limit = { has_variable = gp_has_intruder }
+			capital.region = {
+				every_present_country = {
+					limit = { gp_is_intruder_of = { COUNTRY = scope:gp_c } }
+					gp_dbg_tag_intruder = yes
+				}
+			}
+		}
+		if = { limit = { has_variable = gp_crisis var:gp_crisis >= 120 } debug_log = "GP_REPORT    crisis 120+ (collapse tier)" }
+		else_if = { limit = { has_variable = gp_crisis var:gp_crisis >= 80 } debug_log = "GP_REPORT    crisis 80 - 120 (separatism tier)" }
+		else_if = { limit = { has_variable = gp_crisis var:gp_crisis >= 40 } debug_log = "GP_REPORT    crisis 40 - 80 (outer lands slip)" }
+		if = { limit = { has_variable = gp_col_ardor var:gp_col_ardor >= 70 } debug_log = "GP_REPORT    colonial ardor 70+" }
+		else_if = { limit = { has_variable = gp_col_ardor var:gp_col_ardor >= 40 } debug_log = "GP_REPORT    colonial ardor 40 - 70" }
+		else_if = { limit = { has_variable = gp_col_ardor var:gp_col_ardor >= 25 } debug_log = "GP_REPORT    colonial ardor 25 - 40" }
+		if = { limit = { is_subject = yes } debug_log = "GP_REPORT    is a subject" }
+		if = { limit = { any_subject = { always = yes } } debug_log = "GP_REPORT    has subjects" }
+		if = {
+			limit = {
+				exists = capital
+				any_owned_location = {
+					count >= 3
+					NOT = { region = scope:gp_c.capital.region }
+				}
+			}
+			debug_log = "GP_REPORT    holds 3+ locations outside the home region"
+		}
+		if = {
+			limit = {
+				any_owned_location = {
+					count >= 1
+					region = region:italy_region
+				}
+			}
+			debug_log = "GP_REPORT    holds land in Italy"
+		}
+		if = { limit = { has_area_preference = gp_dir_bohemian } debug_log = "GP_REPORT    direction: Bohemian (E-2)" }
+		if = { limit = { is_leader_of_international_organization = international_organization:hre } debug_log = "GP_REPORT    wears the imperial crown" }
+		if = { limit = { has_variable = boh_polish_throne_claim_variable } debug_log = "GP_REPORT    took the Visegrad claim on the Polish throne (vanilla variable)" }
+		if = {
+			limit = {
+				country_exists = c:HAL
+				has_casus_belli_of_type_on = {
+					type = casus_belli:cb_claim_throne
+					target = c:HAL
+				}
+			}
+			debug_log = "GP_REPORT    holds a throne claim on HAL"
+		}
+		if = {
+			limit = {
+				country_exists = c:VOL
+				has_casus_belli_of_type_on = {
+					type = casus_belli:cb_claim_throne
+					target = c:VOL
+				}
+			}
+			debug_log = "GP_REPORT    holds a throne claim on VOL"
+		}
+		if = { limit = { has_variable = gp_claimed_by } debug_log = "GP_REPORT    claimed by a neighbour (register of gp_sc_east)" }
+		if = {
+			limit = {
+				OR = {
+					tag = ENG
+					tag = FRA
+				}
+				has_global_variable = gp_sc_hyw
+			}
+			if = { limit = { global_var:gp_sc_hyw = 1 } debug_log = "GP_REPORT    hyw state 1" }
+			else_if = { limit = { global_var:gp_sc_hyw = 2 } debug_log = "GP_REPORT    hyw state 2" }
+			else_if = { limit = { global_var:gp_sc_hyw = 3 } debug_log = "GP_REPORT    hyw state 3" }
+			else_if = { limit = { global_var:gp_sc_hyw = 4 } debug_log = "GP_REPORT    hyw state 4" }
+			else_if = { limit = { global_var:gp_sc_hyw = 5 } debug_log = "GP_REPORT    hyw state 5" }
+			else_if = { limit = { global_var:gp_sc_hyw = 6 } debug_log = "GP_REPORT    hyw state 6" }
+			else_if = { limit = { global_var:gp_sc_hyw = 7 } debug_log = "GP_REPORT    hyw state 7" }
+			else_if = { limit = { global_var:gp_sc_hyw = 8 } debug_log = "GP_REPORT    hyw state 8" }
+		}
+		if = {
+			limit = { has_variable = gp_ib_goal }
+			if = { limit = { var:gp_ib_goal ?= 1 } debug_log = "GP_REPORT    iberian goal 1" }
+			else_if = { limit = { var:gp_ib_goal ?= 2 } debug_log = "GP_REPORT    iberian goal 2" }
+			else_if = { limit = { var:gp_ib_goal ?= 3 } debug_log = "GP_REPORT    iberian goal 3" }
+			else_if = { limit = { var:gp_ib_goal ?= 4 } debug_log = "GP_REPORT    iberian goal 4" }
+			else_if = { limit = { var:gp_ib_goal ?= 5 } debug_log = "GP_REPORT    iberian goal 5" }
+			else_if = { limit = { var:gp_ib_goal ?= 6 } debug_log = "GP_REPORT    iberian goal 6" }
+			else_if = { limit = { var:gp_ib_goal ?= 7 } debug_log = "GP_REPORT    iberian goal 7" }
+			else_if = { limit = { var:gp_ib_goal ?= 8 } debug_log = "GP_REPORT    iberian goal 8" }
+			else_if = { limit = { var:gp_ib_goal ?= 9 } debug_log = "GP_REPORT    iberian goal 9" }
+			else_if = { limit = { var:gp_ib_goal ?= 10 } debug_log = "GP_REPORT    iberian goal 10" }
+			else_if = { limit = { var:gp_ib_goal ?= 11 } debug_log = "GP_REPORT    iberian goal 11" }
+			else_if = { limit = { var:gp_ib_goal ?= 12 } debug_log = "GP_REPORT    iberian goal 12" }
+			else_if = { limit = { var:gp_ib_goal ?= 13 } debug_log = "GP_REPORT    iberian goal 13" }
+			else_if = { limit = { var:gp_ib_goal ?= 14 } debug_log = "GP_REPORT    iberian goal 14" }
+			else_if = { limit = { var:gp_ib_goal ?= 15 } debug_log = "GP_REPORT    iberian goal 15" }
+			else_if = { limit = { var:gp_ib_goal ?= 21 } debug_log = "GP_REPORT    iberian goal 21" }
+			else_if = { limit = { var:gp_ib_goal ?= 22 } debug_log = "GP_REPORT    iberian goal 22" }
+			else_if = { limit = { var:gp_ib_goal ?= 23 } debug_log = "GP_REPORT    iberian goal 23" }
+			else_if = { limit = { var:gp_ib_goal ?= 24 } debug_log = "GP_REPORT    iberian goal 24" }
+			else_if = { limit = { var:gp_ib_goal ?= 25 } debug_log = "GP_REPORT    iberian goal 25" }
+			else_if = { limit = { var:gp_ib_goal ?= 26 } debug_log = "GP_REPORT    iberian goal 26" }
+			else_if = { limit = { var:gp_ib_goal ?= 31 } debug_log = "GP_REPORT    iberian goal 31" }
+			else_if = { limit = { var:gp_ib_goal ?= 32 } debug_log = "GP_REPORT    iberian goal 32" }
+			else_if = { limit = { var:gp_ib_goal ?= 33 } debug_log = "GP_REPORT    iberian goal 33" }
+			else_if = { limit = { var:gp_ib_goal ?= 34 } debug_log = "GP_REPORT    iberian goal 34" }
+			else = { debug_log = "GP_REPORT    iberian goal other" }
+		}
+		if = {
+			limit = {
+				NOT = { tag = ENG }
+				country_exists = c:ENG
+				has_casus_belli_on = c:ENG
+			}
+			debug_log = "GP_REPORT    holds a casus belli on ENG"
+		}
+		if = {
+			limit = {
+				NOT = { tag = FRA }
+				country_exists = c:FRA
+				has_casus_belli_on = c:FRA
+			}
+			debug_log = "GP_REPORT    holds a casus belli on FRA"
+		}
+		if = {
+			limit = {
+				NOT = { tag = CAS }
+				country_exists = c:CAS
+				has_casus_belli_on = c:CAS
+			}
+			debug_log = "GP_REPORT    holds a casus belli on CAS"
+		}
+		if = {
+			limit = {
+				NOT = { tag = ARA }
+				country_exists = c:ARA
+				has_casus_belli_on = c:ARA
+			}
+			debug_log = "GP_REPORT    holds a casus belli on ARA"
+		}
+		if = {
+			limit = {
+				NOT = { tag = POR }
+				country_exists = c:POR
+				has_casus_belli_on = c:POR
+			}
+			debug_log = "GP_REPORT    holds a casus belli on POR"
+		}
+		if = {
+			limit = {
+				NOT = { tag = GRA }
+				country_exists = c:GRA
+				has_casus_belli_on = c:GRA
+			}
+			debug_log = "GP_REPORT    holds a casus belli on GRA"
+		}
+		if = {
+			limit = {
+				NOT = { tag = MOR }
+				country_exists = c:MOR
+				has_casus_belli_on = c:MOR
+			}
+			debug_log = "GP_REPORT    holds a casus belli on MOR"
+		}
+		if = {
+			limit = {
+				NOT = { tag = NAV }
+				country_exists = c:NAV
+				has_casus_belli_on = c:NAV
+			}
+			debug_log = "GP_REPORT    holds a casus belli on NAV"
+		}
+		if = {
+			limit = {
+				NOT = { tag = BUR }
+				country_exists = c:BUR
+				has_casus_belli_on = c:BUR
+			}
+			debug_log = "GP_REPORT    holds a casus belli on BUR"
+		}
+		if = {
+			limit = {
+				NOT = { tag = POL }
+				country_exists = c:POL
+				has_casus_belli_on = c:POL
+			}
+			debug_log = "GP_REPORT    holds a casus belli on POL"
+		}
+		if = {
+			limit = {
+				NOT = { tag = LIT }
+				country_exists = c:LIT
+				has_casus_belli_on = c:LIT
+			}
+			debug_log = "GP_REPORT    holds a casus belli on LIT"
+		}
+		if = {
+			limit = {
+				NOT = { tag = HAL }
+				country_exists = c:HAL
+				has_casus_belli_on = c:HAL
+			}
+			debug_log = "GP_REPORT    holds a casus belli on HAL"
+		}
+		if = {
+			limit = {
+				NOT = { tag = VOL }
+				country_exists = c:VOL
+				has_casus_belli_on = c:VOL
+			}
+			debug_log = "GP_REPORT    holds a casus belli on VOL"
+		}
+		if = {
+			limit = {
+				NOT = { tag = TEU }
+				country_exists = c:TEU
+				has_casus_belli_on = c:TEU
+			}
+			debug_log = "GP_REPORT    holds a casus belli on TEU"
+		}
+		if = {
+			limit = {
+				NOT = { tag = BOH }
+				country_exists = c:BOH
+				has_casus_belli_on = c:BOH
+			}
+			debug_log = "GP_REPORT    holds a casus belli on BOH"
+		}
 		if = { limit = { is_ai = no } debug_log = "GP_REPORT    player country" }
 	}
 }
+
+# Country scope, inside var:gp_threat ?= { }: who the regional threat is.
+gp_dbg_tag_threat = {
+	switch = {
+		trigger = tag
+		MOR = { debug_log = "GP_REPORT    threat is MOR" }
+		GRA = { debug_log = "GP_REPORT    threat is GRA" }
+		POR = { debug_log = "GP_REPORT    threat is POR" }
+		ARA = { debug_log = "GP_REPORT    threat is ARA" }
+		CAS = { debug_log = "GP_REPORT    threat is CAS" }
+		NAV = { debug_log = "GP_REPORT    threat is NAV" }
+		FRA = { debug_log = "GP_REPORT    threat is FRA" }
+		ENG = { debug_log = "GP_REPORT    threat is ENG" }
+		TLE = { debug_log = "GP_REPORT    threat is TLE" }
+		TUN = { debug_log = "GP_REPORT    threat is TUN" }
+		TUR = { debug_log = "GP_REPORT    threat is TUR" }
+		HAB = { debug_log = "GP_REPORT    threat is HAB" }
+		BOH = { debug_log = "GP_REPORT    threat is BOH" }
+		POL = { debug_log = "GP_REPORT    threat is POL" }
+		LIT = { debug_log = "GP_REPORT    threat is LIT" }
+		HUN = { debug_log = "GP_REPORT    threat is HUN" }
+		TEU = { debug_log = "GP_REPORT    threat is TEU" }
+		MOS = { debug_log = "GP_REPORT    threat is MOS" }
+		NOV = { debug_log = "GP_REPORT    threat is NOV" }
+		SMO = { debug_log = "GP_REPORT    threat is SMO" }
+		KIE = { debug_log = "GP_REPORT    threat is KIE" }
+		GLH = { debug_log = "GP_REPORT    threat is GLH" }
+		DAN = { debug_log = "GP_REPORT    threat is DAN" }
+		LIV = { debug_log = "GP_REPORT    threat is LIV" }
+		BRA = { debug_log = "GP_REPORT    threat is BRA" }
+		SCO = { debug_log = "GP_REPORT    threat is SCO" }
+		WLS = { debug_log = "GP_REPORT    threat is WLS" }
+		BUR = { debug_log = "GP_REPORT    threat is BUR" }
+		BRI = { debug_log = "GP_REPORT    threat is BRI" }
+		PRO = { debug_log = "GP_REPORT    threat is PRO" }
+		SWE = { debug_log = "GP_REPORT    threat is SWE" }
+		BYZ = { debug_log = "GP_REPORT    threat is BYZ" }
+		SER = { debug_log = "GP_REPORT    threat is SER" }
+		VEN = { debug_log = "GP_REPORT    threat is VEN" }
+		MLO = { debug_log = "GP_REPORT    threat is MLO" }
+		MAM = { debug_log = "GP_REPORT    threat is MAM" }
+		GEO = { debug_log = "GP_REPORT    threat is GEO" }
+		HAL = { debug_log = "GP_REPORT    threat is HAL" }
+		VOL = { debug_log = "GP_REPORT    threat is VOL" }
+	}
+}
+
+# Country scope, inside var:gp_beaten_by ?= { }: who beat us in the last twelve years.
+gp_dbg_tag_beaten = {
+	switch = {
+		trigger = tag
+		MOR = { debug_log = "GP_REPORT    beaten by MOR" }
+		GRA = { debug_log = "GP_REPORT    beaten by GRA" }
+		POR = { debug_log = "GP_REPORT    beaten by POR" }
+		ARA = { debug_log = "GP_REPORT    beaten by ARA" }
+		CAS = { debug_log = "GP_REPORT    beaten by CAS" }
+		NAV = { debug_log = "GP_REPORT    beaten by NAV" }
+		FRA = { debug_log = "GP_REPORT    beaten by FRA" }
+		ENG = { debug_log = "GP_REPORT    beaten by ENG" }
+		TLE = { debug_log = "GP_REPORT    beaten by TLE" }
+		TUN = { debug_log = "GP_REPORT    beaten by TUN" }
+		TUR = { debug_log = "GP_REPORT    beaten by TUR" }
+		HAB = { debug_log = "GP_REPORT    beaten by HAB" }
+		BOH = { debug_log = "GP_REPORT    beaten by BOH" }
+		POL = { debug_log = "GP_REPORT    beaten by POL" }
+		LIT = { debug_log = "GP_REPORT    beaten by LIT" }
+		HUN = { debug_log = "GP_REPORT    beaten by HUN" }
+		TEU = { debug_log = "GP_REPORT    beaten by TEU" }
+		MOS = { debug_log = "GP_REPORT    beaten by MOS" }
+		NOV = { debug_log = "GP_REPORT    beaten by NOV" }
+		SMO = { debug_log = "GP_REPORT    beaten by SMO" }
+		KIE = { debug_log = "GP_REPORT    beaten by KIE" }
+		GLH = { debug_log = "GP_REPORT    beaten by GLH" }
+		DAN = { debug_log = "GP_REPORT    beaten by DAN" }
+		LIV = { debug_log = "GP_REPORT    beaten by LIV" }
+		BRA = { debug_log = "GP_REPORT    beaten by BRA" }
+		SCO = { debug_log = "GP_REPORT    beaten by SCO" }
+		WLS = { debug_log = "GP_REPORT    beaten by WLS" }
+		BUR = { debug_log = "GP_REPORT    beaten by BUR" }
+		BRI = { debug_log = "GP_REPORT    beaten by BRI" }
+		PRO = { debug_log = "GP_REPORT    beaten by PRO" }
+		SWE = { debug_log = "GP_REPORT    beaten by SWE" }
+		BYZ = { debug_log = "GP_REPORT    beaten by BYZ" }
+		SER = { debug_log = "GP_REPORT    beaten by SER" }
+		VEN = { debug_log = "GP_REPORT    beaten by VEN" }
+		MLO = { debug_log = "GP_REPORT    beaten by MLO" }
+		MAM = { debug_log = "GP_REPORT    beaten by MAM" }
+		GEO = { debug_log = "GP_REPORT    beaten by GEO" }
+		HAL = { debug_log = "GP_REPORT    beaten by HAL" }
+		VOL = { debug_log = "GP_REPORT    beaten by VOL" }
+	}
+}
+
+# Country scope, inside var:gp_war_target ?= { }: who the prepared war is against.
+gp_dbg_tag_target = {
+	switch = {
+		trigger = tag
+		MOR = { debug_log = "GP_REPORT    war target MOR" }
+		GRA = { debug_log = "GP_REPORT    war target GRA" }
+		POR = { debug_log = "GP_REPORT    war target POR" }
+		ARA = { debug_log = "GP_REPORT    war target ARA" }
+		CAS = { debug_log = "GP_REPORT    war target CAS" }
+		NAV = { debug_log = "GP_REPORT    war target NAV" }
+		FRA = { debug_log = "GP_REPORT    war target FRA" }
+		ENG = { debug_log = "GP_REPORT    war target ENG" }
+		TLE = { debug_log = "GP_REPORT    war target TLE" }
+		TUN = { debug_log = "GP_REPORT    war target TUN" }
+		TUR = { debug_log = "GP_REPORT    war target TUR" }
+		HAB = { debug_log = "GP_REPORT    war target HAB" }
+		BOH = { debug_log = "GP_REPORT    war target BOH" }
+		POL = { debug_log = "GP_REPORT    war target POL" }
+		LIT = { debug_log = "GP_REPORT    war target LIT" }
+		HUN = { debug_log = "GP_REPORT    war target HUN" }
+		TEU = { debug_log = "GP_REPORT    war target TEU" }
+		MOS = { debug_log = "GP_REPORT    war target MOS" }
+		NOV = { debug_log = "GP_REPORT    war target NOV" }
+		SMO = { debug_log = "GP_REPORT    war target SMO" }
+		KIE = { debug_log = "GP_REPORT    war target KIE" }
+		GLH = { debug_log = "GP_REPORT    war target GLH" }
+		DAN = { debug_log = "GP_REPORT    war target DAN" }
+		LIV = { debug_log = "GP_REPORT    war target LIV" }
+		BRA = { debug_log = "GP_REPORT    war target BRA" }
+		SCO = { debug_log = "GP_REPORT    war target SCO" }
+		WLS = { debug_log = "GP_REPORT    war target WLS" }
+		BUR = { debug_log = "GP_REPORT    war target BUR" }
+		BRI = { debug_log = "GP_REPORT    war target BRI" }
+		PRO = { debug_log = "GP_REPORT    war target PRO" }
+		SWE = { debug_log = "GP_REPORT    war target SWE" }
+		BYZ = { debug_log = "GP_REPORT    war target BYZ" }
+		SER = { debug_log = "GP_REPORT    war target SER" }
+		VEN = { debug_log = "GP_REPORT    war target VEN" }
+		MLO = { debug_log = "GP_REPORT    war target MLO" }
+		MAM = { debug_log = "GP_REPORT    war target MAM" }
+		GEO = { debug_log = "GP_REPORT    war target GEO" }
+		HAL = { debug_log = "GP_REPORT    war target HAL" }
+		VOL = { debug_log = "GP_REPORT    war target VOL" }
+	}
+}
+
+# Country scope, inside the loop over the countries present in our region: who holds three locations of it.
+gp_dbg_tag_intruder = {
+	switch = {
+		trigger = tag
+		MOR = { debug_log = "GP_REPORT    intruder MOR" }
+		GRA = { debug_log = "GP_REPORT    intruder GRA" }
+		POR = { debug_log = "GP_REPORT    intruder POR" }
+		ARA = { debug_log = "GP_REPORT    intruder ARA" }
+		CAS = { debug_log = "GP_REPORT    intruder CAS" }
+		NAV = { debug_log = "GP_REPORT    intruder NAV" }
+		FRA = { debug_log = "GP_REPORT    intruder FRA" }
+		ENG = { debug_log = "GP_REPORT    intruder ENG" }
+		TLE = { debug_log = "GP_REPORT    intruder TLE" }
+		TUN = { debug_log = "GP_REPORT    intruder TUN" }
+		TUR = { debug_log = "GP_REPORT    intruder TUR" }
+		HAB = { debug_log = "GP_REPORT    intruder HAB" }
+		BOH = { debug_log = "GP_REPORT    intruder BOH" }
+		POL = { debug_log = "GP_REPORT    intruder POL" }
+		LIT = { debug_log = "GP_REPORT    intruder LIT" }
+		HUN = { debug_log = "GP_REPORT    intruder HUN" }
+		TEU = { debug_log = "GP_REPORT    intruder TEU" }
+		MOS = { debug_log = "GP_REPORT    intruder MOS" }
+		NOV = { debug_log = "GP_REPORT    intruder NOV" }
+		SMO = { debug_log = "GP_REPORT    intruder SMO" }
+		KIE = { debug_log = "GP_REPORT    intruder KIE" }
+		GLH = { debug_log = "GP_REPORT    intruder GLH" }
+		DAN = { debug_log = "GP_REPORT    intruder DAN" }
+		LIV = { debug_log = "GP_REPORT    intruder LIV" }
+		BRA = { debug_log = "GP_REPORT    intruder BRA" }
+		SCO = { debug_log = "GP_REPORT    intruder SCO" }
+		WLS = { debug_log = "GP_REPORT    intruder WLS" }
+		BUR = { debug_log = "GP_REPORT    intruder BUR" }
+		BRI = { debug_log = "GP_REPORT    intruder BRI" }
+		PRO = { debug_log = "GP_REPORT    intruder PRO" }
+		SWE = { debug_log = "GP_REPORT    intruder SWE" }
+		BYZ = { debug_log = "GP_REPORT    intruder BYZ" }
+		SER = { debug_log = "GP_REPORT    intruder SER" }
+		VEN = { debug_log = "GP_REPORT    intruder VEN" }
+		MLO = { debug_log = "GP_REPORT    intruder MLO" }
+		MAM = { debug_log = "GP_REPORT    intruder MAM" }
+		GEO = { debug_log = "GP_REPORT    intruder GEO" }
+		HAL = { debug_log = "GP_REPORT    intruder HAL" }
+		VOL = { debug_log = "GP_REPORT    intruder VOL" }
+	}
+}
+

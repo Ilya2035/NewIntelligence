@@ -36,6 +36,10 @@ colonial_charter_monthly_pulse = {	# root = country, scope:target = colonial_cha
 	on_actions = { gp_col_charter_monthly }
 }
 
+on_war_declared = {						# root = country; scope:actor = the declarer, scope:recipient = the target, scope:war (v0.12.1 test report: GP_WAR blocks; Battle hooks the same key)
+	on_actions = { gp_on_war_declared }
+}
+
 # ---- our on_actions ----------------------------------------------------------------------------
 
 gp_on_game_start = {
@@ -65,4 +69,10 @@ gp_on_new_ruler = {
 gp_col_charter_monthly = {
 	trigger = { NOT = { has_game_rule = gp_colonies_off } }
 	effect = { gp_col_charter_check = yes }
+}
+
+# v0.12.1 test report of every declaration of war (GP_WAR blocks in debug.log, gp_pressure_effects.txt). No trigger: the effect
+# itself looks at scope:actor / scope:recipient. GP TODO remove with gp_debug_report before a public release.
+gp_on_war_declared = {
+	effect = { gp_war_declared_report = yes }
 }

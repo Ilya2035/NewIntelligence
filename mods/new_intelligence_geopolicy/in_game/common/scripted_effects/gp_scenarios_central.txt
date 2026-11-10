@@ -9,11 +9,14 @@
 #           gp_sc_italy_unifier (an Italian state holds half of Italy), gp_sc_venice_sea, gp_sc_two_sicilies
 #   Empire: gp_sc_habsburg_empire, gp_sc_bohemian_empire (who wears the crown), gp_sc_german_gatherer (a prince holds
 #           40 % of his German region), gp_sc_empire_gone (the Holy Roman Empire is no more)
+#   East:   gp_sc_galicia (v0.12.1: years of the Piast claim on Halych-Volhynia that are left, 20 at the death of
+#           Boleslaw-Yuri II) and, on the claimed country, var:gp_claimed_by = the claimant (gp_attacker_has_claim)
 ###################################
 
 gp_central_scenarios = {
 	gp_sc_italy = yes
 	gp_sc_empire = yes
+	gp_sc_east = yes	# v0.12.1 the Piast heritage of Halych-Volhynia (below)
 }
 
 # ================================================================================================
@@ -331,6 +334,103 @@ gp_sc_empire = {
 }
 
 # ================================================================================================
+# The East (v0.12.1, diag D4): the Piast heritage of Halych-Volhynia
+# ================================================================================================
+
+# Boleslaw-Yuri II, the last Piast of the Kingdom of Rus', is poisoned (vanilla flavor_vol.1100 kills the character in
+# 1340-45); his cousin Casimir III claims the inheritance and takes Red Ruthenia in 1340-66. The vanilla events hand Poland
+# a throne casus belli on Halych only on some of their branches, for 20 years and without a named claimant (whether it can be
+# declared that way is UNVERIFIED); this makes the heritage certain. Author, 2026-11-10: "give Poland a few bonuses, more
+# influence over Galicia, so that it succeeds" - as AI levers first, as a world-state nudge second. Once (gp_sc_galicia), tied to
+# the death of the Piast (no date) and to Casimir's lifetime (he dies in 1370), in two parts:
+#   1. the register of claims (an AI lever, always): var:gp_claimed_by = Poland on Halych and on Volhynia for the 20 years the
+#      vanilla claim lasts (gp_sc_galicia counts them down, below); gp_attacker_has_claim, gp_target_throne_claim and
+#      gp_obj_patron_client read it, so Poland's road to Galicia does not depend on the engine's casus belli being visible.
+#   2. NUDGE, AI Poland only, behind the game rules "Scenario marks" and "Nudges" (veto: either off, or delete the block):
+#      Polish cores on the Red Ruthenian locations of Halych and Volhynia (the engine counts a core at +100 conquer desire,
+#      NAI CONQUER_DESIRE_CORE_BONUS, and a core location opens cb_conquer_province, casus_belli/conquest.txt:5-13 - a casus
+#      belli that needs no claimant character) and the modifier "The Galician Campaigns" (morale +5 %, war score +10 %, 15 years:
+#      half of "Scotland's hour"; defined in gp_scenario_modifiers.txt).
+# Next observation: debug.log "GP_SC east" once, in 1340-45 (or when the Piast dies a natural death before 1370); Poland at
+# war with Halych or Volhynia within the following 20 years; the GP_REPORT of POL "holds a casus belli on HAL / VOL" (the
+# engine's side of the claim, diagnostics of A1).
+# Forms: character:x = { is_alive = ... } vanilla flavor_vol.txt:377-379; add_core on the locations of another country,
+# vanilla situations/hundred_years_war.txt:722-728 (c:AQN = { every_owned_location = { limit = { ... } add_core = c:FRA } })
+# and gp_sc_release_state (gp_scenarios_hyw.txt); a counter by set_global_variable with an inline value, as
+# gp_sc_no_emperor_years above; the modifier as gp_sc_scottish_hour (gp_scenarios_hyw.txt).
+gp_sc_east = {
+	if = {
+		limit = {
+			NOT = { has_global_variable = gp_sc_galicia }
+			country_exists = c:POL
+			OR = {
+				country_exists = c:HAL
+				country_exists = c:VOL
+			}
+			character:vol_boleslaw_jerzy_ii_piast = { is_alive = no }
+			character:pol_casimir_iii_piast = { is_alive = yes }
+		}
+		set_global_variable = { name = gp_sc_galicia value = 20 }
+		c:HAL ?= { set_variable = { name = gp_claimed_by value = c:POL } }
+		c:VOL ?= { set_variable = { name = gp_claimed_by value = c:POL } }
+		debug_log = "GP_SC east: the last Piast of Halych-Volhynia is dead, Casimir III reigns - the claim of Poland is registered"
+		# NUDGE (veto-able): the cores and the modifier
+		if = {
+			limit = {
+				NOT = { has_game_rule = gp_scenario_mods_off }
+				NOT = { has_game_rule = gp_nudges_off }
+				c:POL ?= { is_ai = yes }
+			}
+			c:HAL ?= {
+				every_owned_location = {
+					limit = { area = area:red_ruthenia_area }
+					add_core = c:POL
+				}
+			}
+			c:VOL ?= {
+				every_owned_location = {
+					limit = { area = area:red_ruthenia_area }
+					add_core = c:POL
+				}
+			}
+			c:POL ?= {
+				add_country_modifier = { modifier = gp_sc_galician_campaign years = 15 }
+			}
+			debug_log = "GP_SC east: Polish cores on Red Ruthenia, the modifier The Galician Campaigns for 15 years"
+		}
+	}
+	# the register runs out with the claim of the events (20 yearly passes)
+	else_if = {
+		limit = {
+			has_global_variable = gp_sc_galicia
+			global_var:gp_sc_galicia > 0
+		}
+		set_global_variable = {
+			name = gp_sc_galicia
+			value = {
+				value = global_var:gp_sc_galicia
+				subtract = 1
+			}
+		}
+		if = {
+			limit = { global_var:gp_sc_galicia <= 0 }
+			c:HAL ?= {
+				if = {
+					limit = { has_variable = gp_claimed_by }
+					remove_variable = gp_claimed_by
+				}
+			}
+			c:VOL ?= {
+				if = {
+					limit = { has_variable = gp_claimed_by }
+					remove_variable = gp_claimed_by
+				}
+			}
+		}
+	}
+}
+
+# ================================================================================================
 # Directions (called at the end of gp_sc_directions, AI only, scope:gp_c)
 # ================================================================================================
 
@@ -367,11 +467,17 @@ gp_sc_directions_central = {
 		}
 		gp_sc_dir_add = { DIR = south_german }
 	}
-	# E-2 the Bohemian emperor: Brandenburg, Silesia and the north
+	# E-2 the Bohemian emperor: Silesia, Lusatia and Brandenburg (gp_dir_bohemian, three areas since v0.12.1)
+	# v0.12.1 (diag D4) the direction belongs to the Bohemian crown, not to the throne: once gp_sc_bohemian_empire was set, every
+	# later wearer of the imperial crown (a Habsburg, a Bavarian) got it too. Prague without Vienna, the pair of the trigger of
+	# E-2 above (gp_sc_empire); the emperor of another house keeps only the directions of his own home region. Next
+	# observation: GP_REPORT "direction: Bohemian emperor" only under Prague without Vienna; no Bohemian war on the Order (1400).
 	if = {
 		limit = {
 			has_global_variable = gp_sc_bohemian_empire
 			international_organization:hre.leader_country ?= scope:gp_c
+			owns = location:prague
+			NOT = { owns = location:vienna }
 		}
 		gp_sc_dir_add = { DIR = bohemian }
 	}

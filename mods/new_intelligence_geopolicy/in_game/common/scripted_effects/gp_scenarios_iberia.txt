@@ -13,8 +13,9 @@
 #   gp_sc_ib_verdict  1 the hour of the minors (Castile took nobody), 2 the hour of Portugal (Castile and Aragon both stand)
 #   gp_sc_ib_path     after 1400: 3 Castile's game (Aragon fell), 4 Aragon's game (Castile fell), 5 Portugal's game (both
 #                     fell), 6 the Spanish sultanate (Castile fell, Granada holds 35 % of Iberia); none = still open
-#   gp_sc_ib_union    Castile and Aragon: 1 Castile senior, 2 Aragon senior, 3 one crown; gp_sc_ib_marriage_years (ten
-#                     years of alliance), gp_sc_ib_union_years (thirty years to one crown)
+#   gp_sc_ib_union    Castile and Aragon: 1 Castile senior, 2 Aragon senior, 3 one crown; gp_sc_ib_mar_ara_years / _por_years (ten
+#                     years of alliance in a row; v0.12.1: the count runs only while Castile has no foreign invader for its threat
+#                     and restarts at 0 otherwise), gp_sc_ib_union_years (thirty years to one crown)
 #   gp_sc_ib_portugal Portugal under Castile: 1 annexed after 50 years, 2 the Restoration (loyalty under 40), 3 eternal
 #                     peace twenty years after the Restoration; gp_sc_ib_pu_years, gp_sc_ib_peace_years
 #   gp_sc_ib_race     Castile's share of the Castile-Portugal strength, in percent (only the two of them left)
@@ -26,11 +27,28 @@
 # Goals (gp_ib_goal; texts in gp_brief.txt):
 #   Castile  1 Reconquista - Granada  2 Portugal as a vassal  3 war on Aragon  4 peace with a backed Granada
 #            5 overseas and the Maghreb  6 subdue Portugal one day  7 eternal peace with Portugal
+#            8 the common cause (v0.12.1, any crown: no war on a Christian crown while pressed, while a foreign invader
+#              (gp_threat_invader) stands in Iberia, or - Castile - without a clear edge over a Granada the Maghreb backs and over Aragon)
 #   Aragon   11 the Italian crown  12 war on Castile  13 war on Granada  14 overseas
+#            15 the common cause against the foe (v0.12.1, pressed: the old quarrel with Castile can wait)
 #   Portugal 21 a protector  22 hold the line  23 war on Castile  24 war on Granada  25 unite Iberia  26 overseas
 #            27 under the Castilian crown
 #   Granada  31 the Maghreb's backing  32 war on Castile  33 the Spanish sultanate  34 the last stand
 # Modifiers obey the game rule "Scenario marks" (gp_rule_scenario_mods).
+#
+# v0.12.1 (observation 1337-1466; author, 2026-11-10: "Spain lost to Granada and Morocco, it should have gone defensive - instead it
+# attacked Aragon, almost destroyed it, and lost to Morocco again"; principle 5: "against a common strong enemy the neighbours
+# unite"). The chess game now NAMES wars and the evaluation decides:
+#   * a pressed crown (gp_is_pressed: lost a war lately, a threat on its soil) keeps its scenario casus belli but is no longer
+#     forced into "preparation" (gp_sc_prepare, gp_sc_prepare_vassal, gp_ib_claim); the goals below start no war of choice on a
+#     crown of the same faith while a crown is pressed or a foreign invader (gp_threat_invader: Morocco at the Strait) is its
+#     threat - the common cause, goal 8 (any crown) and 15 (Aragon);
+#   * Aragon is no longer Castile's default prey (goal 3 needs Castile clearly stronger AND Aragon hurt), a Granada the Maghreb
+#     stands behind is attacked only by a Castile 1.5 times as strong, the old Castile - Aragon quarrel (goal 12) only against a
+#     Castile that is down; the ladder ranks the Moors above the Christians;
+#   * a Morocco that has lost twice (gp_inv_spent) no longer stands behind Granada (gp_ib_backer);
+#   * the 1400 verdict does not punish a crown that was in no state to take anybody (pressed, or an invader at the gate);
+#   * the Marinid decline (gp_sc_marinid_upkeep): a small, temporary, historical modifier on Morocco - an author veto point.
 ###################################
 
 # ---- crowns ------------------------------------------------------------------------------------------
@@ -53,7 +71,17 @@ gp_ib_save_crown = {
 
 # Country scope: the crown's goal $GOAL$, a war prepared against scope:$TARGET$ (re-armed while the goal stands).
 gp_ib_goal_war = {
+	# v0.12.1 a foreign invader is the threat of this crown: no war is prepared on a crown of our own faith (goal 8, the common
+	# cause); the war on a Granada that stands with the invader (another faith) stays. Model: gp_sc_drop_target (gp_scenarios_hyw.txt).
 	if = {
+		limit = {
+			has_variable = gp_threat_invader
+			religion.group = scope:$TARGET$.religion.group
+		}
+		gp_ib_goal_calm = { GOAL = 8 }
+		gp_sc_drop_target = { TARGET = $TARGET$ }
+	}
+	else_if = {
 		limit = {
 			NOT = {
 				AND = {
@@ -76,7 +104,20 @@ gp_ib_goal_war = {
 
 # Country scope: goal $GOAL$, a vassal war prepared against scope:$TARGET$ (gp_cb_scenario_vassal).
 gp_ib_goal_vassal = {
+	# v0.12.1 as gp_ib_goal_war: not against a crown of our own faith while a foreign invader is our threat
 	if = {
+		limit = {
+			has_variable = gp_threat_invader
+			religion.group = scope:$TARGET$.religion.group
+		}
+		gp_ib_goal_calm = { GOAL = 8 }
+		gp_sc_drop_target = { TARGET = $TARGET$ }
+		if = {
+			limit = { var:gp_sc_vassal_target ?= scope:$TARGET$ }
+			remove_variable = gp_sc_vassal_target
+		}
+	}
+	else_if = {
 		limit = {
 			NOT = {
 				AND = {
@@ -123,11 +164,14 @@ gp_sc_prepare_vassal = {
 		limit = { var:gp_sc_cb_target ?= scope:$TARGET$ }
 		remove_variable = gp_sc_cb_target
 	}
+	# v0.12.1 the scenario names the vassal war (above, always) but forces the course only on a crown that is not pressed (see
+	# gp_sc_prepare, gp_scenarios_west.txt): it re-arms by itself in the year the pressure is under 40
 	if = {
 		limit = {
 			is_ai = yes
 			gp_is_active = yes
 			NOT = { this = scope:$TARGET$ }
+			NOT = { gp_is_pressed = yes }
 		}
 		gp_set_posture = { POSTURE = preparation }
 		set_variable = { name = gp_war_target value = scope:$TARGET$ }
@@ -248,6 +292,10 @@ gp_ib_checkpoints = {
 # for 20 years: max control -15 %, levy -10 %); if Castile and Aragon both stand, both are "Divided crowns" for 20 years
 # (max control and levy -10 %) and Portugal rises ("Portuguese rise", 20 years: max control +10 %, siege ability +15 %,
 # morale +5 %).
+# v0.12.1 The handicaps are the price of "taking nobody"; a crown that was in no state to take anybody does not pay it: a
+# crown that is pressed (gp_is_pressed: beaten lately, a threat on its soil) or has a foreign invader for its threat is spared
+# the crisis, "Castilian troubles" and "Divided crowns" (the verdict itself - 1 or 2 - stands, and Portugal still rises). In the
+# observation the verdict handicapped Castile in 1400 and Morocco beat it in 1413 (author veto point: delete the guards).
 gp_ib_verdict = {
 	if = {
 		limit = {
@@ -261,10 +309,16 @@ gp_ib_verdict = {
 			}
 			set_global_variable = { name = gp_sc_ib_verdict value = 1 }
 			scope:gp_cas = {
-				gp_crisis_shock = { AMOUNT = 40 }
 				if = {
-					limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
-					add_country_modifier = { modifier = gp_sc_castile_troubles years = 20 }
+					limit = {
+						NOT = { gp_is_pressed = yes }
+						NOT = { has_variable = gp_threat_invader }
+					}
+					gp_crisis_shock = { AMOUNT = 40 }
+					if = {
+						limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
+						add_country_modifier = { modifier = gp_sc_castile_troubles years = 20 }
+					}
 				}
 			}
 		}
@@ -273,8 +327,24 @@ gp_ib_verdict = {
 		}
 		if = {
 			limit = { NOT = { has_game_rule = gp_scenario_mods_off } }
-			scope:gp_cas = { add_country_modifier = { modifier = gp_sc_divided_crowns years = 20 } }
-			scope:gp_ara = { add_country_modifier = { modifier = gp_sc_divided_crowns years = 20 } }
+			scope:gp_cas = {
+				if = {
+					limit = {
+						NOT = { gp_is_pressed = yes }
+						NOT = { has_variable = gp_threat_invader }
+					}
+					add_country_modifier = { modifier = gp_sc_divided_crowns years = 20 }
+				}
+			}
+			scope:gp_ara = {
+				if = {
+					limit = {
+						NOT = { gp_is_pressed = yes }
+						NOT = { has_variable = gp_threat_invader }
+					}
+					add_country_modifier = { modifier = gp_sc_divided_crowns years = 20 }
+				}
+			}
 			if = {
 				limit = { gp_ib_free = { WHO = por } }
 				scope:gp_por = { add_country_modifier = { modifier = gp_sc_portuguese_rise years = 20 } }
@@ -292,7 +362,8 @@ gp_ib_verdict = {
 }
 
 # ---- the unions and the plots (v0.10) ------------------------------------------------------------------
-# Author, 2026-11-07: ten years of alliance between Castile and Aragon (or Castile and Portugal) bring a marriage of
+# Author, 2026-11-07: ten years of alliance (v0.12.1: in a row, and without a foreign invader as Castile's threat) between Castile
+# and Aragon (or Castile and Portugal) bring a marriage of
 # crowns. If their relations are not ideal (opinion under 150) and one is stronger, the stronger plots against the other
 # court before 1450: an attempt on the king (bandits on the road), 50 % - for Portugal less, the more it guards its king
 # (three decisions, down to 5 %). Success: an AI Aragon falls under Castile as a vassal at once (one crown after 30
@@ -341,7 +412,12 @@ gp_ib_marriage = {
 			gp_ib_free = { WHO = $KEY$ }
 		}
 		if = {
-			limit = { scope:gp_cas = { is_allied_with = { target = scope:$OTHER$ } } }
+			limit = {
+				scope:gp_cas = { is_allied_with = { target = scope:$OTHER$ } }
+				# v0.12.1 review: the crowns marry after the common victory (plan, principle 5), not while a foreign invader is Castile's
+				# threat - the pact of the front (and any alliance the AI makes for GP_ALLY_INVADER) must not start the ten-year clock
+				NOT = { scope:gp_cas = { has_variable = gp_threat_invader } }
+			}
 			if = {
 				limit = { NOT = { has_global_variable = gp_sc_ib_mar_$KEY$_years } }
 				set_global_variable = { name = gp_sc_ib_mar_$KEY$_years value = 0 }
@@ -611,11 +687,13 @@ gp_ib_plot_allies = {
 # gone; an AI country prepares the war and picks its moment.
 gp_ib_claim = {
 	set_variable = { name = gp_sc_claim_target value = scope:$TARGET$ }
+	# v0.12.1 the claim itself stays (endless); the posture is forced only on a crown that is not pressed (as gp_sc_prepare)
 	if = {
 		limit = {
 			is_ai = yes
 			gp_is_active = yes
 			NOT = { this = scope:$TARGET$ }
+			NOT = { gp_is_pressed = yes }
 		}
 		gp_set_posture = { POSTURE = preparation }
 		set_variable = { name = gp_war_target value = scope:$TARGET$ }
@@ -1008,14 +1086,24 @@ gp_ib_granada = {
 	}
 }
 
+# v0.12.1 ... unless it is an invader that has lost twice (gp_inv_spent, 25 years: it has lost interest in Iberia, author's
+# principle 5), which no longer stands by Granada - a protection it had is withdrawn.
 gp_ib_backer = {
 	c:$TAG$ ?= {
 		if = {
 			limit = {
 				gp_is_real_country = yes
 				NOT = { has_variable = gp_sc_protect }
+				NOT = { has_variable = gp_inv_spent }
 			}
 			set_variable = { name = gp_sc_protect value = scope:gp_gra }
+		}
+		else_if = {
+			limit = {
+				has_variable = gp_inv_spent
+				var:gp_sc_protect ?= scope:gp_gra
+			}
+			remove_variable = gp_sc_protect
 		}
 	}
 }
@@ -1164,6 +1252,18 @@ gp_ib_aragon = {
 				}
 			}
 		}
+		# v0.12.1 pressed (lost a war lately, a threat on its soil): the common cause (goal 15), the old quarrel with Castile waits
+		else_if = {
+			limit = { scope:gp_ara = { gp_is_pressed = yes } }
+			scope:gp_ara = {
+				gp_ib_goal_calm = { GOAL = 15 }
+				gp_sc_drop_target = { TARGET = gp_cas }
+			}
+		}
+		# v0.12.1 the old quarrel is taken up only against a Castile that is down (broken, beaten lately, crisis 40+) and only by
+		# a clearly stronger Aragon (1.86 times: relative strength 0.65). Before, from 1400 or with the Italian crown it was war on
+		# Castile at the first chance - the mirror of Castile's old goal 3, which put the two crowns on a collision course whatever
+		# Granada and Morocco did (the observation: Castile - Aragon wars in 1342, 1356, 1379, 1405).
 		else_if = {
 			limit = {
 				OR = {
@@ -1171,6 +1271,22 @@ gp_ib_aragon = {
 					current_date >= 1400.1.1
 				}
 				NOT = { scope:gp_ara = { is_allied_with = { target = scope:gp_cas } } }
+				scope:gp_ara = {
+					relative_strength = {
+						target = scope:gp_cas
+						value >= 0.65
+					}
+				}
+				scope:gp_cas = {
+					OR = {
+						has_variable = gp_sc_broken
+						has_variable = gp_recent_defeat
+						AND = {
+							has_variable = gp_crisis
+							var:gp_crisis >= 40
+						}
+					}
+				}
 			}
 			scope:gp_ara = { gp_ib_goal_war = { GOAL = 12 TARGET = gp_cas } }
 		}
@@ -1193,10 +1309,15 @@ gp_ib_castile = {
 		if = {
 			limit = { NOT = { has_global_variable = gp_sc_ib } }
 			# the setup years: Granada first if it stands alone, otherwise a truce with it
+			# v0.12.1 ... unless a foreign invader (Morocco) is Castile's threat: then the Maghreb stands behind Granada against us
+			# both and there is no truce - the front is against both (author's principle 5)
 			if = {
 				limit = {
 					gp_ib_free = { WHO = gra }
-					gp_ib_granada_backed = no
+					OR = {
+						gp_ib_granada_backed = no
+						scope:gp_cas = { has_variable = gp_threat_invader }
+					}
 				}
 				scope:gp_cas = { gp_ib_goal_war = { GOAL = 1 TARGET = gp_gra } }
 			}
@@ -1209,13 +1330,47 @@ gp_ib_castile = {
 				}
 			}
 		}
+		# v0.12.1 THE COMMON CAUSE (author, 2026-11-10: "if Spain lost to Granada and Morocco it should go defensive; instead it
+		# attacked Aragon"): a Castile that is pressed (gp_is_pressed: lost a war lately, a threat on its soil) starts no war of
+		# choice on a Christian crown; it holds the line and courts Aragon and Portugal (goal 8). The race of the last two crowns
+		# decides for itself below. The old ladder made Aragon the default prey of a Castile that never asked who was strong.
+		else_if = {
+			limit = {
+				scope:gp_cas = { gp_is_pressed = yes }
+				NOT = { has_global_variable = gp_sc_ib_race }
+				OR = {
+					gp_ib_free = { WHO = ara }
+					gp_ib_free = { WHO = por }
+				}
+			}
+			gp_ib_common_cause = yes
+		}
+		# the Moors before the Christians (vanilla ranks them so too, ai_scripted_expansion_score/iberia.txt): Granada alone, or
+		# with a foreign invader (Morocco) as Castile's threat - the Maghreb stands behind it, there is no peace with it
 		else_if = {
 			limit = {
 				gp_ib_free = { WHO = gra }
-				gp_ib_granada_backed = no
+				OR = {
+					gp_ib_granada_backed = no
+					scope:gp_cas = { has_variable = gp_threat_invader }	# v0.12.1 no peace with a Granada the invader stands behind
+				}
 			}
 			scope:gp_cas = { gp_ib_goal_war = { GOAL = 1 TARGET = gp_gra } }
 		}
+		# Granada backed by the Maghreb: the Reconquista only when Castile is 1.5 times as strong (relative strength 0.6)
+		else_if = {
+			limit = {
+				gp_ib_free = { WHO = gra }
+				scope:gp_cas = {
+					relative_strength = {
+						target = scope:gp_gra
+						value >= 0.6
+					}
+				}
+			}
+			scope:gp_cas = { gp_ib_goal_war = { GOAL = 1 TARGET = gp_gra } }
+		}
+		# Portugal without a protector, and clearly weaker (Castile 1.86 times as strong: relative strength 0.65)
 		else_if = {
 			limit = {
 				gp_ib_free = { WHO = por }
@@ -1223,31 +1378,54 @@ gp_ib_castile = {
 				NOT = { scope:gp_por = { is_allied_with = { target = scope:gp_cas } } }
 				NOT = { scope:gp_cas = { is_target_in_variable_list = { name = gp_sc_peace_list target = scope:gp_por } } }
 				NOT = { has_global_variable = gp_sc_ib_race }
+				scope:gp_cas = {
+					relative_strength = {
+						target = scope:gp_por
+						value >= 0.65
+					}
+				}
 			}
 			scope:gp_cas = { gp_ib_goal_vassal = { GOAL = 2 TARGET = gp_por } }
 		}
+		# Aragon: only when it is clearly weaker AND hurt (lost 30 % of its best share of Iberia), not allied with Castile, without
+		# the favour of France. Before, an intact Aragon was Castile's default prey from 1357 on (the observation: wars on it in
+		# 1379 and 1405, both lost in the end; the two earlier ones, 1342 and 1356, came from outside this ladder).
 		else_if = {
 			limit = {
 				gp_ib_free = { WHO = ara }
 				NOT = { scope:gp_ara = { is_allied_with = { target = scope:gp_cas } } }
 				gp_ib_french_favour = no
-			}
-			scope:gp_cas = { gp_ib_goal_war = { GOAL = 3 TARGET = gp_ara } }
-		}
-		else_if = {
-			limit = { gp_ib_free = { WHO = gra } }
-			scope:gp_cas = { gp_ib_goal_war = { GOAL = 1 TARGET = gp_gra } }
-		}
-		else_if = {
-			limit = {
-				gp_ib_free = { WHO = ara }
-				NOT = { scope:gp_ara = { is_allied_with = { target = scope:gp_cas } } }
+				scope:gp_cas = {
+					relative_strength = {
+						target = scope:gp_ara
+						value >= 0.65
+					}
+				}
+				scope:gp_ara = {
+					has_variable = gp_region_kept
+					var:gp_region_kept <= 0.7
+				}
 			}
 			scope:gp_cas = { gp_ib_goal_war = { GOAL = 3 TARGET = gp_ara } }
 		}
 		else_if = {
 			limit = { has_global_variable = gp_sc_ib_race }
 			# the race decides (gp_ib_race)
+		}
+		# v0.12.1 Granada or a free Aragon still stands and nothing above fits (a Granada the Maghreb backs and Castile not 1.5
+		# times as strong; an Aragon that is not weaker and hurt): the common cause - no war on a Christian crown, we court Aragon
+		# or Portugal and hold the line. An Aragon allied with Castile is a partner already: the later goals apply.
+		else_if = {
+			limit = {
+				OR = {
+					gp_ib_free = { WHO = gra }
+					AND = {
+						gp_ib_free = { WHO = ara }
+						NOT = { scope:gp_ara = { is_allied_with = { target = scope:gp_cas } } }
+					}
+				}
+			}
+			gp_ib_common_cause = yes
 		}
 		else_if = {
 			limit = {
@@ -1272,6 +1450,37 @@ gp_ib_castile = {
 				set_variable = gp_ib_overseas
 			}
 		}
+	}
+}
+
+# v0.12.1 Castile's common cause (goal 8; anchor scope, the saved crowns): no war of choice on a Christian crown. The earlier
+# nominations against Aragon and Portugal are dropped, and one of the two is courted - Aragon first (vanilla scripted objective
+# cas_court_aragon), Portugal otherwise - through gp_sc_ally (the objective gp_obj_scenario_ally works towards an alliance; ten
+# years of alliance bring the marriage of crowns, gp_ib_marriage - but not while a foreign invader is Castile's threat: the clock stays
+# at 0 until the common victory). The war on the Moors is not touched.
+gp_ib_common_cause = {
+	scope:gp_cas = { gp_ib_goal_calm = { GOAL = 8 } }
+	if = {
+		limit = { exists = scope:gp_ara }
+		scope:gp_cas = { gp_sc_drop_target = { TARGET = gp_ara } }
+	}
+	if = {
+		limit = { exists = scope:gp_por }
+		scope:gp_cas = { gp_sc_drop_target = { TARGET = gp_por } }
+	}
+	if = {
+		limit = {
+			gp_ib_free = { WHO = ara }
+			NOT = { scope:gp_cas = { is_at_war_with = scope:gp_ara } }
+		}
+		scope:gp_cas = { set_variable = { name = gp_sc_ally value = scope:gp_ara } }
+	}
+	else_if = {
+		limit = {
+			gp_ib_free = { WHO = por }
+			NOT = { scope:gp_cas = { is_at_war_with = scope:gp_por } }
+		}
+		scope:gp_cas = { set_variable = { name = gp_sc_ally value = scope:gp_por } }
 	}
 }
 
@@ -1389,6 +1598,7 @@ gp_sc_release_vassal_of = {
 
 gp_ib_country_upkeep = {
 	gp_ib_claim_upkeep = yes	# v0.10 endless dynastic claims
+	gp_sc_marinid_upkeep = yes	# v0.12.1 the Marinid decline, once a game
 	if = {
 		limit = {
 			gp_is_great_crown = yes
@@ -1419,6 +1629,29 @@ gp_ib_country_upkeep = {
 			limit = { region = region:iberia_region }
 			gp_ib_mark_foreign = yes
 		}
+	}
+}
+
+# Country scope (every country, yearly, from gp_ib_country_upkeep): the Marinid decline - the modifier gp_sc_marinid_decline on
+# Morocco, 70 years from 1349, once a game. Author, 2026-11-10: "Morocco has a crazy advantage, apparently in cavalry; nerf it a
+# little" - the evaluation route comes first (the invader's front, the fatigue after two defeats); this is the rest, and an
+# author veto point. EVENT-DRIVEN HISTORY, not a standing malus: the Black Death and the defeat at Kairouan (1348), the fall of
+# Abu al-Hasan (1351), the murder of Abu Inan (1358), the rule of the viziers. AI only, under the rules "Scenario marks" and
+# "Nudges" (gp_rule_nudges); the country variable is the once-only mark (Morocco itself being annexed and reborn does not repeat it).
+# Veto: delete this call and the modifier gp_sc_marinid_decline (gp_scenario_modifiers.txt).
+gp_sc_marinid_upkeep = {
+	if = {
+		limit = {
+			tag = MOR
+			is_ai = yes
+			gp_is_active = yes	# v0.12.1 review: Geopolicy AI = Off applies no scenario logic, nudges included
+			current_date >= 1349.1.1
+			NOT = { has_variable = gp_sc_marinid_done }
+			NOT = { has_game_rule = gp_scenario_mods_off }
+			NOT = { has_game_rule = gp_nudges_off }
+		}
+		set_variable = gp_sc_marinid_done
+		add_country_modifier = { modifier = gp_sc_marinid_decline years = 70 }
 	}
 }
 

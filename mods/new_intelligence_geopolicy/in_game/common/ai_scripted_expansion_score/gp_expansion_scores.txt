@@ -10,6 +10,22 @@
 # A target is picked only when its final score reaches EXPANSION_TARGET_SCORE_NEEDED_TO_PICK (raised 20 -> 25 in
 # gp_defines.txt), so lowering the multiplier of every target is how a calm posture "waits" without any modifier.
 # Strength values are relative_strength shares 0..1 (0.71 = 2.5x). Nothing uses never_attack.
+#
+# v0.12.1 (author, 2026-11-10, after the observation game 1337-1466: "France went for Spain though it was not badly beaten", "Spain
+# lost to Granada and Morocco and still went for Aragon", "all countries go into regions that make no sense for them - more
+# passivity for everybody except the most active"): the restraint is ONE general model - no list of countries, no ban.
+#   drive    (var:gp_drive 0..100, gp_update_drive) what the country still has to settle in and around its own region:
+#            gp_score_calm_baseline holds a country without business at home back from every foreign target it has no reason for;
+#            gp_score_region_first gives a driven one the licence to fight next door; gp_score_light_expansion keeps easy prey in the yard.
+#   pressure (var:gp_pressure 0..100, gp_update_pressure) what weighs on the country - a stronger enemy near its land, land and wars
+#            lost, a war streak: gp_score_pressure_restraint (every target but the regional threat), gp_score_light_expansion.
+#   prey     (var:gp_region_kept, gp_target_intact) how much of its home region the TARGET still keeps: a stranger does not go for
+#            an intact power (gp_score_prey_intact) but is let at a crushed one (gp_score_prey_crushed) - "badly beaten" is the
+#            author's 60 % of the original land lost, i.e. kept <= 0.4.
+#   invader  (gp_inv_*, gp_invader_effects.txt) a foreign power that fights the leaders of a region is the regional threat of all of
+#            them (by default only of the Iberian crowns, game rule gp_rule_invader_scope): the front holds harder
+#            (gp_score_common_front), the rivals of the region stand together
+#            (gp_score_regional_rival off); an invader that lost twice within thirty years loses interest (gp_score_invader_spent).
 ###################################
 
 # ================================================================================================
@@ -112,6 +128,8 @@ gp_score_posture_consolidation = {
 }
 
 # Defense: a much stronger enemy at the border - fight only it.
+# v0.12.1 ... and the throne claim in hand (gp_attacker_has_claim, gp_triggers_east.txt): a claim is a reason, not an obstacle (Poland
+# and Halych 1340-60; author: "Poland must be more influential in Galicia").
 gp_score_posture_defense = {
 	attacker_potential = {
 		is_ai = yes
@@ -120,13 +138,14 @@ gp_score_posture_defense = {
 	}
 	target_trigger = {
 		NOT = { this ?= scope:attacker.var:gp_threat }
+		NOT = { gp_attacker_has_claim = yes }
 	}
 	multiplier = {
 		add = -0.8
 	}
 }
 
-# Common front: the threat is the enemy, everything else waits.
+# Common front: the threat is the enemy, everything else waits (v0.12.1: except a throne claim in hand, as above).
 gp_score_posture_common_front = {
 	attacker_potential = {
 		is_ai = yes
@@ -135,6 +154,7 @@ gp_score_posture_common_front = {
 	}
 	target_trigger = {
 		NOT = { this ?= scope:attacker.var:gp_threat }
+		NOT = { gp_attacker_has_claim = yes }
 	}
 	multiplier = {
 		add = -0.7
@@ -202,15 +222,32 @@ gp_score_posture_isolation = {
 
 # Easy prey: a neighbour we dwarf (natives, petty lordships) is fair game in any non-calm posture - it costs little
 # and alarms nobody much (author: "when it feels total superiority and no general outrage").
+# v0.12.1 (author: "Bohemia and the others go into regions that make no sense for them"; docs D5-P4, D4-P12, D2-P4d): easy prey
+# is a matter of the home yard. The bonus stays for a tiny neighbour that holds land in our home region, for natives and petty
+# states outside Europe (the old behaviour), and for a power that holds a quarter of its own region; a power that is still busy at
+# home (Bohemia with 10 % of its region, Austria with 17 %, Denmark) no longer nibbles at lordships beyond it. A pressed country
+# has no appetite for easy prey either. The next observation should show: no petty-state wars of Bohemia, Austria or Denmark
+# outside their own regions; natives and petty states overseas are unaffected.
 gp_score_light_expansion = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
+		exists = capital
 		NOT = { gp_is_calm_posture = yes }
+		NOT = { gp_is_pressed = yes }
 	}
 	target_trigger = {
 		is_neighbor_of = scope:attacker
 		gp_is_tiny_target_of_attacker = yes
+		exists = capital
+		OR = {
+			any_owned_location = { region = scope:attacker.capital.region }
+			NOT = { capital.continent = continent:europe }
+			scope:attacker = {
+				has_variable = gp_region_share
+				var:gp_region_share >= 0.25
+			}
+		}
 	}
 	score = {
 		add = 5
@@ -222,9 +259,17 @@ gp_score_light_expansion = {
 
 # v0.3 The region first (author, 2026-11-05: "until 1600 countries work fully for their own region, and a little on the
 # lands next to it"): a target with no land in our home region is worth a third as much (the old 20-year early restraint
-# is folded in here). Who has united the home region (v0.12: 60 %, was 75 %; author, 1628 review: "first its own region,
-# then the next area by interest") has earned the neighbouring regions of its macro-region (x0.8 there). Hegemons,
-# empires and steppe hordes are exempt; prepared wars and easy prey are not held back.
+# is folded in here). Hegemons and empires (role at a share of 55 % and more) and steppe hordes are exempt from this entry
+# altogether, prepared wars and easy prey are not held back. v0.12.1 corrects the comment of v0.12: there was NO "x0.8 from 60 %"
+# for the master of the region - the branch (share >= 0.6, target in the same sub-continent) could only be met by a country with
+# the role "besieged", because every country at 55 % is a hegemon or an empire and exempt. The satiated powers are held back by
+# the calm baseline (gp_score_calm_baseline) and by the pressure instead.
+# v0.12.1 (D5-P6) The drive that removes the calm buys the licence to fight next door (author: "the Slavs must mostly fight each
+# other"): a country with drive 30 or more (gp_drive: it still has business at home) gets back +0.011 per point above 30 for a
+# NEIGHBOUR across the region line, at most +0.44 from drive 70 (Poland towards Halych and Volhynia, which lie in the Ruthenian
+# region while Poland's capital lies in the Baltic one). A throne claim in hand and a weaker Slavic neighbour of a Slavic power are
+# no strangers at all (gp_target_is_no_stranger, gp_triggers.txt / gp_triggers_east.txt). The next observation should show: Poland and
+# the other driven Slavic powers fight their neighbours across the region line (Halych, Volhynia); the satiated ones do not.
 gp_score_region_first = {
 	attacker_potential = {
 		is_ai = yes
@@ -240,6 +285,7 @@ gp_score_region_first = {
 		NOT = { gp_is_tiny_target_of_attacker = yes }
 		NOT = { this ?= scope:attacker.var:gp_war_target }	# the historical openings (gp_history_postures) are not held back
 		NOT = { this ?= scope:attacker.var:gp_sc_cb_target }	# v0.5 scenario wars are not held back
+		NOT = { gp_target_is_no_stranger = yes }	# v0.12.1 a throne claim in hand, a weaker Slavic neighbour of a Slavic power
 		NOT = {
 			AND = {
 				scope:attacker = { has_variable = gp_sc_ireland_right }	# v0.5 branch 2D: the quarrelling Gaels
@@ -250,15 +296,21 @@ gp_score_region_first = {
 	}
 	multiplier = {
 		add = -0.65
+		# v0.12.1 replaces the branch "share >= 0.6 and the same sub-continent: +0.45" that nobody but a besieged country could meet
 		if = {
 			limit = {
-				scope:attacker = { var:gp_region_share >= 0.6 }
-				scope:target = {
-					exists = capital
-					capital.sub_continent = scope:attacker.capital.sub_continent
+				scope:attacker = {
+					has_variable = gp_drive
+					var:gp_drive >= 30
 				}
+				scope:target = { is_neighbor_of = scope:attacker }
 			}
-			add = 0.45
+			add = {
+				value = scope:attacker.var:gp_drive
+				subtract = 30
+				max = 40
+				multiply = 0.011
+			}
 		}
 	}
 }
@@ -290,12 +342,15 @@ gp_score_region_home = {
 }
 
 # v0.3 ... and each other: Novgorod, Moscow and Smolensk are rivals before they are Russians.
+# v0.12.1 Not while a foreign invader is the threat of our region (gp_threat_invader): the rivals of one region stand together
+# against it (docs principle 5; the same holds for the alliance reasons and the opinion, gp_invader_effects.txt).
 gp_score_regional_rival = {
 	attacker_potential = {
 		is_ai = yes
 		gp_is_active = yes
 		has_variable = gp_contender
 		NOT = { gp_is_calm_posture = yes }
+		NOT = { has_variable = gp_threat_invader }
 	}
 	target_trigger = {
 		gp_is_regional_rival_of = { COUNTRY = scope:attacker }
@@ -362,6 +417,71 @@ gp_score_distance_discipline = {
 	}
 }
 
+# v0.12.1 The calm baseline (author, 2026-11-10: "more passivity to all countries except the most active players - the Slavs, who
+# should mostly fight one another"; docs D5-P1). A country with little DRIVE (var:gp_drive: what it still has to settle in and
+# around its own region, gp_update_drive) holds back from every target outside its home region it has no reason for - the less
+# drive, the more. Up to -0.60 at drive 0, falling by 0.012 a point to nothing at drive 50 (before 1600; by half until 1700, none
+# after), and -0.10 more in the first twenty years. Knobs: 0.012 / 0.006 (slope), 50 (end), -0.10 (early game).
+# NOT held back (the reasons the AI itself knows): a target with a reason (gp_target_has_reason: the prepared war, the scenario
+# targets, the claim, the colonial-zone rival, the regional threat, an old enemy, a foreign power in our home region, a claim or a
+# weaker Slavic neighbour of a Slavic power), anything in our home region or owning land in it (and Ireland for a British crown),
+# a country that holds a core of ours, the New World and Oceania (the colonial stage has its own rules, gp_colonies.txt), steppe
+# hordes, the scenario puppeteer and the island power (their own rules: the dominion lists score 22 + 15, gp_scenarios_hyw.txt).
+# Hegemons and empires are NOT exempt - that is the hole gp_score_region_first leaves them (France after 1374, drive about 0: the
+# observed 9 wars, half of them abroad).
+# The next observation should show: Bohemia, Austria, Denmark, Hungary, France after 1374 and the Mamluks declare far fewer wars
+# outside their own region; Moscow, Novgorod, Poland, Lithuania, Venice (drive 40-70) are almost as active as before.
+gp_score_calm_baseline = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		has_variable = gp_drive
+		var:gp_drive < 50
+		current_date < 1700.1.1
+		NOT = { gp_is_steppe = yes }
+		NOT = { has_variable = gp_sc_puppeteer }
+		NOT = { has_variable = gp_sc_island_power }
+	}
+	target_trigger = {
+		exists = capital
+		NOT = { capital.region = scope:attacker.capital.region }
+		NOT = { capital.continent = continent:america }
+		NOT = { capital.continent = continent:oceania }
+		NOT = { any_owned_location = { region = scope:attacker.capital.region } }
+		NOT = {
+			AND = {	# Ireland is the English crown's own yard (the same exemption as gp_score_great_crowns_abroad and gp_score_ardor_home)
+				capital.region = region:ireland_region
+				scope:attacker = { capital.region = region:great_britain_region }
+			}
+		}
+		NOT = { any_owned_location = { is_core_of = scope:attacker } }	# land of ours in its hands is a reason (the vanilla cb_conquer_province)
+		NOT = { gp_target_has_reason = yes }
+	}
+	multiplier = {
+		add = 0
+		if = {
+			limit = { scope:attacker = { gp_is_before_1600 = yes } }
+			add = {
+				value = 50
+				subtract = scope:attacker.var:gp_drive
+				multiply = -0.012
+			}
+		}
+		else = {
+			add = {
+				value = 50
+				subtract = scope:attacker.var:gp_drive
+				multiply = -0.006
+			}
+		}
+		if = {
+			limit = { scope:attacker = { gp_is_early_game = yes } }
+			add = -0.1
+		}
+	}
+}
+
 # ================================================================================================
 # Regional threat, common front, intruders
 # ================================================================================================
@@ -379,6 +499,11 @@ gp_score_common_front = {
 	}
 	multiplier = {
 		add = -0.6
+		# v0.12.1 against a foreign invader the front holds harder: -0.85 (x0.15) instead of -0.6 (x0.4) - a weight the AI reads, not a ban
+		if = {
+			limit = { scope:attacker = { has_variable = gp_threat_invader } }
+			add = -0.25
+		}
 	}
 }
 
@@ -401,6 +526,29 @@ gp_score_contain_threat = {
 	}
 	multiplier = {
 		add = 0.3
+	}
+}
+
+# v0.12.1 The invader that has lost twice loses interest in the region it lost (author, 2026-11-10: "after two defeats Morocco goes
+# to the Maghreb and Guinea"; docs D3-P5): for 25 years (gp_inv_spent_left) the land of that region weighs a fifth in its war scores.
+# The invader's own region and every other target are untouched - this is a weight, not a ban. The vanilla lure of Morocco
+# (morocco_conquer_iberia) is put aside for the same time by gp_update_vanilla_pull (gp_pull_effects.txt). The next observation
+# should show: Morocco's wars on Iberia stop after its second lost war and its region share of the Maghreb grows instead.
+gp_score_invader_spent = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_inv_spent
+		has_variable = gp_inv_spent_foe
+	}
+	target_trigger = {
+		exists = capital
+		scope:attacker = {
+			var:gp_inv_spent_foe ?= { capital.region = root.capital.region }
+		}
+	}
+	multiplier = {
+		add = -0.8
 	}
 }
 
@@ -1150,5 +1298,132 @@ gp_score_asian_overreach = {
 	}
 	multiplier = {
 		add = -0.6
+	}
+}
+
+# ================================================================================================
+# v0.12.1 Pressure and prey (var:gp_pressure, var:gp_region_kept; gp_values.txt, gp_pressure_effects.txt)
+# ================================================================================================
+
+# The pressed hold back (author, 2026-11-10: "if Spain lost to Granada and Morocco it must turn defensive; instead it went on Aragon,
+# almost destroyed it, and lost to Morocco again"; docs D6-P3). Every war that is not about the regional threat is worth less the
+# more the country is pressed: the score loses 0.15 a point and the multiplier 0.009 a point, at most -0.85 (x0.91 at 10 points,
+# x0.64 at 40, x0.46 at 60, x0.15 from 94). One smooth rule for every country; no list, no ban. The pressure (gp_pressure_load, scaled
+# by the knob gp_pressure_scale) is counted from the threat, the land and the wars lost, the war streak and the memory of the last
+# defeats (gp_update_pressure); a foreign invader and the victor of the last lost war count as threats, so a pressed Castile is
+# free to fight Morocco and to keep to its front, not to fight Aragon. The next observation should show: Castile 1413-1465 and the
+# other pressed crowns start no war on a neighbour of their own faith while pressed; the prepared wars of the scenarios wait.
+gp_score_pressure_restraint = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		has_variable = gp_pressure
+		var:gp_pressure >= 10
+	}
+	target_trigger = {
+		NOT = { this ?= scope:attacker.var:gp_threat }
+	}
+	score = {
+		add = {
+			value = scope:attacker.gp_pressure_load
+			multiply = -0.15
+		}
+	}
+	multiplier = {
+		add = {
+			value = scope:attacker.gp_pressure_load
+			multiply = -0.009
+			min = -0.85
+		}
+	}
+}
+
+# A stranger does not go for an intact power (author, 2026-11-10: "France went on Spain though Spain had not yet lost 60 % of its
+# land"; docs D6-P4, D2-P4, D3 prey rule). A kingdom or great power with its capital outside the attacker's region is worth up to
+# 60 % less while it keeps 60 % or more of its best share of its own home region; at 40 % and below it is crushed and the restraint is
+# gone (gp_target_intact, linear in between: 1 above kept 0.6, 0 at kept 0.4 and below). Before 1600, whole world, steppe hordes
+# excepted. Not held back: the regional threat, an intruder in our home region, our rival, a country that holds a core of ours (the
+# vanilla cb_conquer_province), a throne claim or a weaker Slavic neighbour of a Slavic power (gp_target_is_no_stranger: the Galician
+# block, Halych and Volhynia are kingdoms in the setup), and the wars that history or a scenario prepared (gp_war_target,
+# gp_sc_*_target). An old grudge halves the restraint (the Hundred Years' War, the Reconquista: +0.3 x intact back). Hegemons and
+# empires are NOT exempt (the hole gp_score_region_first leaves). The rule looks at the target only; the attacker's own state is
+# gp_score_pressure_restraint and gp_score_calm_baseline. The next observation should show: no war of a stranger on a big intact
+# power (France on Castile 1381) unless it was an old enemy or a reason; wars on a crushed power are not held back.
+gp_score_prey_intact = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		gp_is_before_1600 = yes
+		exists = capital
+		NOT = { gp_is_steppe = yes }
+	}
+	target_trigger = {
+		exists = capital
+		gp_is_power_of_standing = yes
+		NOT = { capital.region = scope:attacker.capital.region }
+		NOT = { this ?= scope:attacker.var:gp_war_target }
+		NOT = { this ?= scope:attacker.var:gp_sc_cb_target }
+		NOT = { this ?= scope:attacker.var:gp_sc_vassal_target }
+		NOT = { this ?= scope:attacker.var:gp_sc_claim_target }
+		NOT = { this ?= scope:attacker.var:gp_threat }
+		NOT = { is_rival_of = scope:attacker }
+		NOT = { gp_is_intruder_of = { COUNTRY = scope:attacker } }
+		NOT = { gp_target_is_no_stranger = yes }
+		NOT = { any_owned_location = { is_core_of = scope:attacker } }
+	}
+	multiplier = {
+		add = {
+			value = scope:target.gp_target_intact
+			multiply = -0.6
+		}
+		if = {
+			limit = { scope:target = { gp_is_old_enemy_of = { COUNTRY = scope:attacker } } }
+			add = {
+				value = scope:target.gp_target_intact
+				multiply = 0.3
+			}
+		}
+	}
+}
+
+# The crushed are prey (author: "badly beaten = lost 60 % of its original land"): a neighbour or a country of our region that keeps
+# less than 60 % of its best share is worth a little more to an attacker that is neither pressed nor in a calm posture - up to
+# +0.35 in the multiplier (+0.25 at kept 0.4, the cap from kept 0.32) and up to +4 score (at kept 0.4 and below), nothing at 0.6.
+# "A crushed power disintegrates for real" (docs principle 4) without sending a pressed country to the carrion. SMALL on purpose.
+# The next observation should show: the wars on a country that has lost most of its land come from attackers that are not pressed.
+gp_score_prey_crushed = {
+	attacker_potential = {
+		is_ai = yes
+		gp_is_active = yes
+		exists = capital
+		NOT = { gp_is_calm_posture = yes }
+		NOT = { gp_is_pressed = yes }
+	}
+	target_trigger = {
+		has_variable = gp_region_kept
+		var:gp_region_kept < 0.6
+		exists = capital
+		OR = {
+			is_neighbor_of = scope:attacker
+			capital.region = scope:attacker.capital.region
+		}
+	}
+	score = {
+		add = {
+			value = 0.6
+			subtract = scope:target.var:gp_region_kept
+			multiply = 20
+			min = 0
+			max = 4
+		}
+	}
+	multiplier = {
+		add = {
+			value = 0.6
+			subtract = scope:target.var:gp_region_kept
+			multiply = 1.25
+			min = 0
+			max = 0.35
+		}
 	}
 }

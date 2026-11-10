@@ -26,6 +26,16 @@ gp_opinion_common_enemy = {
 	months = 14
 }
 
+# v0.12.1 A fellow victim of a foreign invader (Morocco at the Strait): another country of our region that names the same
+# foreign power as its regional threat (gp_inv_front_with, gp_invader_effects.txt; refreshed yearly like gp_opinion_common_enemy).
+# Author, 2026-11-10: "an additional temporary united alliance against Morocco". An alliance needs an opinion of 0 or more both
+# ways (vanilla alliance_can_exist), and the memory of old wars (gp_opinion_old_enemy, up to -90) and of regional rivalry (-20)
+# must not stand in the way while the invader is at the gate; it lapses 14 months after the front dissolves.
+gp_opinion_common_victim = {
+	value = 40
+	months = 14
+}
+
 # v0.3 Another contender of our home region (Novgorod - Moscow - Smolensk): rivals, whatever their kinship.
 gp_opinion_regional_rival = {
 	value = -20

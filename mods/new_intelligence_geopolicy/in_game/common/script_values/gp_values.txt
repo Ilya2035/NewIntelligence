@@ -5,6 +5,10 @@
 # variables are ALSO written as literals in gp_effects.txt - keep both in sync.
 # Strength values are SHARES 0..1 (relative_strength = our strength / (our + their)): ratio R -> share R / (1 + R).
 # All values are evaluated in country scope; none of them uses root (in the game-start loop root is not the country).
+# v0.12.1 literals that must be retuned together: pressed = gp_pressure 40 (gp_is_pressed, gp_triggers.txt), hot = 45 up / 30
+# down (gp_pressure_refresh, gp_pressure_effects.txt), drive 30 / 50 = the personality steps (gp_apply_personality,
+# gp_region_effects.txt), kept 0.4 / 0.6 = crushed / intact (gp_target_intact below, the report buckets in gp_effects.txt), the
+# knee gp_pressure_knee 15 below (the posture scores read only the pressure above it).
 ###################################
 
 # ---- stages (share of the home region's ownable locations that we own) ----------------------
@@ -200,14 +204,19 @@ gp_ps_expansion = {
 		add = -15
 	}
 	if = { limit = { at_war = yes } add = -10 }
+	if = { limit = { has_variable = gp_threat_invader } add = -25 }	# v0.12.1 a foreign invader stands in the region: no land grab among ourselves
 	if = { limit = { gp_is_steppe = yes } add = 10 }
 	add = { value = gp_rp_expansion multiply = gp_ruler_weight }
 	add = { value = gp_nobles_power multiply = 25 }
 	add = gp_calm_pressure
 	if = { limit = { has_variable = gp_region_turmoil } add = 10 }
-	if = { limit = { has_variable = gp_contender } add = 20 }	# v0.3 the contenders of a region drive it
+	# v0.12.1 was a flat +20 for every contender (v0.3): the DRIVE of the country drives it (what it still has to settle at home,
+	# gp_drive_value) - a satiated contender (drive 0) gets -10 instead of +20, one with an unfinished region (drive 50) +15
+	if = { limit = { has_variable = gp_drive } add = { value = var:gp_drive multiply = 0.3 } }
+	if = { limit = { has_variable = gp_drive var:gp_drive < 20 } add = -10 }
 	if = { limit = { has_variable = gp_hopeless } add = -35 }	# v0.3 no chance against the big neighbour
 	if = { limit = { has_variable = gp_posture_expansion } add = 15 }
+	add = { value = gp_pressure_excess multiply = -0.8 }	# v0.12.1 a pressed country does not expand (gp_pressure_state)
 	if = { limit = { var:gp_noise = 1 } add = gp_noise_amount }
 }
 
@@ -219,13 +228,15 @@ gp_ps_preparation = {
 	if = { limit = { months_since_war >= 48 } add = 15 }
 	if = { limit = { at_war = yes } add = -50 }
 	if = { limit = { has_variable = gp_threat } add = -10 }
+	if = { limit = { has_variable = gp_threat_invader } add = -40 }	# v0.12.1 no war of choice on a neighbour while a foreign invader stands in the region (Castile 1413-1465: "preparation" in 28 of 53 years)
 	if = { limit = { gp_is_early_game = yes } add = -15 }
 	add = { value = gp_rp_preparation multiply = gp_ruler_weight }
 	add = { value = gp_nobles_power multiply = 15 }
 	add = gp_calm_pressure
-	if = { limit = { has_variable = gp_contender } add = 10 }
+	if = { limit = { has_variable = gp_drive } add = { value = var:gp_drive multiply = 0.15 } }	# v0.12.1 was a flat +10 for every contender: the drive of the country
 	if = { limit = { has_variable = gp_hopeless } add = -30 }
 	if = { limit = { has_variable = gp_posture_preparation } add = 15 }
+	add = { value = gp_pressure_excess multiply = -1 }	# v0.12.1 a pressed country does not prepare a war
 	if = { limit = { var:gp_noise = 2 } add = gp_noise_amount }
 }
 
@@ -239,8 +250,10 @@ gp_ps_opportunism = {
 	add = { value = gp_burghers_power multiply = 15 }
 	add = { value = gp_calm_pressure multiply = 0.5 }
 	if = { limit = { has_variable = gp_region_turmoil } add = 25 }
+	if = { limit = { has_variable = gp_threat_invader } add = -15 }	# v0.12.1
 	if = { limit = { has_variable = gp_sc_never_yield } add = -20 }
 	if = { limit = { has_variable = gp_posture_opportunism } add = 15 }
+	add = { value = gp_pressure_excess multiply = -0.5 }	# v0.12.1 the weak do not pick at their neighbours
 	if = { limit = { var:gp_noise = 3 } add = gp_noise_amount }
 }
 
@@ -258,17 +271,21 @@ gp_ps_consolidation = {
 	if = { limit = { has_variable = gp_region_turmoil } add = -10 }
 	if = { limit = { has_variable = gp_hopeless } add = 10 }
 	if = { limit = { has_variable = gp_posture_consolidation } add = 15 }
+	add = { value = gp_pressure_excess multiply = 0.15 }	# v0.12.1 a pressed country digests what it has
 	if = { limit = { var:gp_noise = 4 } add = gp_noise_amount }
 }
 
 # 5 Defense: a much stronger power presses on the border.
+# v0.12.1 "presses" (gp_threat_presses) replaces "is a land neighbour": a strait is no distance (a 3x Morocco across the Strait of
+# Gibraltar kept Castile out of this rule for 48 years), but an island home is not worried by a threat across the sea until it is
+# at war with it (England and France at peace).
 gp_ps_defense = {
 	value = 0
 	if = {
 		limit = {
 			has_variable = gp_threat
 			var:gp_threat_share >= 0.67
-			var:gp_threat ?= { is_neighbor_of = scope:gp_c }
+			gp_threat_presses = yes
 		}
 		add = 60
 	}
@@ -276,15 +293,25 @@ gp_ps_defense = {
 		limit = {
 			has_variable = gp_threat
 			var:gp_threat_share >= 0.6
+			gp_threat_presses = yes
 		}
 		add = 30
 	}
 	if = { limit = { has_variable = gp_role_besieged } add = 40 }
+	if = { limit = { has_variable = gp_threat_invader } add = 30 }	# v0.12.1 a foreign invader presses on the region, neighbour or not
 	add = { value = gp_rp_defense multiply = gp_ruler_weight }
 	add = { value = gp_peasants_power multiply = 10 }
 	if = { limit = { has_variable = gp_hopeless } add = 25 }	# v0.3 the small one defends and looks for friends
 	if = { limit = { has_variable = gp_sc_never_yield } add = 20 }	# v0.5 scenario 3A: Scotland holds out
 	if = { limit = { has_variable = gp_posture_defense } add = 15 }
+	# v0.12.1 the more it is pressed, the more it defends - fully with a threat, a little without one
+	if = {
+		limit = { has_variable = gp_threat }
+		add = { value = gp_pressure_excess multiply = 0.6 }
+	}
+	else = {
+		add = { value = gp_pressure_excess multiply = 0.2 }
+	}
 	if = { limit = { var:gp_noise = 5 } add = gp_noise_amount }
 }
 
@@ -295,9 +322,12 @@ gp_ps_front = {
 		limit = {
 			has_variable = gp_threat
 			has_variable = gp_has_front_partner
+			gp_threat_presses = yes	# v0.12.1 the sea between (an island home stands in front only against a threat that presses)
 		}
 		add = 60
 		if = { limit = { var:gp_threat_share >= 0.67 } add = 15 }
+		if = { limit = { has_variable = gp_threat_invader } add = 40 }	# v0.12.1 the common front against a foreign invader beats the war of choice
+		add = { value = gp_pressure_excess multiply = 0.4 }	# v0.12.1 the pressed stand together
 	}
 	add = { value = gp_rp_front multiply = gp_ruler_weight }
 	add = { value = gp_clergy_power multiply = 15 }
@@ -314,6 +344,8 @@ gp_ps_recovery = {
 	if = { limit = { gp_ruler_builder = yes } add = 10 }
 	add = { value = gp_peasants_power multiply = 20 }
 	if = { limit = { has_variable = gp_posture_recovery } add = 15 }
+	add = { value = gp_pressure_excess multiply = 0.5 }	# v0.12.1 the wound heals by staying quiet
+	if = { limit = { NOT = { has_variable = gp_threat } } add = { value = gp_pressure_excess multiply = 0.3 } }
 	if = { limit = { var:gp_noise = 7 } add = gp_noise_amount }
 }
 
@@ -341,6 +373,7 @@ gp_ps_peace = {
 	if = { limit = { NOT = { has_variable = gp_contender } } add = 5 }
 	if = { limit = { has_variable = gp_sc_never_yield } add = -40 }
 	if = { limit = { has_variable = gp_posture_peace } add = 15 }
+	add = { value = gp_pressure_excess multiply = 0.1 }	# v0.12.1
 	if = { limit = { var:gp_noise = 8 } add = gp_noise_amount }
 }
 
@@ -370,6 +403,7 @@ gp_calm_pressure = {
 		max = 30
 		multiply = 0.6
 	}
+	if = { limit = { has_variable = gp_threat_invader } multiply = 0 }	# v0.12.1 no itch for a war of choice with a foreign invader at the gate
 }
 
 # The current age, 1..6 (the subject of another culture group resents its overlord more with every age).
@@ -402,4 +436,266 @@ gp_alliance_fatigue_scale = {
 	value = 1
 	if = { limit = { current_date >= 1600.1.1 } add = 0.5 }
 	if = { limit = { current_date >= 1700.1.1 } add = 0.5 }
+}
+
+# ================================================================================================
+# v0.12.1 DRIVE and PRESSURE: one reason to expand, one reason to defend (author, 2026-11-10: "more passivity to all countries
+# except the most active players - the Slavs, who should mostly fight one another"; "if Spain lost to Granada and Morocco it must
+# turn defensive, instead it went on Aragon and lost to Morocco again"; docs/GEOPOLICY_V012_PLAN.md principles 1 and 5).
+# Two plain country variables, counted yearly in gp_pressure_effects.txt (gp_update_drive, gp_update_pressure), no modifiers:
+#   var:gp_drive    0..100 what the country still has to settle at home - the licence to be active (AI, gp_is_active only)
+#   var:gp_pressure 0..100 what weighs on it - a threat near its land, land already lost, a war it is losing, the memory of
+#                   defeats - the duty to hold back (read whole as gp_pressure_load by the score entries and the target
+#                   lists, and only above gp_pressure_knee as gp_pressure_excess by the posture scores; gp_is_pressed from 40, gp_pr_hot from 45)
+# Read by: the posture scores above (drive replaces the flat contender bonus, the pressure is taken from the offensive ones and
+# given to the defensive ones), gp_apply_personality (the engine's own "mentality of the state": hot = defensive / cautious,
+# no drive = the vanilla temperament), the score entries of ai_scripted_expansion_score (gp_score_calm_baseline,
+# gp_score_pressure_restraint, gp_score_prey_*), the forced target lists. Paradox's temperament of each country is the floor.
+# NEXT OBSERVATION (GP_REPORT drive / pressure / personality lines, GP_WAR blocks): Moscow, Poland, Venice, Denmark with "drive >= 30"
+# and as active as before; France after 1374, Hungary, the Mamluks with "drive < 15"; Castile 1418-1465 mostly "pressure 40 - 70"
+# and in defense / common front / recovery; no more than ~15 % of all country-years pressed (otherwise gp_pressure_scale 0.7).
+# ================================================================================================
+
+# One knob for the whole pressure layer: 1 as designed, 0.5 half as strong, 0 switches the posture and score effects off (the
+# variable is still counted, reported, and gp_is_pressed still reads it).
+gp_pressure_scale = 1
+
+# ---- the drive (country scope) ------------------------------------------------------------------
+# Unfinished home business of a contender (to 0 at 55 % of the region; a region that war does not unite - the German lands -
+# counts about a quarter), a foreign power in the home region, a time of troubles, a conquest in progress, a threat of 2x or
+# more, a prepared war. A defeated, hopeless, besieged or crushed (kept < 50 % of its best share) country has none to spare.
+# Moscow 1400 (4 % of Russia, intruder, at war): about 70; Poland about 47; Bohemia (German lands) about 28; France as an empire
+# (nothing left to unite at home): 0. Wars outside the home region need a reason or drive (gp_score_calm_baseline).
+gp_drive_value = {
+	value = 0
+	if = {
+		limit = {
+			has_variable = gp_contender
+			has_variable = gp_region_share
+			var:gp_region_share < 0.55
+			gp_region_is_unifiable = yes
+		}
+		add = {
+			value = 0.55
+			subtract = var:gp_region_share
+			multiply = 110
+		}
+	}
+	if = {
+		limit = {
+			has_variable = gp_contender
+			has_variable = gp_region_share
+			var:gp_region_share < 0.55
+			NOT = { gp_region_is_unifiable = yes }
+		}
+		add = {
+			value = 0.55
+			subtract = var:gp_region_share
+			multiply = 30
+		}
+	}
+	if = { limit = { has_variable = gp_has_intruder } add = 15 }
+	if = { limit = { has_variable = gp_region_turmoil } add = 15 }
+	if = { limit = { has_variable = gp_is_expanding } add = 20 }
+	if = {
+		limit = {
+			has_variable = gp_threat
+			var:gp_threat_share >= 0.67
+		}
+		add = 15
+	}
+	if = { limit = { has_variable = gp_war_target } add = 10 }
+	max = 100
+	if = {
+		limit = {
+			OR = {
+				has_variable = gp_recent_defeat
+				has_variable = gp_hopeless
+				has_variable = gp_role_besieged
+				AND = {
+					has_variable = gp_region_kept
+					var:gp_region_kept < 0.5
+				}
+			}
+		}
+		max = 15
+	}
+}
+
+# ---- the pressure (country scope) ---------------------------------------------------------------
+# The whole pressure as a number for the expansion score entries and the target lists (0 for a country that has none yet); the posture
+# scores read gp_pressure_excess below.
+gp_pressure_load = {
+	value = 0
+	if = {
+		limit = { has_variable = gp_pressure }
+		add = var:gp_pressure
+		multiply = gp_pressure_scale
+	}
+}
+
+# v0.12.1 independent review (2026-11-10), the KNEE of the posture terms: the posture scores above (gp_ps_*, all but isolation) feel only the part of
+# the pressure that lies above this level. A standing threat of 1.5x - 2x is 10 - 17 points and EVERY border has one; read from zero it
+# took 20 - 65 points of activity from a contender with a drive (the simulation of the review: the share of hot years of Novgorod,
+# Poland, Lithuania, Habsburg and Byzantium fell by half). The threat itself is already weighed by the threat terms of the posture
+# scores (defense +30 / +60, preparation -10, common front +60). gp_is_pressed (40), gp_pr_hot (45 / 30), the score entries of
+# ai_scripted_expansion_score and the target lists still read the whole pressure (gp_pressure_load); the knob gp_pressure_scale scales
+# the part above the knee. gp_pressure_knee = 0 restores the first build (no knee); gp_pressure_scale = 0 switches the posture terms off.
+gp_pressure_knee = 15
+
+gp_pressure_excess = {
+	value = 0
+	if = {
+		limit = { has_variable = gp_pressure }
+		add = var:gp_pressure
+		subtract = gp_pressure_knee
+		min = 0
+		multiply = gp_pressure_scale
+	}
+}
+
+# The regional threat: its relative strength against us (share 0.5 = equal, 0.6 = 1.5x, 0.75 = 3x), 100 points a unit above 0.5,
+# at most 35: 1.5x = 10 points, 2x = 17, 3x = 25, 4x = 30, 5.7x and more = 35. Half if it is not near (a threat across the sea:
+# the author's "halved unease"), and a foreign invader weighs 40 % more - it comes to conquer, not to arbitrate (Morocco at
+# the Strait, 3x: 35). The weights are those of the first design (80 / 28) raised by a quarter, because the engine's own measure
+# of the need of allies (country_needs_allies_value, range UNVERIFIED) was left out of v0.12.1.
+gp_pr_threat = {
+	value = 0
+	if = {
+		limit = {
+			has_variable = gp_threat
+			has_variable = gp_threat_share
+		}
+		add = {
+			value = var:gp_threat_share
+			subtract = 0.5
+			multiply = 100
+			min = 0
+			max = 35
+		}
+	}
+	if = {
+		limit = {
+			has_variable = gp_threat
+			has_variable = gp_threat_share
+			NOT = { has_variable = gp_threat_near }
+		}
+		multiply = 0.5
+	}
+	if = {
+		limit = {
+			has_variable = gp_threat
+			has_variable = gp_threat_share
+			has_variable = gp_threat_invader
+		}
+		multiply = 1.4
+	}
+}
+
+# Land gone from the home region (36 points a unit below 0.9 of the best share): kept 0.9 = 0, 0.6 = 11, 0.5 = 14, 0.4 (the
+# author's "badly beaten", 60 % of the original land lost) = 18, 0.2 = 25, 0 = 32.
+gp_pr_kept = {
+	value = 0
+	if = {
+		limit = {
+			has_variable = gp_region_kept
+			var:gp_region_kept < 0.9
+		}
+		add = {
+			value = 0.9
+			subtract = var:gp_region_kept
+			multiply = 36
+			min = 0
+		}
+	}
+}
+
+# War: unbroken years at war from the third (2 a year, at most 12), a war it is losing now (10), war exhaustion above 3
+# (2.5 a point, at most 15).
+gp_pr_war = {
+	value = 0
+	if = {
+		limit = {
+			has_variable = gp_war_years
+			var:gp_war_years > 2
+		}
+		add = {
+			value = var:gp_war_years
+			subtract = 2
+			multiply = 2
+			max = 12
+		}
+	}
+	if = {
+		limit = { is_in_losing_war = yes }
+		add = 10
+	}
+	if = {
+		limit = { war_exhaustion > 3 }
+		add = {
+			value = war_exhaustion
+			subtract = 3
+			multiply = 2.5
+			max = 15
+		}
+	}
+}
+
+# Occupation and collapse already counted by the v0.7 crisis scalar (gp_crisis_effects.txt): 0.12 a point above 20, at most 12.
+gp_pr_crisis = {
+	value = 0
+	if = {
+		limit = {
+			has_variable = gp_crisis
+			var:gp_crisis > 20
+		}
+		add = {
+			value = var:gp_crisis
+			multiply = 0.12
+			max = 12
+		}
+	}
+}
+
+# The sum: threat + land lost + war + crisis + the memory of lost wars (var:gp_pr_mem: +10 for every lost war, fading by 22 % a
+# year, gp_pr_mem_next), a quarter less for a power that is winning land now (momentum of conquest, gp_is_expanding: the Ottoman
+# rise among stronger beyliks must not be held down by the rule). 0..100.
+gp_pressure_state = {
+	value = gp_pr_threat
+	add = gp_pr_kept
+	add = gp_pr_war
+	add = gp_pr_crisis
+	if = {
+		limit = { has_variable = gp_pr_mem }
+		add = var:gp_pr_mem
+	}
+	if = {
+		limit = { has_variable = gp_is_expanding }
+		multiply = 0.75
+	}
+	min = 0
+	max = 100
+}
+
+# The memory of defeats fades by 22 % a year (half in about three years).
+gp_pr_mem_next = {
+	value = var:gp_pr_mem
+	multiply = 0.78
+}
+
+# ---- the prey (target scope) --------------------------------------------------------------------
+# 1 = intact (keeps 60 % or more of its best share of its home region), 0 = crushed (40 % or less - the author's "badly beaten":
+# it has lost 60 % of its original land), linear between; a country not counted yet is intact. Evaluated as
+# scope:target.gp_target_intact (score multipliers) or root.gp_target_intact (target_trigger). Model: gp_region_kept_value.
+gp_target_intact = {
+	value = 1
+	if = {
+		limit = { has_variable = gp_region_kept }
+		multiply = 0
+		add = var:gp_region_kept
+		subtract = 0.4
+		divide = 0.2
+		min = 0
+		max = 1
+	}
 }

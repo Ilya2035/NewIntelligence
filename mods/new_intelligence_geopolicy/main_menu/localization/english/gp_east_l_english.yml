@@ -1,0 +1,7 @@
+﻿l_english:
+ # === New Intelligence: Geopolicy v0.12.1 - Eastern Europe (area_preferences/gp_zones.txt, ai_scripted_expansion_target/gp_expansion_targets.txt, ai_scripted_expansion_score/gp_expansion_scores_east.txt) ===
+ # Key = the name of the script entry; the text is shown as the reason in the AI tooltip. The reworded old keys (gp_pol_sphere, gp_dir_bohemian) stay in gp_geopolicy_l_english.yml.
+ gp_pol_galicia: "Red Ruthenia and Volhynia (the Galician road)"
+ gp_score_slavs_among_themselves: "The Slavs fight one another: kin first"
+ gp_target_throne_claim: "A claim to the neighbour's throne"
+ gp_target_kin_neighbour: "A weaker Slavic neighbour"

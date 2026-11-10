@@ -174,8 +174,55 @@ gp_update_contender = {
 # ================================================================================================
 # The country's mentality follows its course (author: "not 'balanced' everywhere - defense, status quo or conquest").
 # Vanilla AI personalities (in_game/common/ai_personalities, effect set_personality as in ai_personalities_setup.txt).
-# Called from gp_set_posture, so every change of course changes the mentality.
+# Called from gp_set_posture, so every change of course changes the mentality, and once a year from gp_update_posture (the drive
+# and the pressure move between two changes of course).
+#
+# v0.12.1 (author, 2026-11-10: "more passivity to all countries except the most active players"). The personality is the
+# engine's own lever for whether a war plan starts at all (aggressiveness, months between wars, the need of a casus belli,
+# vanilla attack_neighbors after 30 months for expansionist but 180 for everybody else): Paradox gave every country a temperament
+# (main_menu/setup/1337/26_ai_personalities.txt: Poland, Lithuania, Bohemia, Morocco defensive; Austria, Venice cautious; France,
+# Castile, Muscovy expansionist; everyone not listed cautious). The v0.12.0 mapping overwrote it by the posture and was hotter than
+# the vanilla one in 42 % of all country-years. Now the course may make a country hotter than its temperament only with a reason:
+#   hot pressure (gp_pr_hot: 45 up, 30 down - gp_pressure_refresh)  defensive with a threat, cautious without one, whatever the course
+#   preparation with drive >= 50                  aggressive
+#   preparation / expansion with drive >= 30       expansionist
+#   opportunism with drive >= 30                   opportunistic
+#   any of the three with less drive               its own temperament, never hotter than balanced (gp_restore_temperament)
+#   defense / common front -> defensive, consolidation / recovery -> cautious, peace -> friendly, isolation -> isolationist (as before)
+# The temperament is remembered at game start (gp_remember_temperament, var:gp_base_temper).
+# NEXT OBSERVATION: the "temperament" and "personality" lines of GP_REPORT: Bohemia, Poland, Lithuania "defensive" and France
+# "balanced" in the years with "drive < 30"; "personality aggressive" only with "drive >= 50" (GP_WAR: attacker personality); the
+# share of wars declared with a hot posture and drive under 30 falls from 40 of 67 to the rate of the calm neighbours.
 # ================================================================================================
+
+# Country scope: the vanilla temperament, stored ONCE before any set_personality of ours (gp_on_game_start_effect for every real
+# country, gp_setup_country for countries formed or released later). 0 isolationist, 1 cautious, 2 defensive, 3 friendly,
+# 4 balanced, 5 opportunistic, 6 expansionist, 7 aggressive. Model: ai_personality = ai_personality:ai_x (gp_update_role).
+gp_remember_temperament = {
+	if = {
+		limit = {
+			is_ai = yes
+			NOT = { has_variable = gp_base_temper }
+		}
+		if = { limit = { ai_personality = ai_personality:ai_isolationist } set_variable = { name = gp_base_temper value = 0 } }
+		else_if = { limit = { ai_personality = ai_personality:ai_cautious } set_variable = { name = gp_base_temper value = 1 } }
+		else_if = { limit = { ai_personality = ai_personality:ai_defensive } set_variable = { name = gp_base_temper value = 2 } }
+		else_if = { limit = { ai_personality = ai_personality:ai_friendly } set_variable = { name = gp_base_temper value = 3 } }
+		else_if = { limit = { ai_personality = ai_personality:ai_opportunistic } set_variable = { name = gp_base_temper value = 5 } }
+		else_if = { limit = { ai_personality = ai_personality:ai_expansionist } set_variable = { name = gp_base_temper value = 6 } }
+		else_if = { limit = { ai_personality = ai_personality:ai_aggressive } set_variable = { name = gp_base_temper value = 7 } }
+		else = { set_variable = { name = gp_base_temper value = 4 } }
+	}
+}
+
+# Country scope: back to the vanilla temperament, but never hotter than balanced (codes 4-7 and an unknown temperament = balanced).
+gp_restore_temperament = {
+	if = { limit = { var:gp_base_temper ?= 0 } set_personality = ai_personality:ai_isolationist }
+	else_if = { limit = { var:gp_base_temper ?= 1 } set_personality = ai_personality:ai_cautious }
+	else_if = { limit = { var:gp_base_temper ?= 2 } set_personality = ai_personality:ai_defensive }
+	else_if = { limit = { var:gp_base_temper ?= 3 } set_personality = ai_personality:ai_friendly }
+	else = { set_personality = ai_personality:ai_balanced }
+}
 
 gp_apply_personality = {
 	if = {
@@ -183,17 +230,54 @@ gp_apply_personality = {
 			is_ai = yes
 			gp_is_active = yes
 		}
+		# v0.12.1 a hot pressure overrides the course: the pressed country is defensive with a threat, cautious without one
 		if = {
-			limit = { has_variable = gp_posture_preparation }
+			limit = {
+				has_variable = gp_pr_hot
+				has_variable = gp_threat
+			}
+			set_personality = ai_personality:ai_defensive
+		}
+		else_if = {
+			limit = { has_variable = gp_pr_hot }
+			set_personality = ai_personality:ai_cautious
+		}
+		else_if = {
+			limit = {
+				has_variable = gp_posture_preparation
+				has_variable = gp_drive
+				var:gp_drive >= 50
+			}
 			set_personality = ai_personality:ai_aggressive
 		}
 		else_if = {
-			limit = { has_variable = gp_posture_expansion }
+			limit = {
+				OR = {
+					has_variable = gp_posture_preparation
+					has_variable = gp_posture_expansion
+				}
+				has_variable = gp_drive
+				var:gp_drive >= 30
+			}
 			set_personality = ai_personality:ai_expansionist
 		}
 		else_if = {
-			limit = { has_variable = gp_posture_opportunism }
+			limit = {
+				has_variable = gp_posture_opportunism
+				has_variable = gp_drive
+				var:gp_drive >= 30
+			}
 			set_personality = ai_personality:ai_opportunistic
+		}
+		else_if = {
+			limit = {
+				OR = {
+					has_variable = gp_posture_preparation
+					has_variable = gp_posture_expansion
+					has_variable = gp_posture_opportunism
+				}
+			}
+			gp_restore_temperament = yes
 		}
 		else_if = {
 			limit = {

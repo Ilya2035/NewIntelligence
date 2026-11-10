@@ -9,7 +9,7 @@
  game_concept_gp_zones_of_interest: "zones of interest"
  game_concept_gp_geopolitics_desc: "Every country plays a role instead of eating everything around it. It secures its own [area|e] and [region|e] first (its #bold core#! zone), then the lands it historically contested (its #bold sphere#!), and only as a regional hegemon its #bold distant ambitions#!. Roles - consolidator, regional power, hegemon, empire, besieged, status quo - are recalculated every year from the share of the home region the country owns and from the [gp_regional_threat|e]. Culture and faith shape who is outraged by whom, intruders from another sub-continent or faith are resisted together, and borders follow whole areas rather than lines."
  game_concept_gp_regional_threat: "Regional threat"
- game_concept_gp_regional_threat_desc: "Once a year every country looks for the strongest power present in its home [region|e] (or among its neighbours) that is at least one and a half times stronger than itself and either borders it or already holds land there. That power becomes the regional threat: opinion of it drops, countries that share the same threat and the same faith group drift together, war against the threat is preferred and the casus belli $gp_cb_contain_threat$ becomes available. A threat three times stronger on the border makes a country #bold besieged#!: it defends, arms and seeks a protector."
+ game_concept_gp_regional_threat_desc: "Once a year every country looks for its regional threat. First comes a foreign invader: a power of another region, another macro-region and another faith group that attacks the countries of the region or holds three of its locations, whatever its strength (by default only for countries with a capital in Iberia). Failing that, the strongest power present in its home [region|e] (or among its neighbours) that is at least one and a half times stronger than itself and either borders it or already holds land there; a power that is conquering fast and is no weaker than itself, and the victor of its last lost war (twelve years), count too, an ally or an old friend never. The power found becomes the regional threat: opinion of it drops, countries that share the same threat and the same faith group drift together, war against the threat is preferred and the casus belli $gp_cb_contain_threat$ becomes available. A threat three times stronger on the border makes a country #bold besieged#!: it defends, arms and seeks a protector."
 
  ### Casus belli (in_game/common/casus_belli/gp_casus_belli.txt)
  gp_cb_contain_threat: "Contain the Regional Threat"
@@ -161,7 +161,7 @@
  gp_nor_sphere: "The Atlantic islands and Bohuslaen"
  gp_nor_far: "Denmark and Greenland"
  gp_pol_core: "The Crown lands"
- gp_pol_sphere: "Silesia, Pomerelia, Red Ruthenia, Volhynia, Lithuania"
+ gp_pol_sphere: "Silesia, Pomerelia, Podolia, Lithuania"
  gp_pol_far: "Moldavia, Pomerania, White Ruthenia"
  gp_teu_core: "Prussia"
  gp_teu_sphere: "Livonia, Samogitia, Pomerelia, Mazovia"
@@ -415,7 +415,7 @@
  gp_bp_why_strongest: "#G Leading power#!: the strongest in the region."
  gp_bp_why_history: "#G Leading power#!: a historical claim, while it holds half of its best land."
  gp_bp_why_none: "Not a leading power of the region."
- GP_BP_REFRESH:"Refresh"
+ GP_BP_REFRESH: "Refresh"
  GP_BP_REFRESH_TT: "Recount the shares and lists now (otherwise they update once a year)."
  gp_bp_status_contender: "We are a #G contender#! for the region."
  gp_bp_status_hopeless: "We are #R hopelessly weaker#! than the strongest neighbour of the region: we defend and seek allies."
@@ -591,7 +591,7 @@
  gp_target_scenario_vassal: "Subjugate the crown history points to"
  rule_gp_rule_alliance: "Alliances"
  setting_gp_alliance_reasons: "By reason"
- setting_gp_alliance_reasons_desc: "No opinion threshold: the country asked weighs the reasons itself. Against: a rival for the same region, our own regional threat, a ruined or freshly defeated partner, an ally from another region with no common enemy, and before 1450 an alliance across the border of the western game (France, Iberia, Britain, Ireland). For: a common threat. Existing alliances stay."
+ setting_gp_alliance_reasons_desc: "No opinion threshold: the country asked weighs the reasons itself. Against: a rival for the same region, our own regional threat, a ruined or freshly defeated partner, an ally from another region with no common enemy, and before 1450 an alliance across the border of the western game (France, Iberia, Britain, Ireland). For: a common threat (the bigger it is, the stronger the reason), above all a foreign invader who threatens both - then regional rivalry and the ruin of a partner beaten by the same invader do not count - and an old friendship. Existing alliances stay."
  setting_gp_alliance_friends: "Friends only"
  setting_gp_alliance_friends_desc: "The same reasons, and on top an alliance can be offered only if both countries hold an opinion of at least 100 of each other. Existing alliances stay."
  GP_ALLY_REGION_RIVALS: "Rivals for the same region"
@@ -639,9 +639,9 @@
  STATIC_MODIFIER_DESC_gp_sc_irish_nation: "The Irish have not accepted foreign rule: this land is hard to govern."
  rule_gp_rule_scenario_mods: "Scenario marks"
  setting_gp_scenario_mods_on: "On"
- setting_gp_scenario_mods_on_desc: "The scenarios leave marks on countries and land: united Ireland - forts +25 % for 50 years; Irish national consciousness - -15 % control on Irish land of a foreign owner; Hundred Years' War - Spirit of Crecy, War-Weary France, Island Retreat (no colonies), Scotland's Hour, Lost Guarantees and Restless Fiefs on English land in France."
+ setting_gp_scenario_mods_on_desc: "The scenarios leave marks on countries and land: united Ireland - forts +25 % for 50 years; Irish national consciousness - -15 % control on Irish land of a foreign owner; Hundred Years' War - Spirit of Crecy, War-Weary France, Island Retreat (no colonies), Scotland's Hour, Lost Guarantees and Restless Fiefs on English land in France. The Iberian chess game and the four historical nudges (rule Historical nudges) obey this rule too."
  setting_gp_scenario_mods_off: "Off"
- setting_gp_scenario_mods_off_desc: "The scenarios run without these modifiers; the break-up of the crowns and the AI behaviour stay."
+ setting_gp_scenario_mods_off_desc: "The scenarios run without these modifiers (and without the author's four historical nudges); the break-up of the crowns and the AI behaviour stay."
 
  ### v0.6 Scenarios of Italy and the Empire (gp_scenarios_central.txt)
  GP_BP_SC_ITALY: "#bold Italy:#! [Country.Custom('gp_bp_sc_italy')]"
@@ -662,7 +662,7 @@
  gp_bp_sc_empire_gone: "the Holy Roman Empire is no more - the German lands are united by war like any others."
  gp_obj_italian_league: "Italian League"
  gp_dir_into_italy: "Direction: Italy"
- gp_dir_bohemian: "Bohemian direction: North Germany and Silesia"
+ gp_dir_bohemian: "Bohemian direction: Silesia, Upper Saxony (with Upper Lusatia) and Brandenburg"
 
  ### v0.7 Break-up of states and the Hundred Years' War v2
  STATIC_MODIFIER_NAME_gp_crisis_separatism: "Separatism"

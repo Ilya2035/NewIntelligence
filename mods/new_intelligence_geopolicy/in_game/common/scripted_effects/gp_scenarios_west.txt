@@ -46,7 +46,38 @@ gp_sc_share = {
 }
 
 # Country scope: an AI country prepares a war against scope:$TARGET$ for six years and may use the scenario casus belli.
+# v0.12.1 The scenario NAMES the war (the casus belli gp_cb_scenario_war and the variable gp_sc_cb_target, set above, always);
+# it FORCES the course (posture "preparation", the aggressive mentality, +12 and x1.6 on the target, x0.4 on everybody else)
+# only on a country that is not pressed (gp_is_pressed: lost a war lately, a threat on its soil - the evaluation's own verdict
+# that it is in no state to wage a war of choice; author, 2026-11-10: "if Spain lost to Granada and Morocco it should go
+# defensive; instead it attacked Aragon"). A pressed country weighs the named war by its own posture like any other, and the
+# scenario forces it again in the year the pressure is under 40. The Hundred Years' War state machine (gp_scenarios_hyw.txt) calls
+# gp_sc_prepare_hyw below, which is the old, unguarded form: it names and forces the war whatever the pressure. THIS IS HALF AN
+# EXEMPTION (independent review, 2026-11-10): the yearly posture pass (gp_update_posture drops an offensive course at pressure 40)
+# and the damping of the two forced lists (gp_target_prepared_war / gp_target_scenario_war, 0.2 a point) still read the pressure of
+# a crown. In the observed run England was at 12 - 19 and France near 0 in the years before the last war, so neither bites; if a
+# crown is held back in state 6 (GP_REPORT "hyw state 6" rows), the first dial is the 0.2 in those two lists.
+# Crutch (flagged, docs 3a): a gate on a forced override; the no-crutch form is a "scenario wish" term in gp_ps_preparation.
 gp_sc_prepare = {
+	set_variable = { name = gp_sc_cb_target value = scope:$TARGET$ }
+	if = {
+		limit = {
+			is_ai = yes
+			gp_is_active = yes
+			NOT = { this = scope:$TARGET$ }
+			NOT = { gp_is_pressed = yes }
+		}
+		gp_set_posture = { POSTURE = preparation }
+		set_variable = { name = gp_war_target value = scope:$TARGET$ }
+		set_variable = { name = gp_posture_left value = 6 }
+	}
+}
+
+# v0.12.1 The same without the guard, for the Hundred Years' War machine only (every call in gp_scenarios_hyw.txt). The first
+# idea was one effect with the exemption "OR = { NOT pressed, has_global_variable = gp_sc_hyw }", but gp_sc_hyw is a GLOBAL
+# state that stays set for the rest of the game once the crowns have entered any state (from 1400 on), which would have lifted
+# the guard for the Iberian crowns too - exactly where it is needed (Castile 1413-1465: preparation in 28 of 53 years).
+gp_sc_prepare_hyw = {
 	set_variable = { name = gp_sc_cb_target value = scope:$TARGET$ }
 	if = {
 		limit = {
@@ -350,10 +381,13 @@ gp_sc_directions = {
 		gp_sc_dir_add = { DIR = italian }
 	}
 	# 4D Morocco looks to Iberia
+	# v0.12.1 ... until it has lost twice there: an invader that has lost interest (gp_inv_spent, gp_invader_effects.txt, 25 years)
+	# does not look to Iberia (author, principle 5: "Morocco goes to the Maghreb and Guinea")
 	if = {
 		limit = {
 			has_global_variable = gp_sc_granada_holds
 			tag = MOR
+			NOT = { has_variable = gp_inv_spent }
 		}
 		gp_sc_dir_add = { DIR = maghrebi }
 	}

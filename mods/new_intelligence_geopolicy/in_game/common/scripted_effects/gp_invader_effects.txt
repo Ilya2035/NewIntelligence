@@ -1,0 +1,312 @@
+﻿###################################
+# New Intelligence: Geopolicy - the foreign invader: flag, defeats, front, temporary pact (prefix gp_), v0.12.1
+#
+# Author, 2026-11-10: "an additional temporary united alliance against Morocco; an invader that has lost twice loses interest
+# (Morocco goes to the Maghreb and Guinea)". Principle 5 of docs/GEOPOLICY_V012_PLAN.md: against a common strong enemy from outside the
+# neighbours unite. Triggers: gp_invader_triggers.txt. Country variables, all hidden (no modifiers):
+#   gp_inv_active      the country is an invader now; it is also in the global list gp_inv_list, which the victims read in
+#                      gp_update_threat (gp_effects.txt) to name it their regional threat (flag gp_threat_invader on the victim)
+#   gp_inv_foe         the enemy war leader (a country of the invaded region) that made it one; after a lost war: the winner
+#   gp_inv_left        years the memory lasts after the last war such a leader fought it (5)
+#   gp_inv_defeats     lost wars as an attacker against a foreign power (the second one ends its interest); gp_inv_defeats_left =
+#                      the years the record lasts (30, from the last defeat), then it is wiped
+#   gp_inv_spent       it has lost interest (25 years, gp_inv_spent_left): no longer an invader, the land of the region it lost
+#                      twice weighs a fifth in its war scores (gp_score_invader_spent, gp_inv_spent_foe = that region's leader),
+#                      the vanilla lure morocco_conquer_iberia is put aside (gp_update_vanilla_pull), the scenario hooks that point
+#                      it at the region switch off (gp_ib_backer, gp_ib_backed_here, gp_sc_directions)
+#   gp_inv_pact_list   on the two fellow VICTIMS (never on the invader): the countries this one was allied with by the temporary pact
+#                      (game rule gp_rule_invader = gp_invader_pact, THE CRUTCH)
+# Game rule gp_rule_invader: gp_invader_pact (default: the front is also allied by script for the length of the crisis),
+# gp_invader_front (the evaluation alone: alliance reasons, opinion, posture, scores), gp_invader_off (no invader at all).
+# Crutches of this file (to be replaced by the AI's own evaluation, then deleted): the pact (create_alliance / break_alliance) and
+# the rivalries laid aside inside a front (remove_rival).
+# Entry points: gp_update_invader (yearly, before gp_update_threat), gp_inv_pact_upkeep (yearly, after gp_update_threat) - both with
+# scope:gp_c saved; gp_inv_war_end (from gp_on_war_end_effect: root = the country, scope:winner / scope:loser / scope:war);
+# gp_inv_front_with (from the loop of gp_update_region_relations: this = the other country of the front, scope:gp_c = ours).
+# Helpers: gp_inv_spend, gp_inv_drop_rivals, gp_inv_pact_with. Diagnostics: GP_INV lines in debug.log; the yearly GP_REPORT of the
+# reporting countries (gp_debug_report) prints "flagged as an invader" / "invader that lost interest" / "the threat is a foreign invader".
+# STAGED ROLLOUT (independent review, 2026-11-10): the whole file works for victims in the Iberian region only (game rule
+# gp_rule_invader_scope, trigger gp_inv_in_scope); "world" is available but NOT YET OBSERVED.
+# The next observation (1337 -> 1466) should show: from 1338 Castile, Aragon, Portugal and Navarre report "the threat is a foreign
+# invader" (Morocco holds four Iberian locations at the start) with the posture common front / defense instead of preparation against
+# each other (an offensive course is re-chosen at once, a calm one - consolidation, peace, isolation - keeps its 3-7 years), and
+# "GP_INV pact" lines (the Iberian crowns allied, no war among them while it lasts; a pair in which one side once cancelled an alliance
+# with the other gets none, and "create_alliance left no alliance" means the engine refused it); no marriage of the crowns while Morocco
+# is Castile's threat (gp_ib_marriage); Morocco "flagged as an invader" in its war years (1350, 1369, 1389, 1413) and "invader that lost
+# interest" after its second lost war within thirty years; the alliances lapse about five years after the last Moroccan war (or when the
+# foothold is retaken). NO "threat is a foreign invader" report and NO GP_INV line for a country with a capital outside Iberia while the
+# game rule gp_rule_invader_scope stays at "Iberia only".
+###################################
+
+# Country scope, scope:gp_c = the country (yearly, gp_yearly_update, before gp_update_threat).
+gp_update_invader = {
+	# v0.12.1 review: the record of defeats fades - one lost war counts for thirty years, two within them end the interest
+	# (before: gp_inv_defeats was wiped only when the interest had run out, so two defeats a century apart made a "spent" invader)
+	if = {
+		limit = { has_variable = gp_inv_defeats_left }
+		change_variable = { name = gp_inv_defeats_left add = -1 }
+		if = {
+			limit = { var:gp_inv_defeats_left <= 0 }
+			remove_variable = gp_inv_defeats_left
+			if = {
+				limit = {
+					has_variable = gp_inv_defeats
+					NOT = { has_variable = gp_inv_spent }
+				}
+				remove_variable = gp_inv_defeats
+			}
+		}
+	}
+	# the memory runs down
+	if = {
+		limit = { has_variable = gp_inv_left }
+		change_variable = { name = gp_inv_left add = -1 }
+		if = {
+			limit = { var:gp_inv_left <= 0 }
+			remove_variable = gp_inv_left
+		}
+	}
+	if = {
+		limit = { has_variable = gp_inv_spent_left }
+		change_variable = { name = gp_inv_spent_left add = -1 }
+		if = {
+			limit = { var:gp_inv_spent_left <= 0 }
+			remove_variable = gp_inv_spent_left
+			if = { limit = { has_variable = gp_inv_spent } remove_variable = gp_inv_spent }
+			if = { limit = { has_variable = gp_inv_spent_foe } remove_variable = gp_inv_spent_foe }
+			if = { limit = { has_variable = gp_inv_defeats } remove_variable = gp_inv_defeats }
+		}
+	}
+	# the war arm: an attacker (or an ally that joined the attacking side) in a war whose defending side is led by a power from another
+	# region, another macro-region and another faith group whose capital lies in a region where the invader works (gp_inv_foe_ok ->
+	# gp_inv_in_scope: Iberia by default). The defender of such a war is a victim, not an invader (with the setting gp_invader_world
+	# Castile attacking Morocco makes Castile the invader of the Maghreb, not Morocco the invader of Iberia; with the default Iberia
+	# setting Morocco lies outside the staged region, so Castile is not flagged at all). No dwarfs: 20 locations at
+	# least. The foe is recorded from the enemy war leaders (every_enemy_war_leader: vanilla hre_agendas, the verified iterator; the
+	# last of several wins - with two foreign wars at once the pairing of war and foe is not exact, which only decides which region
+	# is called "invaded"). Models for the war scope: vanilla demand_war_leadership.txt (defender_leader = { ... } as a trigger
+	# block), gp_war_memory (any_attacker = { this = ... }).
+	if = {
+		limit = {
+			gp_is_active = yes
+			NOT = { has_game_rule = gp_invader_off }
+			NOT = { has_variable = gp_inv_spent }
+			exists = capital
+			is_subject = no
+			num_locations >= 20
+			any_current_war = {
+				any_attacker = { this = scope:gp_c }
+				defender_leader = { gp_inv_foe_ok = yes }
+			}
+		}
+		every_enemy_war_leader = {
+			limit = { gp_inv_foe_ok = yes }
+			scope:gp_c = {
+				set_variable = { name = gp_inv_foe value = prev }
+				set_variable = { name = gp_inv_left value = 5 }
+			}
+		}
+	}
+	# the flag and the global list the victims read
+	if = {
+		limit = {
+			gp_is_active = yes
+			NOT = { has_game_rule = gp_invader_off }
+			has_variable = gp_inv_left
+			NOT = { has_variable = gp_inv_spent }
+			var:gp_inv_foe ?= { gp_is_real_country = yes }
+		}
+		if = {
+			limit = { NOT = { has_variable = gp_inv_active } }
+			set_variable = gp_inv_active
+			add_to_global_variable_list = { name = gp_inv_list target = this }
+			debug_log = "GP_INV a country is flagged as a foreign invader (its war arm found a foreign enemy war leader)"
+		}
+	}
+	else_if = {
+		limit = { has_variable = gp_inv_active }
+		remove_variable = gp_inv_active
+		remove_list_global_variable = { name = gp_inv_list target = this }
+		if = { limit = { has_variable = gp_inv_foe } remove_variable = gp_inv_foe }
+		debug_log = "GP_INV a country is no longer a foreign invader (the memory of its last war ran out)"
+	}
+	# a foe left over from a defeat recorded by gp_inv_war_end, with no memory behind it: forgotten
+	if = {
+		limit = {
+			has_variable = gp_inv_foe
+			NOT = { has_variable = gp_inv_active }
+			NOT = { has_variable = gp_inv_left }
+		}
+		remove_variable = gp_inv_foe
+	}
+}
+
+# Country scope (gp_on_war_end_effect, on_ending_war: fires once for the winner and once for the loser, root = the country,
+# scope:winner / scope:loser / scope:war): a lost war against a foreign power goes on the record of the invader - either the
+# country is flagged as an invader of that very region (it was beaten by the region it invades), or it led an attacking war
+# of its own against that foreign winner and has the size (20 locations) - a war that was over before the next yearly pulse of the
+# country counts too. The winner must lie in a region where the invader works (gp_inv_in_scope, Iberia by default). The second defeat
+# within thirty years of the first (gp_inv_defeats_left) ends its interest (gp_inv_spend); gp_inv_foe is set here to the winner, so that the interest
+# lost is the interest in the winner's region. Allies that only joined are not called by the engine (root is the leader of a side),
+# their defeats are not counted. A white peace has no loser and is not a defeat.
+gp_inv_war_end = {
+	if = {
+		limit = {
+			scope:loser ?= root
+			gp_is_active = yes
+			NOT = { has_game_rule = gp_invader_off }
+			NOT = { has_variable = gp_inv_spent }
+			exists = capital
+			scope:winner ?= {
+				gp_inv_in_scope = yes	# v0.12.1 review: the record of defeats looks at the staged region alone (Iberia by default)
+				gp_is_foreign_power_of = { COUNTRY = root }
+			}
+			OR = {
+				AND = {
+					has_variable = gp_inv_active
+					var:gp_inv_foe ?= { capital.region = scope:winner.capital.region }
+				}
+				AND = {
+					num_locations >= 20
+					scope:war ?= { any_attacker = { this = root } }
+				}
+			}
+		}
+		if = {
+			limit = { NOT = { has_variable = gp_inv_defeats } }
+			set_variable = { name = gp_inv_defeats value = 0 }
+		}
+		change_variable = { name = gp_inv_defeats add = 1 }
+		set_variable = { name = gp_inv_defeats_left value = 30 }	# v0.12.1 review: a defeat counts for thirty years
+		set_variable = { name = gp_inv_foe value = scope:winner }
+		if = {
+			limit = { var:gp_inv_defeats >= 2 }
+			gp_inv_spend = yes
+		}
+	}
+}
+
+# Country scope: the invader has lost twice and loses interest - it is no longer named as a threat (the front dissolves), its war
+# scores for the land of that region fall for 25 years (gp_score_invader_spent), the vanilla lure of Morocco is put aside
+# (gp_update_vanilla_pull), the scenario hooks that point it at the region switch off. After 25 years the record is wiped
+# (gp_update_invader) and it may try again.
+gp_inv_spend = {
+	set_variable = gp_inv_spent
+	set_variable = { name = gp_inv_spent_left value = 25 }
+	if = { limit = { has_variable = gp_inv_defeats_left } remove_variable = gp_inv_defeats_left }
+	if = {
+		limit = { has_variable = gp_inv_foe }
+		set_variable = { name = gp_inv_spent_foe value = var:gp_inv_foe }
+		remove_variable = gp_inv_foe
+	}
+	if = { limit = { has_variable = gp_inv_left } remove_variable = gp_inv_left }
+	if = {
+		limit = { has_variable = gp_inv_active }
+		remove_variable = gp_inv_active
+		remove_list_global_variable = { name = gp_inv_list target = this }
+	}
+	debug_log = "GP_INV an invader has lost interest (two lost wars as an attacker)"
+}
+
+# this = the other country of the front, scope:gp_c = ours (called by gp_update_region_relations inside the loop over the countries
+# present in our region, when scope:gp_c has gp_threat_invader and the other is its front partner, i.e. both name the same foreign
+# invader). Always (the evaluation): the fellow victim is liked - an opinion modifier the AI weighs, refreshed yearly like
+# gp_opinion_common_enemy (an alliance needs an opinion of 0 or more both ways, vanilla alliance_can_exist). With the rule
+# gp_invader_pact (THE CRUTCH, default) and only between AI countries (a human's relations are never touched): the fellow victim
+# likes us in return, the old rivalry is laid aside and the temporary alliance is made.
+gp_inv_front_with = {
+	save_scope_as = gp_inv_o
+	scope:gp_c = {
+		remove_opinion = { target = scope:gp_inv_o modifier = gp_opinion_common_victim }
+		add_opinion = { target = scope:gp_inv_o modifier = gp_opinion_common_victim }
+	}
+	if = {
+		limit = {
+			gp_inv_pact_enabled = yes
+			is_ai = yes
+			scope:gp_c = { is_ai = yes }
+		}
+		# the fellow victim likes us in return, so that the alliance can stand from the first year
+		remove_opinion = { target = scope:gp_c modifier = gp_opinion_common_victim }
+		add_opinion = { target = scope:gp_c modifier = gp_opinion_common_victim }
+		gp_inv_drop_rivals = yes
+		gp_inv_pact_with = yes
+	}
+	clear_saved_scope = gp_inv_o
+}
+
+# this = the other country, scope:gp_c = ours, scope:gp_inv_o = the other country (saved by gp_inv_front_with). Rivals cannot be
+# allies (vanilla alliance_can_exist), and the rivalry of two crowns of one region does not matter while a foreign power is at the
+# gate. Model: vanilla flavor_BOH.txt (is_rival_of, remove_rival, both ways). THE SOFT CRUTCH: replacement hook = an engine rule
+# that lets a common threat override rivalry.
+gp_inv_drop_rivals = {
+	if = {
+		limit = { is_rival_of = scope:gp_c }
+		scope:gp_c = { remove_rival = scope:gp_inv_o }
+	}
+	if = {
+		limit = { scope:gp_c = { is_rival_of = scope:gp_inv_o } }
+		remove_rival = scope:gp_c
+	}
+}
+
+# this = the other country, scope:gp_c = ours, scope:gp_inv_o = the other country. THE CRUTCH (game rule gp_rule_invader = pact): an
+# alliance made by the script for the length of the crisis only (gp_inv_pact_upkeep breaks it when the invader no longer names us).
+# Made only when the vanilla alliance_can_exist holds (opinion 0 or more both ways, no rivalry, no coalition against each other -
+# the same trigger the alliance would expire by every month, scripted_relations alliance will_expire_trigger). Model: vanilla
+# flavor_ach.txt (remove_rival, then create_alliance = { target }); the alliance rules of gp_alliance.txt (no war between allies) hold
+# the front together. Replacement hook: the alliance reasons alone (GP_ALLY_INVADER +60), then delete the setting.
+# Not in the first year of the game: the game-start loop of gp_on_game_start_effect runs every country's yearly pass once before the
+# diplomacy of the opening is settled; the alliances of the first front come with the pass of 1338 (the opinions are there by then).
+gp_inv_pact_with = {
+	if = {
+		limit = {
+			years_since_game_start >= 1
+			NOT = { is_allied_with = { target = scope:gp_c } }
+			NOT = { is_at_war_with = scope:gp_c }
+			# v0.12.1 review: an alliance that the AI itself cancelled is not made again by the script. The vanilla cancel effect
+			# (scripted_relations/alliance.txt) leaves opinion_broke_alliance on the country that was left, and the vanilla AI offer
+			# is stopped by the same test (should_ai_offer_trigger). Both directions: this = the other country, scope:gp_c = ours.
+			NOT = { has_opinion = { modifier = opinion_broke_alliance target = scope:gp_c } }
+			NOT = { scope:gp_c = { has_opinion = { modifier = opinion_broke_alliance target = scope:gp_inv_o } } }
+			alliance_can_exist = { first = scope:gp_c second = scope:gp_inv_o }
+		}
+		scope:gp_c = {
+			create_alliance = { target = scope:gp_inv_o }
+			add_to_variable_list = { name = gp_inv_pact_list target = scope:gp_inv_o }
+		}
+		add_to_variable_list = { name = gp_inv_pact_list target = scope:gp_c }
+		# the lists stay unconditional (gp_inv_pact_upkeep tests is_allied_with before it breaks anything); only the log asks
+		if = {
+			limit = { is_allied_with = { target = scope:gp_c } }
+			debug_log = "GP_INV pact: an alliance of two fellow victims of an invader was made"
+		}
+		else = {
+			debug_log = "GP_INV pact: create_alliance left no alliance between two fellow victims of an invader"
+		}
+	}
+}
+
+# Country scope, scope:gp_c (yearly, after gp_update_threat): when the invader no longer names us, the temporary alliances lapse.
+# An alliance that existed before the pact, or that the AI made by its own reasons, is not in the list and stays. One accepted
+# exception: a pair whose create_alliance failed stays in the list (the list is written unconditionally, in case the engine takes the new
+# alliance only after the effect), so an alliance the AI makes with that country later by its own reasons is dissolved with the others.
+gp_inv_pact_upkeep = {
+	if = {
+		limit = {
+			has_variable_list = gp_inv_pact_list
+			NOT = { has_variable = gp_threat_invader }
+		}
+		every_in_list = {
+			variable = gp_inv_pact_list
+			save_scope_as = gp_inv_p
+			if = {
+				limit = { scope:gp_c = { is_allied_with = { target = scope:gp_inv_p } } }
+				scope:gp_c = { break_alliance = { target = scope:gp_inv_p } }
+				debug_log = "GP_INV pact: the alliance of a front was dissolved, the invader no longer threatens"
+			}
+			clear_saved_scope = gp_inv_p
+		}
+		clear_variable_list = gp_inv_pact_list
+	}
+}

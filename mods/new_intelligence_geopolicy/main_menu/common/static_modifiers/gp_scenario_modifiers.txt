@@ -70,10 +70,12 @@ gp_sc_wooden_walls = {
 # ---- v0.9 the Iberian chess game (gp_scenarios_iberia.txt) ----
 
 # Granada while a Maghreb country stands by it.
+# v0.12.1 (author, 2026-11-10: "Morocco has a crazy advantage, nerf it a little"): halved, manpower +20 % -> +10 %, morale
+# +5 % -> +3 %. It still needs an ally or a friend of 100 from the Maghreb (gp_ib_backed_here).
 gp_sc_maghreb_aid = {
 	game_data = { category = country }
-	global_manpower_modifier = 0.2
-	land_morale_modifier = 0.05
+	global_manpower_modifier = 0.1
+	land_morale_modifier = 0.03
 }
 
 # Aragon while the French crown favours it (France's opinion 150+).
@@ -137,4 +139,55 @@ gp_sc_foreign_crown = {
 gp_sc_french_liberty = {
 	game_data = { category = country }
 	land_morale_modifier = 0.1
+}
+
+# ================================================================================================
+# v0.12.1 The four nudges (author, 2026-11-10: "a mild nerf of Morocco, a few bonuses for Poland, England a bit stronger,
+# France slightly weaker"). Army strength can be moved only by a modifier, so these are the one honest exception to "no buffs
+# for the AI": each is EVENT-DRIVEN (it starts with a dated historical event, never at game start), TEMPORARY (15 to 70 years),
+# SMALL (3 to 10 %), named and explained in its description, and given only to an AI country (is_ai = yes) while neither of the
+# game rules "Scenario marks" (gp_rule_scenario_mods) nor "Nudges" (gp_rule_nudges = gp_nudges_off) is off. Each one is on the
+# author's veto list: delete the entry and its add_country_modifier line (named in the comment) and the nudge is gone. The AI's
+# own evaluation (scores, threat, alliances) is the first lever; these only close the rest of the gap.
+# Loc: gp_scen_l_*.yml (STATIC_MODIFIER_NAME_ / STATIC_MODIFIER_DESC_ carry the history and the numbers - keep them in step).
+# ================================================================================================
+
+# Morocco (MOR), 70 years from 1349 (gp_sc_marinid_upkeep, gp_scenarios_iberia.txt): the Marinid decline - the Black Death
+# in the Maghreb and the defeat at Kairouan (1348), the fall of Abu al-Hasan (1351), the murder of Abu Inan (1358), the rule of
+# the viziers. Small by design: about half of the Marinid bundle that the Across the Pillars setup gives Morocco
+# (mor_gharb_war_tribes +15 % army levies, the Zenata reform +10 % morale; the Zenata horse is a levy cavalry).
+# Veto: remove this entry and the add_country_modifier line in gp_sc_marinid_upkeep.
+gp_sc_marinid_decline = {
+	game_data = { category = country }
+	global_army_levy_size_modifier = -0.08
+	land_morale_modifier = -0.03
+	army_light_cavalry_power = -0.08
+}
+
+# England (ENG), 20 years from the start of the last war of the Hundred Years' War (state 6, about 1400;
+# gp_sc_hyw_last_war, gp_scenarios_hyw.txt): the Lancastrian host - indentured retinues and paid longbowmen of Henry IV and
+# Henry V (Shrewsbury 1403, Agincourt 1415). Removed with the state (stalemate, dual monarchy, French victory).
+# Veto: remove this entry and the add_country_modifier line in gp_sc_hyw_last_war.
+gp_sc_lancastrian_host = {
+	game_data = { category = country }
+	land_morale_modifier = 0.05
+	global_manpower_modifier = 0.05
+}
+
+# France (FRA), the same 20 years: the mad king (from 1392) and the quarrel of Armagnacs and Burgundians (the murder of
+# Orleans 1407) pull the levies apart. Removed with the state like the one above.
+# Veto: remove this entry and the add_country_modifier line in gp_sc_hyw_last_war.
+gp_sc_armagnac_feud = {
+	game_data = { category = country }
+	global_levy_size_modifier = -0.05
+	land_morale_modifier = -0.03
+}
+
+# Poland (POL), 15 years from the death of Boleslaw-Yuri II while Casimir III lives (gp_sc_east, gp_scenarios_central.txt,
+# B2): Casimir's Galician campaigns - half of "Scotland's hour".
+# Veto: remove this entry and the add_country_modifier line in gp_sc_east.
+gp_sc_galician_campaign = {
+	game_data = { category = country }
+	land_morale_modifier = 0.05
+	global_war_score_efficiency = 0.1
 }

@@ -43,6 +43,10 @@ gp_cb_contain_threat = {
 # v0.2 Establish dominion (author: "the home region is annexed, the regions beyond it become vassals - France puppets
 # Benelux"): an AI-only casus belli against a much weaker neighbour whose capital lies outside our home region. The war
 # goal is vassalage (wargoal take_capital_subjugation, vanilla cb_subjugation), so the land stays the subject's own.
+# v0.12.1 (docs D5-P5): the text said "neighbour" but the trigger did not test it - any tiny state anywhere was a candidate for a
+# client state (a far vassal is cheap: DISTANT_WAR_SUBJUGATION_FACTOR). Now the target must border us (is_neighbor_of = root, the
+# form of gp_expansion_targets.txt:158, inside the scope:target ?= block like root.capital.region below); the scripted list
+# gp_target_outer_dominion already takes only neighbours.
 gp_cb_establish_dominion = {
 	years = 10
 
@@ -52,6 +56,7 @@ gp_cb_establish_dominion = {
 		scope:target ?= {
 			exists = capital
 			is_subject = no
+			is_neighbor_of = root
 			NOT = { capital.region = root.capital.region }
 			relative_strength = {
 				target = root

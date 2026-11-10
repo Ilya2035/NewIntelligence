@@ -1,0 +1,7 @@
+﻿l_russian:
+ # === New Intelligence: Geopolicy v0.12.1 - Восточная Европа (area_preferences/gp_zones.txt, ai_scripted_expansion_target/gp_expansion_targets.txt, ai_scripted_expansion_score/gp_expansion_scores_east.txt) ===
+ # Ключ = имя записи в скрипте; текст показывается как причина в подсказке ИИ. Переформулированные старые ключи (gp_pol_sphere, gp_dir_bohemian) остались в gp_geopolicy_l_russian.yml.
+ gp_pol_galicia: "Червонная Русь и Волынь (галицкая дорога)"
+ gp_score_slavs_among_themselves: "Славяне воюют друг с другом: сначала родня"
+ gp_target_throne_claim: "Права на престол соседа"
+ gp_target_kin_neighbour: "Более слабый славянский сосед"

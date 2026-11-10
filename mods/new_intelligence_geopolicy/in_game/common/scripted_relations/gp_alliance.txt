@@ -9,6 +9,12 @@
 #     frames" - the opinion-100 gate of v0.9 was such a frame (docs/GEOPOLICY_V012_PLAN.md, table 3a);
 #   gp_alliance_friends - the same reasons and, on top, the v0.9 gate: opinion 100 both ways to offer;
 #   gp_alliance_any - the vanilla alliance.
+# v0.12.1 (observation 1337-1466): a FOREIGN INVADER (gp_ally_invader_front: both countries name the same foreign power as
+# their regional threat) is a reason of its own, +60 to make an alliance and +40 to keep it (GP_ALLY_INVADER); it replaces the
+# flat common-threat reason, cancels the rivalry of one region and the ruin of a partner beaten by the same invader (the
+# alliances of Castile, Aragon and Portugal against Morocco - the evaluation route; the script pact is a rule of its own,
+# gp_rule_invader, gp_invader_effects.txt). The common regional threat scales with its size (+15 at 1.5x, +25 at 2x, +35 at 3x),
+# and the old friendships of the history are renewed (+20 to make, +10 to keep: Poland - Hungary, Poland - Lithuania).
 # Existing alliances are not broken by the rule itself (the vanilla will_expire_trigger is unchanged). Re-check against
 # vanilla after every game patch.
 REPLACE:alliance = {
@@ -377,6 +383,7 @@ REPLACE:alliance = {
                     limit = {
                         scope:actor = { gp_is_regional_rival_of = { COUNTRY = scope:recipient } }
                         NOT = { gp_ally_overwhelming_threat = { WHO = scope:recipient PARTNER = scope:actor } }
+                        NOT = { gp_ally_invader_front = { WHO = scope:recipient PARTNER = scope:actor } }	# v0.12.1 rivals of one region stand together against a foreign invader
                     }
                     add = {
                         desc = "GP_ALLY_REGION_RIVALS"
@@ -398,14 +405,20 @@ REPLACE:alliance = {
                     }
                 }
                 else_if = {
-                    limit = { scope:actor = { has_variable = gp_crisis var:gp_crisis >= 80 } }
+                    limit = {
+                        scope:actor = { has_variable = gp_crisis var:gp_crisis >= 80 }
+                        NOT = { gp_ally_invader_front = { WHO = scope:recipient PARTNER = scope:actor } }	# v0.12.1 beaten by the same invader: still a partner
+                    }
                     add = {
                         desc = "GP_ALLY_RUINED"
                         value = -40
                     }
                 }
                 else_if = {
-                    limit = { scope:actor = { has_variable = gp_recent_defeat } }
+                    limit = {
+                        scope:actor = { has_variable = gp_recent_defeat }
+                        NOT = { gp_ally_invader_front = { WHO = scope:recipient PARTNER = scope:actor } }
+                    }
                     add = {
                         desc = "GP_ALLY_RUINED"
                         value = -20
@@ -432,11 +445,57 @@ REPLACE:alliance = {
                         value = -40
                     }
                 }
+                # v0.12.1 a foreign invader names both of us (gp_ally_invader_front, gp_invader_triggers.txt): the strongest reason
+                # there is. Author, principle 5: "against a common strong enemy the neighbours unite - Portugal, Castile and
+                # Aragon against Granada and Morocco". +60 offsets the rivalry (-60) and the ruin (-40 / -20) above, which are
+                # waived for such a pair anyway.
                 if = {
+                    limit = { gp_ally_invader_front = { WHO = scope:recipient PARTNER = scope:actor } }
+                    add = {
+                        desc = "GP_ALLY_INVADER"
+                        value = 60
+                    }
+                }
+                # v0.12.1 the common threat scales with its size (was +15 for a 1.5x and a 3x threat alike): +15 at 1.5x, +25 at
+                # 2x (share 0.67), +35 at 3x (share 0.75). Three plain branches of the same reason, as the reasons above.
+                else_if = {
+                    limit = {
+                        scope:recipient = {
+                            gp_shares_threat_with = { COUNTRY = scope:actor }
+                            var:gp_threat_share >= 0.75
+                        }
+                    }
+                    add = {
+                        desc = "GP_ALLY_COMMON_THREAT"
+                        value = 35
+                    }
+                }
+                else_if = {
+                    limit = {
+                        scope:recipient = {
+                            gp_shares_threat_with = { COUNTRY = scope:actor }
+                            var:gp_threat_share >= 0.67
+                        }
+                    }
+                    add = {
+                        desc = "GP_ALLY_COMMON_THREAT"
+                        value = 25
+                    }
+                }
+                else_if = {
                     limit = { scope:recipient = { gp_shares_threat_with = { COUNTRY = scope:actor } } }
                     add = {
                         desc = "GP_ALLY_COMMON_THREAT"
                         value = 15
+                    }
+                }
+                # v0.12.1 the friendships of the history (Poland - Hungary 1335, Poland - Lithuania 1325, England - Portugal) are
+                # renewed when an alliance expires: the country asked remembers the actor as a friend (gp_is_old_friend_of).
+                if = {
+                    limit = { scope:actor = { gp_is_old_friend_of = { COUNTRY = scope:recipient } } }
+                    add = {
+                        desc = "GP_ALLY_OLD_FRIEND"
+                        value = 20
                     }
                 }
             }
@@ -607,6 +666,7 @@ REPLACE:alliance = {
                 limit = {
                     scope:recipient = { gp_is_regional_rival_of = { COUNTRY = scope:actor } }
                     NOT = { gp_ally_overwhelming_threat = { WHO = scope:actor PARTNER = scope:recipient } }
+                    NOT = { gp_ally_invader_front = { WHO = scope:actor PARTNER = scope:recipient } }	# v0.12.1 rivals of one region stand together against a foreign invader
                 }
                 add = {
                     desc = "GP_ALLY_REGION_RIVALS"
@@ -621,17 +681,31 @@ REPLACE:alliance = {
                 }
             }
             else_if = {
-                limit = { scope:recipient = { has_variable = gp_crisis var:gp_crisis >= 80 } }
+                limit = {
+                    scope:recipient = { has_variable = gp_crisis var:gp_crisis >= 80 }
+                    NOT = { gp_ally_invader_front = { WHO = scope:actor PARTNER = scope:recipient } }	# v0.12.1 beaten by the same invader: still a partner
+                }
                 add = {
                     desc = "GP_ALLY_RUINED"
                     value = -25
                 }
             }
             else_if = {
-                limit = { scope:recipient = { has_variable = gp_recent_defeat } }
+                limit = {
+                    scope:recipient = { has_variable = gp_recent_defeat }
+                    NOT = { gp_ally_invader_front = { WHO = scope:actor PARTNER = scope:recipient } }
+                }
                 add = {
                     desc = "GP_ALLY_RUINED"
                     value = -10
+                }
+            }
+            # v0.12.1 a foreign invader names both of us: the alliance is worth keeping (milder than making it, +40 against +60)
+            if = {
+                limit = { gp_ally_invader_front = { WHO = scope:actor PARTNER = scope:recipient } }
+                add = {
+                    desc = "GP_ALLY_INVADER"
+                    value = 40
                 }
             }
             if = {
@@ -642,6 +716,14 @@ REPLACE:alliance = {
                 add = {
                     desc = "GP_ALLY_FAR_NO_CAUSE"
                     value = -15
+                }
+            }
+            # v0.12.1 an old friend is kept, milder than it is made (the ally deciding = scope:actor remembers the partner)
+            if = {
+                limit = { scope:recipient = { gp_is_old_friend_of = { COUNTRY = scope:actor } } }
+                add = {
+                    desc = "GP_ALLY_OLD_FRIEND"
+                    value = 10
                 }
             }
         }

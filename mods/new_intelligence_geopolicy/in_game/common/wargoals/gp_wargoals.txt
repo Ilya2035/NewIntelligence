@@ -1,0 +1,79 @@
+﻿###################################
+# New Intelligence: Geopolicy - war goals (prefix gp_), v0.12.1
+#
+# The war goal of the Hundred Years' War as vanilla 1.4.7 defines it (in_game/common/wargoals/00_default.txt, the block
+# hundred_years_war_wargoal) with ONE change: land owned by a subject of the English or the French crown can be demanded only
+# outside the British Isles and Ireland.
+#
+# Why (author, 2026-11-10, observation 1337-1466: "France for some reason landed in Wales"): vanilla lets the French demand
+# every location whose owner is a subject of England - and Wales (a dominion since 1283, setup 12_diplomacy.txt), the Pale of
+# Ireland, Durham, Chester and Lancaster are English subjects, while England's own heartland is NOT demandable. So the only
+# English-side land a French war planner may legally aim at outside France was Welsh, Irish and northern land, and the dominion
+# always joins England's defensive wars (subject_types/dominion.txt). The engine's war planner follows the allowed locations
+# (army movement is C++), so the war goal is the legitimate lever, a rule of the war and not a ban on a decision: the war is
+# about France - the territorial victories of the vanilla situation are counted in the French region only
+# (common/situations/hundred_years_war.txt). Flanders (a French vassal) stays on the table for the English. No historical
+# exception (Milford Haven 1405) - the author did not ask for one.
+#
+# Same override pattern as scripted_relations/gp_alliance.txt (REPLACE:alliance), which loads. UNVERIFIED in game: that REPLACE:
+# is honoured by the wargoals database, and that the AI's planner reacts to the narrower set. If the game logs an error for this
+# file, delete it: nothing else depends on it (the vanilla war goal then applies as before).
+# Re-check against vanilla after every game patch.
+# Loc: gp_wg_hyw_continental_tt (gp_scen_l_*.yml).
+###################################
+
+REPLACE:hundred_years_war_wargoal = {
+	type = superiority
+	war_name = "HUNDRED_YEARS_WAR_NAME" #uses none
+	war_name_is_country_order_agnostic = yes
+
+	attacker = {
+		conquer_cost = 0.75
+		subjugate_cost = 0.75
+		allowed_locations = {
+			custom_tooltip = {
+				text = gp_wg_hyw_continental_tt
+				OR = {
+					scope:location.region = region:france_region
+					AND = {
+						scope:location = {
+							owner ?= {
+								OR = {
+									is_subject_of = c:FRA
+									is_subject_of = c:ENG
+								}
+							}
+						}
+						NOT = { scope:location.region = region:great_britain_region }
+						NOT = { scope:location.region = region:ireland_region }
+					}
+				}
+			}
+		}
+	}
+	defender = {
+		conquer_cost = 0.75
+		subjugate_cost = 0.75
+		allowed_locations = {
+			custom_tooltip = {
+				text = gp_wg_hyw_continental_tt
+				OR = {
+					scope:location.region = region:france_region
+					AND = {
+						scope:location = {
+							owner ?= {
+								OR = {
+									is_subject_of = c:FRA
+									is_subject_of = c:ENG
+								}
+							}
+						}
+						NOT = { scope:location.region = region:great_britain_region }
+						NOT = { scope:location.region = region:ireland_region }
+					}
+				}
+			}
+		}
+	}
+	ticking_war_score = 0.5
+}

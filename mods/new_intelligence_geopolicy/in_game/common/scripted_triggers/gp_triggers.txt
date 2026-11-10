@@ -168,15 +168,21 @@ gp_ruler_erratic = {
 # ---- threat and intruders ----------------------------------------------------------------------
 
 # this = candidate country, scope:gp_c = the country looking for its regional threat (saved in gp_yearly_update).
-# Two ways to become a threat: be at least 1.5x as strong (share 0.6) and border us / hold land in our region / be seen
-# as a threat by the engine; or be EXPANDING (gp_is_expanding, momentum of conquest) and at least as strong as we are.
+# Three ways to become a threat: be at least 1.5x as strong (share 0.6) and border us / hold land in our region / be seen
+# as a threat by the engine; or be EXPANDING (gp_is_expanding, momentum of conquest) and at least as strong as we are; or be
+# the victor of our last lost war (v0.12.1, gp_beaten_by, twelve years) and still no weaker than we are.
 # The second branch makes neighbours of a fast conqueror close ranks even when it is not a giant.
+# v0.12.1 (author, 2026-11-10, Poland read its allies Hungary and Lithuania as the 2x-3x threat and sat in "defense" for 26
+# years): a treaty ally and an old friend are never the regional threat. Forms: is_allied_with as in gp_region_effects.txt
+# (gp_update_alliance_fatigue), gp_is_old_friend_of below. A foreign invader is found by its own arms in gp_update_threat.
 gp_is_threat_candidate = {
 	NOT = { this = scope:gp_c }
 	gp_is_real_country = yes
 	NOT = { is_subject_or_below_of = scope:gp_c }
 	NOT = { scope:gp_c = { is_subject_or_below_of = prev } }
 	NOT = { in_union_with = scope:gp_c }
+	NOT = { is_allied_with = { target = scope:gp_c } }
+	NOT = { gp_is_old_friend_of = { COUNTRY = scope:gp_c } }
 	OR = {
 		AND = {
 			relative_strength = {
@@ -212,6 +218,25 @@ gp_is_threat_candidate = {
 					count >= 3
 					region = scope:gp_c.capital.region
 				}
+			}
+		}
+		# v0.12.1 memory (D2-P1): the power that beat us in the last twelve years (var:gp_beaten_by, set at the end of the war
+		# in gp_set_beaten_by) is our threat while it is no weaker than we are and it is a neighbour, holds land in our home
+		# region, or the engine sees it as a threat (Morocco after 1369 and 1413). Models: this ?= scope:gp_c.var:gp_threat
+		# (gp_update_region_relations), is_threat_to above.
+		AND = {
+			this ?= scope:gp_c.var:gp_beaten_by
+			relative_strength = {
+				target = scope:gp_c
+				value >= 0.5
+			}
+			OR = {
+				is_neighbor_of = scope:gp_c
+				any_owned_location = {
+					count >= 1
+					region = scope:gp_c.capital.region
+				}
+				is_threat_to = scope:gp_c
 			}
 		}
 	}
@@ -260,7 +285,10 @@ gp_shares_threat_with = {
 gp_ally_overwhelming_threat = {
 	$WHO$ = {
 		gp_shares_threat_with = { COUNTRY = $PARTNER$ }
-		var:gp_threat_share >= 0.75
+		OR = {
+			var:gp_threat_share >= 0.75
+			has_variable = gp_threat_invader	# v0.12.1 a foreign invader: even rivals make common cause
+		}
 	}
 }
 
@@ -312,6 +340,7 @@ gp_is_front_partner_of = {
 	OR = {
 		NOT = { gp_is_regional_rival_of = { COUNTRY = $COUNTRY$ } }
 		$COUNTRY$ = { var:gp_threat_share >= 0.75 }
+		$COUNTRY$ = { has_variable = gp_threat_invader }	# v0.12.1 a foreign invader: the rivals of one region stand together
 	}
 	OR = {
 		gp_shares_threat_with = { COUNTRY = $COUNTRY$ }
@@ -326,6 +355,35 @@ gp_threat_is_pressing = {
 	OR = {
 		var:gp_threat ?= { has_variable = gp_is_expanding }
 		var:gp_threat ?= { gp_is_intruder_of = { COUNTRY = root } }
+		has_variable = gp_threat_invader	# v0.12.1 a foreign invader that fights the leaders of our region (gp_update_threat)
+	}
+}
+
+# v0.12.1 The country is pressed (var:gp_pressure >= 40, gp_pressure_effects.txt / gp_values.txt): a threat, lost land, lost wars
+# or a long war weigh on it enough to keep it out of every war that is not about its own survival. Read by the scenario guards
+# (gp_sc_prepare and the Iberian goals do not force "preparation" on a pressed crown), by gp_update_posture (an offensive course is
+# dropped at once), by the vanilla-lure upkeep and by gp_score_prey_crushed. Model: gp_has_unification_right (has_variable + var:).
+gp_is_pressed = {
+	has_variable = gp_pressure
+	var:gp_pressure >= 40
+}
+
+# v0.12.1 The regional threat presses on this country NOW (author: "the sea between England and France halves the unease"; a 3x
+# power across the Strait of Gibraltar is not "far"): it is NEAR (gp_threat_near, set with gp_threat in gp_update_threat: a land
+# neighbour, a capital in our region, three locations in it, a border less than 100 away, a foreign invader, or the victor of our
+# last lost war) and, for an island home (England, Ireland, Japan, Iceland), only while it is at war with us, holds land in our
+# region (gp_has_intruder), sits in our region (gp_threat_home) or is a foreign invader.
+# Country scope; needs no saved scope. Read by gp_ps_defense / gp_ps_front, the role "besieged" and the forced re-choice of the
+# posture. Models: var:gp_threat ?= { is_at_war_with = prev } (gp_is_front_partner_of), gp_is_island_home.
+gp_threat_presses = {
+	has_variable = gp_threat
+	has_variable = gp_threat_near
+	OR = {
+		NOT = { gp_is_island_home = yes }
+		has_variable = gp_has_intruder
+		has_variable = gp_threat_invader
+		has_variable = gp_threat_home
+		var:gp_threat ?= { is_at_war_with = prev }
 	}
 }
 
@@ -438,6 +496,37 @@ gp_is_tiny_target_of_attacker = {
 	}
 }
 
+# v0.12.1 A target the attacker has a reason for (target scope, scope:attacker): the calm factor (gp_score_calm_baseline) does not
+# hold it back. The war a preparing country got ready for, the scenario targets, the colonial-zone rival, the regional threat, an
+# old enemy, a foreign power in our home region, and a target that is no stranger (a throne claim or a weaker kinsman next door).
+# Models: gp_is_tiny_target_of_attacker above (target scope with scope:attacker), this ?= scope:attacker.var:... in
+# gp_expansion_scores.txt (gp_score_prey_* / gp_score_hyw_truce), gp_is_old_enemy_of / gp_is_intruder_of below.
+gp_target_has_reason = {
+	OR = {
+		this ?= scope:attacker.var:gp_war_target
+		this ?= scope:attacker.var:gp_sc_cb_target
+		this ?= scope:attacker.var:gp_sc_vassal_target
+		this ?= scope:attacker.var:gp_sc_claim_target
+		this ?= scope:attacker.var:gp_cz_rival
+		this ?= scope:attacker.var:gp_threat
+		gp_is_old_enemy_of = { COUNTRY = scope:attacker }
+		gp_is_intruder_of = { COUNTRY = scope:attacker }
+		gp_target_is_no_stranger = yes
+	}
+}
+
+# v0.12.1 Target scope (root = the target, scope:attacker): no stranger and no surprise - the attacker holds a throne claim on it
+# (Casimir's claim on Halych-Volhynia, the Luxembourg claim on Poland) or it is a weaker kinsman next door (Slavs among Slavs).
+# The two operands are scripted triggers of gp_triggers_east.txt (same scope convention, root = target, scope:attacker). Such a
+# target is not held back by "own region first" (gp_score_region_first), by the "intact power" rule (gp_score_prey_intact) nor
+# by the easy-prey rule: Red Ruthenia lies in another REGION than Cracow.
+gp_target_is_no_stranger = {
+	OR = {
+		gp_attacker_has_claim = yes
+		gp_is_weak_kin_neighbour = yes
+	}
+}
+
 # ---- roles and postures (plain country variables) --------------------------------------------------
 
 gp_is_expansion_role = {
@@ -485,6 +574,20 @@ gp_is_debug_country = {
 		tag = BRI
 		tag = KOR
 		tag = GLH
+		# v0.12.1 the Iberian game and its invader, the Eastern story (diagnostics D2/D3/D4): Aragon, Portugal, Granada, Morocco,
+		# Navarre, Tlemcen, Tunis; Halych, Volhynia, the Teutonic Order, Kyiv, Smolensk
+		tag = ARA
+		tag = POR
+		tag = GRA
+		tag = MOR
+		tag = NAV
+		tag = TLE
+		tag = TUN
+		tag = HAL
+		tag = VOL
+		tag = TEU
+		tag = KIE
+		tag = SMO
 	}
 }
 
@@ -648,12 +751,14 @@ gp_ib_backed_here = {
 			is_allied_with = { target = prev }
 			exists = capital
 			capital.region = region:maghreb_region
+			NOT = { has_variable = gp_inv_spent }	# v0.12.1 an invader that has lost twice no longer stands by Granada
 		}
 		region:maghreb_region = {
 			any_present_country = {
 				gp_is_real_country = yes
 				exists = capital
 				capital.region = region:maghreb_region
+				NOT = { has_variable = gp_inv_spent }
 				opinion = { target = scope:gp_gra value >= 100 }
 			}
 		}

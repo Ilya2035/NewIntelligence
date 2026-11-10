@@ -1,0 +1,25 @@
+﻿l_english:
+ # === New Intelligence: Geopolicy - scenarios of the West, v0.12.1 (gp_scenarios_iberia.txt, gp_scenarios_hyw.txt, gp_alliance.txt, gp_scenario_modifiers.txt, gp_wargoals.txt) ===
+ # The common cause of Iberia (goals 8 and 15), alliance reasons against an invader and for old friends, the war goal of the Hundred Years' War and the author's four small historical nudges.
+
+ ### Iberia: the common cause (goals 8 and 15; gp_brief.txt)
+ gp_goal_ib_8: "The common cause - no war on a Christian crown while we are under pressure, a foreign power is at the gate or we have no clear edge over our neighbours; we seek their friendship and hold the line."
+ gp_goal_ib_15: "The common cause - we are under pressure (beaten, threatened or worn out by wars): the old quarrel with Castile can wait; we hold the line and seek allies."
+ gp_bp_sc_iberia_first_8: "the first move is put off - Castile is under pressure, a foreign power is at the gate or Castile has no clear edge over its neighbours: the common cause, no war on Christian crowns."
+
+ ### Alliance reasons (gp_alliance.txt; shown in the diplomacy tooltip)
+ GP_ALLY_INVADER: "A foreign invader threatens us both"
+ GP_ALLY_OLD_FRIEND: "This is an old friend of ours"
+
+ ### Hundred Years' War: the war goal (gp_wargoals.txt)
+ gp_wg_hyw_continental_tt: "The war goal of the Hundred Years' War only permits taking land within the French region, or land owned by a subject of France or England outside Britain and Ireland."
+
+ ### The author's four small historical nudges (gp_scenario_modifiers.txt; all behind game rules, each with its own story and numbers)
+ STATIC_MODIFIER_NAME_gp_sc_marinid_decline: "Marinid Decline"
+ STATIC_MODIFIER_DESC_gp_sc_marinid_decline: "The Black Death and Abu al-Hasan's defeat at Kairouan (1348), his death (1351), the murder of Abu Inan (1358) and viziers behind weak sultans: the tribes of the Gharb and the Sus ride to war reluctantly, the light cavalry is not what it was. A small historical nudge for Morocco, 70 years from 1349: army levy size -8%, army morale -3%, light cavalry power -8%. The mod author's nudge; it can be switched off in the game rules (Historical nudges or Scenario marks)."
+ STATIC_MODIFIER_NAME_gp_sc_lancastrian_host: "The Lancastrian Host"
+ STATIC_MODIFIER_DESC_gp_sc_lancastrian_host: "Indentured retinues and paid longbowmen of Henry IV and Henry V (Shrewsbury 1403, Agincourt 1415): a smaller but drilled army stands firmer. A small historical nudge for England, 20 years from the start of the last war of the Hundred Years' War: army morale +5%, manpower +5%. Removed when the war is decided. The mod author's nudge; it can be switched off in the game rules (Historical nudges or Scenario marks)."
+ STATIC_MODIFIER_NAME_gp_sc_armagnac_feud: "Armagnacs and Burgundians"
+ STATIC_MODIFIER_DESC_gp_sc_armagnac_feud: "King Charles VI has been mad since 1392, the princes quarrel over the regency, and after the murder of the Duke of Orleans (1407) the court splits and pulls the levies in different directions. A small historical nudge for France, 20 years from the start of the last war of the Hundred Years' War: levy size -5%, army morale -3%. Removed when the war is decided. The mod author's nudge; it can be switched off in the game rules (Historical nudges or Scenario marks)."
+ STATIC_MODIFIER_NAME_gp_sc_galician_campaign: "The Galician Campaigns"
+ STATIC_MODIFIER_DESC_gp_sc_galician_campaign: "The last Piast of Halych and Volhynia, Boleslaw-Yuri II, is dead and Casimir the Great claims his heritage: for fifteen years the Polish host fights for Red Ruthenia in better heart, and land costs it less war score in the peace. A small historical nudge for Poland, 15 years: army morale +5%, war score efficiency +10%. The mod author's nudge; it can be switched off in the game rules (Historical nudges or Scenario marks)."

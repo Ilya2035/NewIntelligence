@@ -1,0 +1,39 @@
+﻿l_english:
+ # =====================================================================================================
+ # New Intelligence: Geopolicy - the foreign invader and the nudges (in_game/common/scripted_effects/gp_invader_effects.txt,
+ # scripted_triggers/gp_invader_triggers.txt, main_menu/common/game_rules/gp_game_rules.txt). Russian original in russian/.
+ # Format: UTF-8 BOM, "l_english:" on the first line, one space before the key.
+ # =====================================================================================================
+
+ ### Opinion modifier (in_game/common/biases/gp_opinions.txt)
+ gp_opinion_common_victim: "Victim of the same invader"
+
+ ### Game rule "Foreign invader" (main_menu/common/game_rules/gp_game_rules.txt)
+ rule_gp_rule_invader: "Foreign invader"
+ setting_gp_invader_pact: "Common front and pact"
+ setting_gp_invader_pact_desc: "A power from another region, another macro-region and another religion group that attacks the countries of a region or holds its land becomes the regional threat of every country in it: the neighbours close ranks (common front, alliances by reason, posture, war scoring) and the rivals of the region lay their feud aside. On top, for the length of the threat the script allies the AI countries of the front and removes their rivalry; when the threat passes, such alliances lapse (a crutch for the test run: once the evaluation makes the alliances by itself this setting is not needed). After two lost wars within thirty years the invader loses interest in that region for 25 years. The script does not remake an alliance that one of the two countries cancelled earlier. By default it works in Iberia only (rule Where the invader works)."
+ setting_gp_invader_front: "Common front only"
+ setting_gp_invader_front_desc: "The same, without script alliances and without removing rivalries: alliances come only from the AI's own reasons (opinion, common threat, the reasons of the region)."
+ setting_gp_invader_off: "Off"
+ setting_gp_invader_off_desc: "There are no foreign invaders: the regional threat is found by strength and neighbourhood only."
+
+ ### Game rule "Historical nudges" (main_menu/common/game_rules/gp_game_rules.txt)
+ rule_gp_rule_nudges: "Historical nudges"
+ setting_gp_nudges_on: "On"
+ setting_gp_nudges_on_desc: "AI countries only. Four small, temporary modifiers asked for by the author, each bound to a historical event and explained in its own tooltip: Marinid Decline (Morocco, from 1349), The Lancastrian Host (England) and Armagnacs and Burgundians (France) for the last war of the Hundred Years' War, The Galician Campaigns (Poland, after the death of the last Piast of Halych and Volhynia). With the Galician campaigns Poland also gets cores on the Red Ruthenian land held by Halych and Volhynia; that is not a modifier: the mod never takes those cores away. The sizes and durations of the modifiers are in their tooltips. If the rule Scenario marks or Geopolicy AI is Off, none of this is granted."
+ setting_gp_nudges_off: "Off"
+ setting_gp_nudges_off_desc: "These modifiers and the Polish cores on Red Ruthenia are not granted; the scenarios and the AI behaviour stay."
+
+ ### Game rule "Where the invader works" (main_menu/common/game_rules/gp_game_rules.txt)
+ rule_gp_rule_invader_scope: "Where the invader works"
+ setting_gp_invader_iberia: "Iberia only"
+ setting_gp_invader_iberia_desc: "The foreign invader (Morocco first of all) exists only for countries whose capital lies in Iberia: Castile, Aragon, Portugal, Navarre. The rest of the world lives without invaders. This is the first step of the rollout: the whole world is switched on after the first test run in Iberia."
+ setting_gp_invader_world: "The whole world"
+ setting_gp_invader_world_desc: "Every region has invaders (the Ottomans against the Balkans, the Mamluks against Cilicia and so on). Not tested in the game: strange alliances are possible, for example, Byzantium may be named the invader of the Anatolian beyliks."
+
+ ### Names of the v0.12.1 war-score entries (ai_scripted_expansion_score/gp_expansion_scores.txt; shown as the reason in the AI tooltip)
+ gp_score_calm_baseline: "Nothing left to settle at home: a foreign war without a reason"
+ gp_score_pressure_restraint: "We are under pressure: new wars are less attractive"
+ gp_score_prey_intact: "An intact great power from another region"
+ gp_score_prey_crushed: "A crushed neighbour: easy prey"
+ gp_score_invader_spent: "We have lost interest in this region"

@@ -112,8 +112,9 @@ gp_assign_zone_profile = {
 		SWE = { gp_add_pref = { PREF = gp_swe_core } set_variable = gp_has_profile }
 		NOR = { gp_add_pref = { PREF = gp_nor_core } set_variable = gp_has_profile }
 		# Poland, the Order, Lithuania
-		POL = { gp_add_pref = { PREF = gp_pol_core } set_variable = gp_has_profile }
-		PLC = { gp_add_pref = { PREF = gp_pol_core } set_variable = gp_has_profile }
+		# v0.12.1 (diag D4) Poland's Galician road is part of its always-on core: gp_pol_galicia (Red Ruthenia, Volhynia)
+		POL = { gp_add_pref = { PREF = gp_pol_core } gp_add_pref = { PREF = gp_pol_galicia } set_variable = gp_has_profile }
+		PLC = { gp_add_pref = { PREF = gp_pol_core } gp_add_pref = { PREF = gp_pol_galicia } set_variable = gp_has_profile }
 		TEU = { gp_add_pref = { PREF = gp_teu_core } set_variable = gp_has_profile }
 		LIT = { gp_add_pref = { PREF = gp_lit_core } set_variable = gp_has_profile }
 		RAW = { gp_add_pref = { PREF = gp_maz_core } set_variable = gp_has_profile }

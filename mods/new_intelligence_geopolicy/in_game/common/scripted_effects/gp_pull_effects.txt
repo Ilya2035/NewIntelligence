@@ -1,0 +1,66 @@
+﻿###################################
+# New Intelligence: Geopolicy - the vanilla lures follow the state of the country (prefix gp_), v0.12.1
+#
+# Author, 2026-11-10: "if Spain lost to Granada and Morocco it must turn defensive - instead it went on Aragon and nearly destroyed
+# it, then lost to Morocco again"; "Morocco has a crazy advantage" and "an invader that lost twice loses interest". Paradox gives a
+# few countries a standing national lure as a vanilla area preference (main_menu/setup/1337/25_area_preferences.txt, definitions in
+# in_game/common/area_preferences/conquest_preferences.txt): castile_conquer_spain (modifier 10: Granada, Andalusia, Murcia, Valencia,
+# Aragon, Catalonia, Navarre) and morocco_conquer_iberia (modifier 10: the whole Iberian region). Against the mod's own ladders
+# (core 6, sphere 3, far 2, direction 2) such a lure outweighs everything, and it does not care whether the country is beaten. So it
+# follows the state of the country - the same idea as the vanilla avoid_*_colonization preferences that gp_update_overseas takes
+# away from a power that earns the New World and gives back when it loses the position (gp_pref_drop / gp_pref_keep,
+# gp_region_effects.txt):
+#   Castile  - while it is pressed (gp_is_pressed: beaten, threatened, exhausted; gp_pressure, gp_pressure_effects.txt);
+#   Morocco  - while it has lost interest in the region it invaded (gp_inv_spent: two lost wars within thirty years, gp_invader_effects.txt).
+# Nothing is removed at game start: a lure is taken away only by this effect and given back only by this effect (the marker
+# variables gp_pull_cas_dropped / gp_pull_mor_dropped remember that WE removed it, so a lure that was never there is never added).
+# No country modifier is involved. AI countries only. What the next observation should show: Castile in a bad year no longer
+# prepares for Aragon; Morocco after its second defeat turns to the Maghreb.
+###################################
+
+# Country scope (yearly, gp_yearly_update, after the posture and the personality; the pressure and the invader record of this year are
+# known by then).
+gp_update_vanilla_pull = {
+	# Castile
+	if = {
+		limit = { tag = CAS }
+		if = {
+			limit = {
+				is_ai = yes
+				gp_is_active = yes
+				gp_is_pressed = yes
+			}
+			if = {
+				limit = { has_area_preference = castile_conquer_spain }
+				gp_pref_drop = { PREF = castile_conquer_spain }
+				set_variable = gp_pull_cas_dropped
+			}
+		}
+		else_if = {
+			limit = { has_variable = gp_pull_cas_dropped }
+			gp_pref_keep = { PREF = castile_conquer_spain }
+			remove_variable = gp_pull_cas_dropped
+		}
+	}
+	# Morocco
+	if = {
+		limit = { tag = MOR }
+		if = {
+			limit = {
+				is_ai = yes
+				gp_is_active = yes
+				has_variable = gp_inv_spent
+			}
+			if = {
+				limit = { has_area_preference = morocco_conquer_iberia }
+				gp_pref_drop = { PREF = morocco_conquer_iberia }
+				set_variable = gp_pull_mor_dropped
+			}
+		}
+		else_if = {
+			limit = { has_variable = gp_pull_mor_dropped }
+			gp_pref_keep = { PREF = morocco_conquer_iberia }
+			remove_variable = gp_pull_mor_dropped
+		}
+	}
+}

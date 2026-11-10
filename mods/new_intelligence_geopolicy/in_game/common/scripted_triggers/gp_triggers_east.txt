@@ -1,0 +1,62 @@
+﻿###################################
+# New Intelligence: Geopolicy - scripted triggers of the East (prefix gp_), v0.12.1
+#
+# Author, 2026-11-10: "these are the Slavs, who should mostly fight one another" and "Poland should have more influence
+# over Galicia, so that it succeeds". Four small triggers (diag D4). The first is for a country scope; the others are for
+# the TARGET scope: root = the target country, scope:attacker = the attacker - the form of every target_trigger of
+# ai_scripted_expansion_score (readme.txt there) and of gp_target_is_no_stranger (gp_triggers.txt): "a throne claim in hand,
+# or a weaker kinsman next door, is no stranger" - such a target is not held back by "own region first" and by the
+# "intact power" rule. Kept in a file of their own: the one construct that is not proven inside a target_trigger
+# (has_casus_belli_of_type_on) sits in gp_attacker_has_cb_claim, and the claim register of the mod (below) works without it.
+# Next observation: error.log without a complaint about gp_attacker_has_cb_claim; Slavic wars Slav -> Slav (gp_expansion_scores_east.txt).
+###################################
+
+# A Slavic country: its primary culture belongs to the slavic_group (Polish, Czech, Ruthenian, Russian, Serbian ...). The
+# explicit group is used instead of gp_shares_culture_group_with because the Czech culture sits in three groups
+# (bohemian_group german_group slavic_group): "shares a group" would make every German a kinsman of Bohemia.
+# Form: gp_sc_is_irish (gp_triggers.txt) = culture ?= { has_culture_group = culture_group:hibernian_group }; the key
+# slavic_group: game/in_game/common/culture_groups/00_culture_groups.txt.
+gp_is_slavic = {
+	culture ?= { has_culture_group = culture_group:slavic_group }
+}
+
+# Target scope: a weaker Slavic neighbour of a Slavic attacker - "the kin next door" (weaker = at most ~0.8x the attacker,
+# relative_strength share < 0.45, as in gp_target_regional_unification). An old friend is no prey: it is spared by
+# gp_score_old_friend, and it is not a "weak kinsman" either.
+gp_is_weak_kin_neighbour = {
+	scope:attacker = { gp_is_slavic = yes }
+	gp_is_slavic = yes
+	is_neighbor_of = scope:attacker
+	relative_strength = {
+		target = scope:attacker
+		value < 0.45
+	}
+	NOT = { gp_is_old_friend_of = { COUNTRY = scope:attacker } }
+}
+
+# Target scope: the attacker holds the throne casus belli the history events hand out - Casimir's claim on Halych and
+# Volhynia after the death of Boleslaw-Yuri II (vanilla flavor_vol.txt:665-955, 20 years), the Luxembourg claim on Poland
+# (flavor_BOH.txt:861-866 and on_action/_hardcoded.txt:3760-3778). UNVERIFIED inside a target_trigger (the form is that of
+# vanilla sengoku.txt:236-238 and scripted_relations/forced_divert_trade.txt:57, where it stands in the AI's own evaluation).
+# If error.log complains about this trigger, replace the body by "always = no": gp_attacker_has_claim keeps working on
+# the register below, and the Galician road also stands on gp_is_weak_kin_neighbour and on the Piast cores (gp_sc_east).
+gp_attacker_has_cb_claim = {
+	scope:attacker = {
+		has_casus_belli_of_type_on = {
+			type = casus_belli:cb_claim_throne
+			target = root
+		}
+	}
+}
+
+# Target scope: a throne claim in hand - a reason to go to war, not an obstacle. Two arms:
+#   1. the claim register of the mod: var:gp_claimed_by on the claimed country names the claimant (written by gp_sc_east,
+#      gp_scenarios_central.txt, for the 20 years of the Piast heritage of Halych-Volhynia). It needs no engine trigger and
+#      is the cheap test, so it comes first. Form: var:gp_sc_cb_target ?= scope:... (gp_scenarios_hyw.txt:120);
+#   2. the engine's casus belli (above).
+gp_attacker_has_claim = {
+	OR = {
+		var:gp_claimed_by ?= scope:attacker
+		gp_attacker_has_cb_claim = yes
+	}
+}

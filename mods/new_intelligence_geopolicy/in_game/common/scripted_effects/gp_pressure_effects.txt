@@ -1,0 +1,369 @@
+﻿###################################
+# New Intelligence: Geopolicy - drive, pressure, the victor's memory and the war report (prefix gp_), v0.12.1
+#
+# Author, 2026-11-10 (after the observation game 1337 -> 1466): "more passivity to all countries except the most active players -
+# the Slavs, who should mostly fight one another"; "if Spain lost to Granada and Morocco it must turn defensive, instead it went on
+# Aragon, almost destroyed it and lost to Morocco again"; "it all comes down to limiters, crutches: do it through the engine".
+# The engine route is closed, so the mod speaks to the AI in the currencies the AI itself weighs: two plain country variables,
+# no modifiers, no bans (docs/GEOPOLICY_V012_PLAN.md principles 1 and 5, crutch table 3a):
+#   var:gp_drive     0..100  what the country still has to settle at home (gp_drive_value, gp_values.txt): the licence to be active
+#   var:gp_pressure  0..100  what weighs on it (gp_pressure_state, gp_values.txt): the duty to hold back
+# Both are counted yearly for AI countries (gp_yearly_update, gp_effects.txt) and the pressure again at the end of every war the
+# country lost. Absent for players and with the mod switched off. Read by the eight posture scores that feel pressure (gp_values.txt; only the part above gp_pressure_knee), the personality
+# (gp_apply_personality, gp_region_effects.txt), the expansion scores (gp_expansion_scores.txt) and the target lists.
+# Also here: the memory of the victor (gp_beaten_by) and the test report of every declared war (GP_WAR).
+# Country variables kept here: gp_drive, gp_pressure, gp_pr_hot (hysteresis flag, 45 up / 30 down), gp_pr_mem (memory of lost
+# wars, +10 each, x0.78 a year), gp_war_years (unbroken yearly checks at war), gp_beaten_by + gp_beaten_years (12 -> 0).
+# Everything runs with scope:gp_c = the country (saved by gp_yearly_update / gp_on_war_end_effect).
+###################################
+
+# ---- the drive ------------------------------------------------------------------------------------
+
+# Country scope, yearly, after the role (the cap of the drive reads role "besieged"), before the posture. AI only. Model:
+# set_variable = { name = gp_region_share value = gp_region_share_value } (gp_compute_region_share).
+gp_update_drive = {
+	set_variable = { name = gp_drive value = gp_drive_value }
+}
+
+# Country scope: players and a switched-off mod carry neither drive nor pressure (gp_yearly_update, the non-AI branches).
+gp_clear_state = {
+	if = { limit = { has_variable = gp_drive } remove_variable = gp_drive }
+	if = { limit = { has_variable = gp_pressure } remove_variable = gp_pressure }
+	if = { limit = { has_variable = gp_pr_hot } remove_variable = gp_pr_hot }
+	if = { limit = { has_variable = gp_pr_mem } remove_variable = gp_pr_mem }
+	if = { limit = { has_variable = gp_war_years } remove_variable = gp_war_years }
+}
+
+# ---- the pressure ---------------------------------------------------------------------------------
+
+# Country scope, yearly, after the threat, the momentum and the crisis have been counted (so the role and the posture read the new
+# value): the war streak grows by a year at war and falls to nothing at peace, the memory of defeats fades by 22 %, then the
+# pressure is counted afresh from its parts (gp_pressure_state: threat, land lost, war, crisis, memory). Modelling follows
+# gp_update_momentum and gp_update_crisis: a decaying stock plus yearly states, no modifiers. AI only.
+gp_update_pressure = {
+	if = {
+		limit = { at_war = yes }
+		if = {
+			limit = { NOT = { has_variable = gp_war_years } }
+			set_variable = { name = gp_war_years value = 0 }
+		}
+		change_variable = { name = gp_war_years add = 1 }
+	}
+	else_if = {
+		limit = { has_variable = gp_war_years }
+		remove_variable = gp_war_years
+	}
+	if = {
+		limit = { has_variable = gp_pr_mem }
+		set_variable = { name = gp_pr_mem value = gp_pr_mem_next }
+		if = {
+			limit = { var:gp_pr_mem < 1 }
+			remove_variable = gp_pr_mem
+		}
+	}
+	gp_pressure_refresh = yes
+}
+
+# Country scope: var:gp_pressure from its parts. The flag gp_pr_hot is the hysteresis of the personality (45 on, 30 off): a hot
+# pressure makes gp_apply_personality defensive with a threat and cautious without one. The personality itself is applied by
+# gp_set_posture / gp_update_posture, which always run right after this effect.
+gp_pressure_refresh = {
+	set_variable = { name = gp_pressure value = gp_pressure_state }
+	if = {
+		limit = {
+			var:gp_pressure >= 45
+			NOT = { has_variable = gp_pr_hot }
+		}
+		set_variable = gp_pr_hot
+	}
+	else_if = {
+		limit = {
+			var:gp_pressure < 30
+			has_variable = gp_pr_hot
+		}
+		remove_variable = gp_pr_hot
+	}
+}
+
+# Country scope (on_ending_war, the loser, AI; gp_on_war_end_effect saves scope:gp_c): the land the peace took is counted at once
+# (gp_compute_region_share - on_ending_war runs after the peace terms), +10 memory for the lost war, and the pressure is counted
+# at once, so that the posture chosen in the same breath (gp_choose_posture) already feels it. Without the engine's measure of
+# the need of allies and without a hook on every location taken in a peace (both left out of v0.12.1: UNVERIFIED).
+gp_pressure_war_lost = {
+	gp_compute_region_share = yes
+	if = {
+		limit = { NOT = { has_variable = gp_pr_mem } }
+		set_variable = { name = gp_pr_mem value = 0 }
+	}
+	change_variable = { name = gp_pr_mem add = 10 }
+	if = {
+		limit = { var:gp_pr_mem > 60 }
+		set_variable = { name = gp_pr_mem value = 60 }
+	}
+	gp_pressure_refresh = yes
+}
+
+# ---- the victor's memory --------------------------------------------------------------------------
+
+# Country scope (on_ending_war, the loser: scope:loser ?= root; scope:winner is the victorious side's leader): the power that beat
+# us is remembered for twelve years (gp_age_defeat counts it down and drops it when the victor is gone). Read by
+# gp_is_threat_candidate - the victor, if no weaker than we are and near, is our regional threat; "Morocco after 1369 and 1413".
+# Model: set_variable = { name = gp_threat value = scope:gp_found_threat } (gp_update_threat), NOT = { this = root }
+# (gp_relations_effects.txt).
+gp_set_beaten_by = {
+	if = {
+		limit = {
+			exists = scope:winner
+			scope:winner = {
+				gp_is_real_country = yes
+				NOT = { this = root }
+			}
+		}
+		set_variable = { name = gp_beaten_by value = scope:winner }
+		set_variable = { name = gp_beaten_years value = 12 }
+	}
+}
+
+# ---- the war report (test builds) -----------------------------------------------------------------
+
+# One block of "GP_WAR ..." lines per declaration of war (on_war_declared: scope:actor = the declarer, scope:recipient = the target;
+# root is a country but not necessarily the declarer, so only the two scopes are used). debug_log cannot print a scope, so both
+# countries are named by a literal tag through a switch (gp_dbg_tag_actor / gp_dbg_tag_recipient below: the 38 tags that matter;
+# the others are only in the engine's own line of game.log, "WAR: <attacker> declared war on <target>", within the same second).
+# Join the block with that line to read what the attacker's drive, pressure, course and temperament were, what the target was
+# (intact or crushed, a neighbour or a stranger, its prepared war, a scenario war, its regional threat) and under which casus
+# belli it was declared. With the new rules, pressed attackers (40+) and intact strangers as targets should be rare among the
+# blocks, and a hot posture with drive under 30 should no longer lead to a war outside the home region.
+# tools/gp_log_reports.pl reads the blocks into war_blocks.tsv. GP TODO remove the hook (gp_on_actions.txt) and these effects
+# before a public release, like gp_debug_report.
+gp_war_declared_report = {
+	if = {
+		limit = {
+			exists = scope:actor
+			exists = scope:recipient
+		}
+		debug_log = "GP_WAR declared"
+		scope:actor = { gp_war_log_actor = yes }
+		scope:recipient = { gp_war_log_target = yes }
+		gp_war_log_cb = yes
+	}
+}
+
+# Country scope = the declarer; scope:recipient is the target.
+gp_war_log_actor = {
+	gp_dbg_tag_actor = yes
+	if = { limit = { is_ai = no } debug_log = "GP_WAR    attacker is a player" }
+	if = {
+		limit = { has_variable = gp_pressure }
+		if = { limit = { var:gp_pressure >= 40 } debug_log = "GP_WAR    attacker pressed (pressure 40+)" }
+		else_if = { limit = { var:gp_pressure >= 20 } debug_log = "GP_WAR    attacker pressure 20 - 40" }
+		else = { debug_log = "GP_WAR    attacker pressure under 20" }
+	}
+	if = {
+		limit = { has_variable = gp_drive }
+		if = { limit = { var:gp_drive < 15 } debug_log = "GP_WAR    attacker drive < 15" }
+		else_if = { limit = { var:gp_drive < 30 } debug_log = "GP_WAR    attacker drive 15 - 30" }
+		else_if = { limit = { var:gp_drive < 50 } debug_log = "GP_WAR    attacker drive 30 - 50" }
+		else = { debug_log = "GP_WAR    attacker drive >= 50" }
+	}
+	if = { limit = { has_variable = gp_posture_expansion } debug_log = "GP_WAR    attacker posture expansion" }
+	else_if = { limit = { has_variable = gp_posture_preparation } debug_log = "GP_WAR    attacker posture preparation" }
+	else_if = { limit = { has_variable = gp_posture_opportunism } debug_log = "GP_WAR    attacker posture opportunism" }
+	else_if = { limit = { has_variable = gp_posture_consolidation } debug_log = "GP_WAR    attacker posture consolidation" }
+	else_if = { limit = { has_variable = gp_posture_defense } debug_log = "GP_WAR    attacker posture defense" }
+	else_if = { limit = { has_variable = gp_posture_common_front } debug_log = "GP_WAR    attacker posture common front" }
+	else_if = { limit = { has_variable = gp_posture_recovery } debug_log = "GP_WAR    attacker posture recovery" }
+	else_if = { limit = { has_variable = gp_posture_peace } debug_log = "GP_WAR    attacker posture peace" }
+	else_if = { limit = { has_variable = gp_posture_isolation } debug_log = "GP_WAR    attacker posture isolation" }
+	if = { limit = { ai_personality = ai_personality:ai_aggressive } debug_log = "GP_WAR    attacker personality aggressive" }
+	else_if = { limit = { ai_personality = ai_personality:ai_expansionist } debug_log = "GP_WAR    attacker personality expansionist" }
+	else_if = { limit = { ai_personality = ai_personality:ai_opportunistic } debug_log = "GP_WAR    attacker personality opportunistic" }
+	else_if = { limit = { ai_personality = ai_personality:ai_defensive } debug_log = "GP_WAR    attacker personality defensive" }
+	else_if = { limit = { ai_personality = ai_personality:ai_cautious } debug_log = "GP_WAR    attacker personality cautious" }
+	else_if = { limit = { ai_personality = ai_personality:ai_friendly } debug_log = "GP_WAR    attacker personality friendly" }
+	else_if = { limit = { ai_personality = ai_personality:ai_isolationist } debug_log = "GP_WAR    attacker personality isolationist" }
+	else = { debug_log = "GP_WAR    attacker personality balanced" }
+	if = { limit = { has_variable = gp_recent_defeat } debug_log = "GP_WAR    attacker lost a war recently" }
+	if = { limit = { has_variable = gp_threat_invader } debug_log = "GP_WAR    attacker has a foreign invader for its threat" }
+	if = { limit = { var:gp_war_target ?= scope:recipient } debug_log = "GP_WAR    the target was its prepared war target" }
+	if = { limit = { var:gp_sc_cb_target ?= scope:recipient } debug_log = "GP_WAR    the target was a scenario target" }
+	if = { limit = { var:gp_threat ?= scope:recipient } debug_log = "GP_WAR    the target was its regional threat" }
+	if = { limit = { is_neighbor_of = scope:recipient } debug_log = "GP_WAR    neighbours" }
+	if = {
+		limit = {
+			exists = capital
+			scope:recipient = { exists = capital }
+		}
+		if = {
+			limit = { capital.region = scope:recipient.capital.region }
+			debug_log = "GP_WAR    target: capital in the home region"
+		}
+		else_if = {
+			limit = { scope:recipient = { any_owned_location = { region = scope:actor.capital.region } } }
+			debug_log = "GP_WAR    target: holds land in the home region"
+		}
+		else = { debug_log = "GP_WAR    target: OUTSIDE the home region" }
+	}
+	if = {
+		limit = {
+			scope:recipient = {
+				relative_strength = {
+					target = scope:actor
+					value < 0.15
+				}
+			}
+		}
+		debug_log = "GP_WAR    target: tiny (relative strength under 0.15)"
+	}
+}
+
+# Country scope = the target.
+gp_war_log_target = {
+	gp_dbg_tag_recipient = yes
+	if = { limit = { is_ai = no } debug_log = "GP_WAR    target is a player" }
+	if = {
+		limit = { has_variable = gp_region_kept }
+		if = { limit = { var:gp_region_kept <= 0.4 } debug_log = "GP_WAR    target crushed (kept 0.4 or less)" }
+		else_if = { limit = { var:gp_region_kept <= 0.6 } debug_log = "GP_WAR    target kept 0.4 - 0.6" }
+		else = { debug_log = "GP_WAR    target intact (kept more than 0.6)" }
+	}
+	if = { limit = { gp_is_power_of_standing = yes } debug_log = "GP_WAR    target is a kingdom or great power" }
+	if = {
+		limit = {
+			has_variable = gp_pressure
+			var:gp_pressure >= 40
+		}
+		debug_log = "GP_WAR    target pressed (pressure 40+)"
+	}
+}
+
+# The casus belli of the war, by name. UNVERIFIED and therefore alone in its own effect (a parse error here costs one line of the
+# report, nothing else): in_war_of_casus_belli = casus_belli:X is the vanilla country trigger of war_of_religions.txt:9 (it is true
+# for any war of the declarer with that casus belli, which on the day of the declaration is almost always the new one); our
+# casus belli and the vanilla ones that matter for this run (Italian Wars, Hundred Years' War, claims, tribute) are listed.
+gp_war_log_cb = {
+	scope:actor ?= {
+		if = { limit = { in_war_of_casus_belli = casus_belli:gp_cb_contain_threat } debug_log = "GP_WAR    casus belli gp_cb_contain_threat" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:gp_cb_establish_dominion } debug_log = "GP_WAR    casus belli gp_cb_establish_dominion" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:gp_cb_regional_unification } debug_log = "GP_WAR    casus belli gp_cb_regional_unification" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:gp_cb_scenario_war } debug_log = "GP_WAR    casus belli gp_cb_scenario_war" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:gp_cb_scenario_vassal } debug_log = "GP_WAR    casus belli gp_cb_scenario_vassal" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:gp_cb_dynastic_claim } debug_log = "GP_WAR    casus belli gp_cb_dynastic_claim" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:gp_cb_colonial_zone } debug_log = "GP_WAR    casus belli gp_cb_colonial_zone" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_conquer_province } debug_log = "GP_WAR    casus belli cb_conquer_province" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_claim_throne } debug_log = "GP_WAR    casus belli cb_claim_throne" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_make_tributary } debug_log = "GP_WAR    casus belli cb_make_tributary" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_subjugation } debug_log = "GP_WAR    casus belli cb_subjugation" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_humiliate } debug_log = "GP_WAR    casus belli cb_humiliate" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_hundred_years_war } debug_log = "GP_WAR    casus belli cb_hundred_years_war" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_hundred_years_war_fra } debug_log = "GP_WAR    casus belli cb_hundred_years_war_fra" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_iw_annexation } debug_log = "GP_WAR    casus belli cb_iw_annexation" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_crusade } debug_log = "GP_WAR    casus belli cb_crusade" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_reclaim_andalucia } debug_log = "GP_WAR    casus belli cb_reclaim_andalucia" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_conquer_enemy } debug_log = "GP_WAR    casus belli cb_conquer_enemy" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_border_war } debug_log = "GP_WAR    casus belli cb_border_war" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_liberate_hre_member } debug_log = "GP_WAR    casus belli cb_liberate_hre_member" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_independence_war } debug_log = "GP_WAR    casus belli cb_independence_war" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_league_of_public_weal } debug_log = "GP_WAR    casus belli cb_league_of_public_weal" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_hegemon } debug_log = "GP_WAR    casus belli cb_hegemon" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_coalition } debug_log = "GP_WAR    casus belli cb_coalition" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_heretic } debug_log = "GP_WAR    casus belli cb_heretic" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_union_war_for_seniority } debug_log = "GP_WAR    casus belli cb_union_war_for_seniority" }
+		else_if = { limit = { in_war_of_casus_belli = casus_belli:cb_colonial_conflict } debug_log = "GP_WAR    casus belli cb_colonial_conflict" }
+		else = { debug_log = "GP_WAR    casus belli other or none" }
+	}
+}
+
+# The tag switches of the report (generated from one list of 38 tags; a country outside the list is simply not named).
+# Country scope = the declarer (scope:actor).
+gp_dbg_tag_actor = {
+	switch = {
+		trigger = tag
+		MOR = { debug_log = "GP_WAR    attacker MOR" }
+		GRA = { debug_log = "GP_WAR    attacker GRA" }
+		POR = { debug_log = "GP_WAR    attacker POR" }
+		ARA = { debug_log = "GP_WAR    attacker ARA" }
+		CAS = { debug_log = "GP_WAR    attacker CAS" }
+		NAV = { debug_log = "GP_WAR    attacker NAV" }
+		FRA = { debug_log = "GP_WAR    attacker FRA" }
+		ENG = { debug_log = "GP_WAR    attacker ENG" }
+		TLE = { debug_log = "GP_WAR    attacker TLE" }
+		TUN = { debug_log = "GP_WAR    attacker TUN" }
+		TUR = { debug_log = "GP_WAR    attacker TUR" }
+		HAB = { debug_log = "GP_WAR    attacker HAB" }
+		BOH = { debug_log = "GP_WAR    attacker BOH" }
+		POL = { debug_log = "GP_WAR    attacker POL" }
+		LIT = { debug_log = "GP_WAR    attacker LIT" }
+		HUN = { debug_log = "GP_WAR    attacker HUN" }
+		TEU = { debug_log = "GP_WAR    attacker TEU" }
+		MOS = { debug_log = "GP_WAR    attacker MOS" }
+		NOV = { debug_log = "GP_WAR    attacker NOV" }
+		SMO = { debug_log = "GP_WAR    attacker SMO" }
+		KIE = { debug_log = "GP_WAR    attacker KIE" }
+		GLH = { debug_log = "GP_WAR    attacker GLH" }
+		DAN = { debug_log = "GP_WAR    attacker DAN" }
+		LIV = { debug_log = "GP_WAR    attacker LIV" }
+		BRA = { debug_log = "GP_WAR    attacker BRA" }
+		SCO = { debug_log = "GP_WAR    attacker SCO" }
+		WLS = { debug_log = "GP_WAR    attacker WLS" }
+		BUR = { debug_log = "GP_WAR    attacker BUR" }
+		BRI = { debug_log = "GP_WAR    attacker BRI" }
+		PRO = { debug_log = "GP_WAR    attacker PRO" }
+		SWE = { debug_log = "GP_WAR    attacker SWE" }
+		BYZ = { debug_log = "GP_WAR    attacker BYZ" }
+		SER = { debug_log = "GP_WAR    attacker SER" }
+		VEN = { debug_log = "GP_WAR    attacker VEN" }
+		MLO = { debug_log = "GP_WAR    attacker MLO" }
+		MAM = { debug_log = "GP_WAR    attacker MAM" }
+		GEO = { debug_log = "GP_WAR    attacker GEO" }
+		HAL = { debug_log = "GP_WAR    attacker HAL" }
+		VOL = { debug_log = "GP_WAR    attacker VOL" }
+	}
+}
+
+# Country scope = the target (scope:recipient).
+gp_dbg_tag_recipient = {
+	switch = {
+		trigger = tag
+		MOR = { debug_log = "GP_WAR    target MOR" }
+		GRA = { debug_log = "GP_WAR    target GRA" }
+		POR = { debug_log = "GP_WAR    target POR" }
+		ARA = { debug_log = "GP_WAR    target ARA" }
+		CAS = { debug_log = "GP_WAR    target CAS" }
+		NAV = { debug_log = "GP_WAR    target NAV" }
+		FRA = { debug_log = "GP_WAR    target FRA" }
+		ENG = { debug_log = "GP_WAR    target ENG" }
+		TLE = { debug_log = "GP_WAR    target TLE" }
+		TUN = { debug_log = "GP_WAR    target TUN" }
+		TUR = { debug_log = "GP_WAR    target TUR" }
+		HAB = { debug_log = "GP_WAR    target HAB" }
+		BOH = { debug_log = "GP_WAR    target BOH" }
+		POL = { debug_log = "GP_WAR    target POL" }
+		LIT = { debug_log = "GP_WAR    target LIT" }
+		HUN = { debug_log = "GP_WAR    target HUN" }
+		TEU = { debug_log = "GP_WAR    target TEU" }
+		MOS = { debug_log = "GP_WAR    target MOS" }
+		NOV = { debug_log = "GP_WAR    target NOV" }
+		SMO = { debug_log = "GP_WAR    target SMO" }
+		KIE = { debug_log = "GP_WAR    target KIE" }
+		GLH = { debug_log = "GP_WAR    target GLH" }
+		DAN = { debug_log = "GP_WAR    target DAN" }
+		LIV = { debug_log = "GP_WAR    target LIV" }
+		BRA = { debug_log = "GP_WAR    target BRA" }
+		SCO = { debug_log = "GP_WAR    target SCO" }
+		WLS = { debug_log = "GP_WAR    target WLS" }
+		BUR = { debug_log = "GP_WAR    target BUR" }
+		BRI = { debug_log = "GP_WAR    target BRI" }
+		PRO = { debug_log = "GP_WAR    target PRO" }
+		SWE = { debug_log = "GP_WAR    target SWE" }
+		BYZ = { debug_log = "GP_WAR    target BYZ" }
+		SER = { debug_log = "GP_WAR    target SER" }
+		VEN = { debug_log = "GP_WAR    target VEN" }
+		MLO = { debug_log = "GP_WAR    target MLO" }
+		MAM = { debug_log = "GP_WAR    target MAM" }
+		GEO = { debug_log = "GP_WAR    target GEO" }
+		HAL = { debug_log = "GP_WAR    target HAL" }
+		VOL = { debug_log = "GP_WAR    target VOL" }
+	}
+}
+
